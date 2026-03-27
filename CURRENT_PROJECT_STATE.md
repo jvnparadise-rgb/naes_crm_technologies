@@ -190,3 +190,22 @@ Completed and checkpointed:
   - minimal quotes summary contract, or
   - minimal audit summary contract
 
+## Current implementation status
+
+### Opportunity renderer progress
+- `OpportunityHeaderBlock` is protected and pushed.
+- `OpportunityRelationshipBlock` is now added, validated, and integrated into `renderOpportunityPagePlaceholder()`.
+- `validateOpportunityRelationshipBlock()` passes standalone validation.
+- `validateOpportunityPagePlaceholder()` now confirms both:
+  - `headerBlockType: OpportunityHeaderBlock`
+  - `relationshipBlockType: OpportunityRelationshipBlock`
+
+### Current architecture truth
+- The frontend remains in contract/model-shell phase.
+- `buildFrontendShell()` still drives the page outlet from `renderOpportunityPagePlaceholder()`.
+- This is not yet a true shell-mounted visual Opportunity page.
+- Next milestone is the first shell-visible Opportunity review with:
+  - header block visible
+  - relationship block visible
+  - remaining Opportunity sections still placeholder-backed
+
