@@ -4,3 +4,6 @@ export { buildPageShellModel } from './pageShellModel.js';
 export { validateFrontendShell } from './validateFrontendShell.js';
 export { pageStatusRegistry } from './pageStatusRegistry.js';
 export { validatePageStatusRegistry } from './validatePageStatusRegistry.js';
+export { topStripThemeTokens } from './topStripThemeTokens.js';
+export { createTopStripModel } from './topStripModel.js';
+export { validateTopStripModel } from './validateTopStripModel.js';

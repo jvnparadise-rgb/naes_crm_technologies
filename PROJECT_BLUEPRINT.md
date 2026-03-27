@@ -232,3 +232,20 @@ Other O&M should allow:
 - Other O&M must remain flexible and manually adjustable
 - DG versus USS logic must be driven by MW threshold rules, not ad hoc overrides
 - MWDC and MWAC calculations must remain explicit and traceable
+
+## Exact main-page top strip requirement
+
+The main page top strip must render exactly three branded segments in this order:
+1. NAES Technologies
+2. NAES Renewables
+3. NAES StratoSight
+
+Design intent:
+- full-width horizontal strip
+- equal visual segmentation
+- uppercase labels
+- clean executive styling
+- distinct brand-aware color treatment by segment
+- suitable for main-page/header presentation
+
+This strip should be implemented as a reusable shell model, not as scattered page-specific styling.
