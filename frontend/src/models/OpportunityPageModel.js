@@ -6,6 +6,7 @@ import { opportunityQuoteUiContract } from '../../../src/ui-contracts/opportunit
 import { createOpportunityHeaderSectionModel } from './OpportunityHeaderSectionModel.js';
 import { createOpportunityRelationshipSectionModel } from './OpportunityRelationshipSectionModel.js';
 import { createOpportunityHeaderSummaryModel } from './OpportunityHeaderSummaryModel.js';
+import { createOpportunityRelationshipSummaryModel } from './OpportunityRelationshipSummaryModel.js';
 
 export function createOpportunityPageModel() {
   return {
@@ -26,6 +27,7 @@ export function createOpportunityPageModel() {
     },
 
     relationshipSection: createOpportunityRelationshipSectionModel(),
+    relationshipSummary: createOpportunityRelationshipSummaryModel(),
 
     serviceToggle: {
       options: opportunityDomainContract.serviceToggles

@@ -10,3 +10,5 @@ export { validateOpportunityHeaderSectionModel } from './validateOpportunityHead
 export { validateOpportunityRelationshipSectionModel } from './validateOpportunityRelationshipSectionModel.js';
 export { createOpportunityHeaderSummaryModel } from './OpportunityHeaderSummaryModel.js';
 export { validateOpportunityHeaderSummaryModel } from './validateOpportunityHeaderSummaryModel.js';
+export { createOpportunityRelationshipSummaryModel } from './OpportunityRelationshipSummaryModel.js';
+export { validateOpportunityRelationshipSummaryModel } from './validateOpportunityRelationshipSummaryModel.js';

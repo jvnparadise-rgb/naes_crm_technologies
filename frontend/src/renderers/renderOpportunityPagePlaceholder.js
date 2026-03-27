@@ -13,6 +13,7 @@ export function renderOpportunityPagePlaceholder() {
     headerSection: model.headerSection,
     headerSummary: model.headerSummary,
     relationshipSection: model.relationshipSection,
+    relationshipSummary: model.relationshipSummary,
     relationships: model.relationships,
     serviceToggle: model.serviceToggle,
     workflow: {

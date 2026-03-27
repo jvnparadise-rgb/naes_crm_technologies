@@ -2,12 +2,14 @@ import { createOpportunityPageModel } from './OpportunityPageModel.js';
 import { validateOpportunityHeaderSectionModel } from './validateOpportunityHeaderSectionModel.js';
 import { validateOpportunityHeaderSummaryModel } from './validateOpportunityHeaderSummaryModel.js';
 import { validateOpportunityRelationshipSectionModel } from './validateOpportunityRelationshipSectionModel.js';
+import { validateOpportunityRelationshipSummaryModel } from './validateOpportunityRelationshipSummaryModel.js';
 
 export function validateOpportunityPageModel() {
   const model = createOpportunityPageModel();
   const headerSection = validateOpportunityHeaderSectionModel();
   const headerSummary = validateOpportunityHeaderSummaryModel();
   const relationshipSection = validateOpportunityRelationshipSectionModel();
+  const relationshipSummary = validateOpportunityRelationshipSummaryModel();
 
   if (model.type !== 'OpportunityPageModel') {
     throw new Error('Opportunity page model did not initialize.');
@@ -23,6 +25,10 @@ export function validateOpportunityPageModel() {
 
   if (!model.relationshipSection || model.relationshipSection.sectionId !== 'accountRelationship') {
     throw new Error('Opportunity relationship section contract is missing.');
+  }
+
+  if (!model.relationshipSummary || model.relationshipSummary.summaryId !== 'opportunityRelationshipSummary') {
+    throw new Error('Opportunity relationship summary contract is missing.');
   }
 
   if (!model.relationships.accountRequired) {
@@ -50,6 +56,7 @@ export function validateOpportunityPageModel() {
     headerSectionId: headerSection.sectionId,
     headerSummaryId: headerSummary.summaryId,
     relationshipSectionId: relationshipSection.sectionId,
+    relationshipSummaryId: relationshipSummary.summaryId,
     serviceToggleCount: model.serviceToggle.options.length,
     workflowStageCount: model.workflow.stages.length,
     quoteBrandingProfileCount: model.quotes.brandingProfiles.length,
