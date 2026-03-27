@@ -1,10 +1,22 @@
 import { createOpportunityPageModel } from './OpportunityPageModel.js';
+import { validateOpportunityHeaderSectionModel } from './validateOpportunityHeaderSectionModel.js';
+import { validateOpportunityRelationshipSectionModel } from './validateOpportunityRelationshipSectionModel.js';
 
 export function validateOpportunityPageModel() {
   const model = createOpportunityPageModel();
+  const headerSection = validateOpportunityHeaderSectionModel();
+  const relationshipSection = validateOpportunityRelationshipSectionModel();
 
   if (model.type !== 'OpportunityPageModel') {
     throw new Error('Opportunity page model did not initialize.');
+  }
+
+  if (!model.headerSection || model.headerSection.sectionId !== 'opportunityHeader') {
+    throw new Error('Opportunity header section contract is missing.');
+  }
+
+  if (!model.relationshipSection || model.relationshipSection.sectionId !== 'accountRelationship') {
+    throw new Error('Opportunity relationship section contract is missing.');
   }
 
   if (!model.relationships.accountRequired) {
@@ -29,6 +41,8 @@ export function validateOpportunityPageModel() {
 
   return {
     ok: true,
+    headerSectionId: headerSection.sectionId,
+    relationshipSectionId: relationshipSection.sectionId,
     serviceToggleCount: model.serviceToggle.options.length,
     workflowStageCount: model.workflow.stages.length,
     quoteBrandingProfileCount: model.quotes.brandingProfiles.length,

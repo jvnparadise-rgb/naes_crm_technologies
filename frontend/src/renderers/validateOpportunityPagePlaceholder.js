@@ -11,6 +11,14 @@ export function validateOpportunityPagePlaceholder() {
     throw new Error('Opportunity placeholder sections are missing.');
   }
 
+  if (!view.headerSection || view.headerSection.sectionId !== 'opportunityHeader') {
+    throw new Error('Opportunity placeholder header section contract is missing.');
+  }
+
+  if (!view.relationshipSection || view.relationshipSection.sectionId !== 'accountRelationship') {
+    throw new Error('Opportunity placeholder relationship section contract is missing.');
+  }
+
   if (!view.relationships.accountRequired) {
     throw new Error('Account relationship must remain required in placeholder renderer.');
   }
@@ -22,6 +30,8 @@ export function validateOpportunityPagePlaceholder() {
   return {
     ok: true,
     pageTitle: view.pageTitle,
+    headerSectionId: view.headerSection.sectionId,
+    relationshipSectionId: view.relationshipSection.sectionId,
     sectionCount: view.sections.length,
     quoteActionCount: view.quotes.actionCount,
     auditRequired: view.audit.required

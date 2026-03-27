@@ -3,6 +3,8 @@ import { opportunityWorkflowContract } from '../../../src/domain/opportunityWork
 import { quoteDomainContract } from '../../../src/domain/quoteDomainContract.js';
 import { pricingSchemaRegistry } from '../../../src/pricing/pricingSchemaRegistry.js';
 import { opportunityQuoteUiContract } from '../../../src/ui-contracts/opportunityQuoteUiContract.js';
+import { createOpportunityHeaderSectionModel } from './OpportunityHeaderSectionModel.js';
+import { createOpportunityRelationshipSectionModel } from './OpportunityRelationshipSectionModel.js';
 
 export function createOpportunityPageModel() {
   return {
@@ -13,11 +15,15 @@ export function createOpportunityPageModel() {
       entity: opportunityDomainContract.entity
     },
 
+    headerSection: createOpportunityHeaderSectionModel(),
+
     relationships: {
       accountRequired: opportunityDomainContract.requiredRelationships.account,
       primaryContactOptional: opportunityDomainContract.requiredRelationships.primaryContact,
       additionalContactsSupported: opportunityDomainContract.requiredRelationships.additionalContacts
     },
+
+    relationshipSection: createOpportunityRelationshipSectionModel(),
 
     serviceToggle: {
       options: opportunityDomainContract.serviceToggles

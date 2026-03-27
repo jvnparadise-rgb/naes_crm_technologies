@@ -10,6 +10,8 @@ export function renderOpportunityPagePlaceholder() {
       id: sectionId,
       status: 'placeholder'
     })),
+    headerSection: model.headerSection,
+    relationshipSection: model.relationshipSection,
     relationships: model.relationships,
     serviceToggle: model.serviceToggle,
     workflow: {

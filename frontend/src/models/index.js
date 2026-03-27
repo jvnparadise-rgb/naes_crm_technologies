@@ -4,3 +4,7 @@ export { createAccountsPageModel } from './AccountsPageModel.js';
 export { validateAccountsPageModel } from './validateAccountsPageModel.js';
 export { createContactsPageModel } from './ContactsPageModel.js';
 export { validateContactsPageModel } from './validateContactsPageModel.js';
+export { createOpportunityHeaderSectionModel } from './OpportunityHeaderSectionModel.js';
+export { createOpportunityRelationshipSectionModel } from './OpportunityRelationshipSectionModel.js';
+export { validateOpportunityHeaderSectionModel } from './validateOpportunityHeaderSectionModel.js';
+export { validateOpportunityRelationshipSectionModel } from './validateOpportunityRelationshipSectionModel.js';
