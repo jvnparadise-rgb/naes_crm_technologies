@@ -150,3 +150,43 @@ Completed and checkpointed:
   - minimal service-toggle summary contract, or
   - minimal workflow summary contract
 
+
+### Protected checkpoint
+- Current protected branch: `main`
+- Current protected commit: `3551fdf`
+- Commit message: `checkpoint: wire opportunity workflow summary contract`
+
+### Opportunity service-toggle and workflow summary progress
+Completed and checkpointed:
+- Added `OpportunityServiceToggleSummaryModel`
+- Added `validateOpportunityServiceToggleSummaryModel`
+- Added `OpportunityWorkflowSummaryModel`
+- Added `validateOpportunityWorkflowSummaryModel`
+- Extended `OpportunityPageModel` with:
+  - `serviceToggleSummary`
+  - `workflowSummary`
+- Extended `renderOpportunityPagePlaceholder()` to expose:
+  - `serviceToggleSummary`
+  - `workflowSummary`
+- Extended `validateOpportunityPagePlaceholder()` to validate both summary contracts
+
+### Current validated opportunity placeholder state
+- `pageTitle`: `Opportunities`
+- `headerSectionId`: `opportunityHeader`
+- `headerSummaryId`: `opportunityHeaderSummary`
+- `relationshipSectionId`: `accountRelationship`
+- `relationshipSummaryId`: `opportunityRelationshipSummary`
+- `serviceToggleSummaryId`: `opportunityServiceToggleSummary`
+- `workflowSummaryId`: `opportunityWorkflowSummary`
+- `sectionCount`: `9`
+- `quoteActionCount`: `4`
+- `auditRequired`: `true`
+
+### Next smallest safe step
+- Preserve contract-first progression
+- Do not jump into full page rendering
+- Do not mutate Accounts or Contacts
+- Next likely safe implementation target:
+  - minimal quotes summary contract, or
+  - minimal audit summary contract
+
