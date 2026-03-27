@@ -34,9 +34,9 @@ const app = document.getElementById('app');
 app.innerHTML = `
   <div class="page">
     <div class="topbar">
-      <div class="topbar-segment">NAES Technologies</div>
-      <div class="topbar-segment">NAES Renewables</div>
-      <div class="topbar-segment">NAES StratoSight</div>
+      <div class="topbar-segment">Technologies</div>
+      <div class="topbar-segment">Renewables</div>
+      <div class="topbar-segment">StratoSight</div>
     </div>
 
     <section class="hero">
