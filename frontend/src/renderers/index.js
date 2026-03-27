@@ -6,3 +6,5 @@ export { renderContactsPagePlaceholder } from './renderContactsPagePlaceholder.j
 export { validateContactsPagePlaceholder } from './validateContactsPagePlaceholder.js';
 export { renderOpportunityHeaderBlock } from './renderOpportunityHeaderBlock.js';
 export { validateOpportunityHeaderBlock } from './validateOpportunityHeaderBlock.js';
+export { renderOpportunityRelationshipBlock } from './renderOpportunityRelationshipBlock.js';
+export { validateOpportunityRelationshipBlock } from './validateOpportunityRelationshipBlock.js';
