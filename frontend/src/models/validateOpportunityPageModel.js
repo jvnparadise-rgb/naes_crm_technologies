@@ -4,6 +4,7 @@ import { validateOpportunityHeaderSummaryModel } from './validateOpportunityHead
 import { validateOpportunityRelationshipSectionModel } from './validateOpportunityRelationshipSectionModel.js';
 import { validateOpportunityRelationshipSummaryModel } from './validateOpportunityRelationshipSummaryModel.js';
 import { validateOpportunityServiceToggleSummaryModel } from './validateOpportunityServiceToggleSummaryModel.js';
+import { validateOpportunityWorkflowSummaryModel } from './validateOpportunityWorkflowSummaryModel.js';
 
 export function validateOpportunityPageModel() {
   const model = createOpportunityPageModel();
@@ -12,6 +13,7 @@ export function validateOpportunityPageModel() {
   const relationshipSection = validateOpportunityRelationshipSectionModel();
   const relationshipSummary = validateOpportunityRelationshipSummaryModel();
   const serviceToggleSummary = validateOpportunityServiceToggleSummaryModel();
+  const workflowSummary = validateOpportunityWorkflowSummaryModel();
 
   if (model.type !== 'OpportunityPageModel') {
     throw new Error('Opportunity page model did not initialize.');
@@ -35,6 +37,10 @@ export function validateOpportunityPageModel() {
 
   if (!model.serviceToggleSummary || model.serviceToggleSummary.summaryId !== 'opportunityServiceToggleSummary') {
     throw new Error('Opportunity service toggle summary contract is missing.');
+  }
+
+  if (!model.workflowSummary || model.workflowSummary.summaryId !== 'opportunityWorkflowSummary') {
+    throw new Error('Opportunity workflow summary contract is missing.');
   }
 
   if (!model.relationships.accountRequired) {
@@ -64,6 +70,7 @@ export function validateOpportunityPageModel() {
     relationshipSectionId: relationshipSection.sectionId,
     relationshipSummaryId: relationshipSummary.summaryId,
     serviceToggleSummaryId: serviceToggleSummary.summaryId,
+    workflowSummaryId: workflowSummary.summaryId,
     serviceToggleCount: model.serviceToggle.options.length,
     workflowStageCount: model.workflow.stages.length,
     quoteBrandingProfileCount: model.quotes.brandingProfiles.length,

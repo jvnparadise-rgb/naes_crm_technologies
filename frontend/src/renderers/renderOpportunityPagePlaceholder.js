@@ -21,6 +21,7 @@ export function renderOpportunityPagePlaceholder() {
       stageCount: model.workflow.stages.length,
       statusCount: model.workflow.statuses.length
     },
+    workflowSummary: model.workflowSummary,
     quotes: {
       brandingProfiles: model.quotes.brandingProfiles,
       actionCount: model.quotes.requiredActions.length

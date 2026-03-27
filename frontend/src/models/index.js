@@ -14,3 +14,5 @@ export { createOpportunityRelationshipSummaryModel } from './OpportunityRelation
 export { validateOpportunityRelationshipSummaryModel } from './validateOpportunityRelationshipSummaryModel.js';
 export { createOpportunityServiceToggleSummaryModel } from './OpportunityServiceToggleSummaryModel.js';
 export { validateOpportunityServiceToggleSummaryModel } from './validateOpportunityServiceToggleSummaryModel.js';
+export { createOpportunityWorkflowSummaryModel } from './OpportunityWorkflowSummaryModel.js';
+export { validateOpportunityWorkflowSummaryModel } from './validateOpportunityWorkflowSummaryModel.js';

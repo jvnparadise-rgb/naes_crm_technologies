@@ -8,6 +8,7 @@ import { createOpportunityRelationshipSectionModel } from './OpportunityRelation
 import { createOpportunityHeaderSummaryModel } from './OpportunityHeaderSummaryModel.js';
 import { createOpportunityRelationshipSummaryModel } from './OpportunityRelationshipSummaryModel.js';
 import { createOpportunityServiceToggleSummaryModel } from './OpportunityServiceToggleSummaryModel.js';
+import { createOpportunityWorkflowSummaryModel } from './OpportunityWorkflowSummaryModel.js';
 
 export function createOpportunityPageModel() {
   return {
@@ -48,6 +49,7 @@ export function createOpportunityPageModel() {
       statuses: opportunityWorkflowContract.statuses,
       rules: opportunityWorkflowContract.rules
     },
+    workflowSummary: createOpportunityWorkflowSummaryModel(),
 
     quotes: {
       brandingProfiles: quoteDomainContract.brandingProfiles,
