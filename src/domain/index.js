@@ -3,3 +3,6 @@ export { validateOpportunityDomainContract } from './validateOpportunityDomainCo
 export { accountDomainContract } from './accountDomainContract.js';
 export { contactDomainContract } from './contactDomainContract.js';
 export { validateRelatedDomainContracts } from './validateRelatedDomainContracts.js';
+export { opportunityWorkflowContract } from './opportunityWorkflowContract.js';
+export { auditEventContract } from './auditEventContract.js';
+export { validateWorkflowAndAuditContracts } from './validateWorkflowAndAuditContracts.js';
