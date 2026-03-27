@@ -9,6 +9,7 @@
     "invoke:db-check": "node --input-type=module -e \"import('./src/app.js').then(async ({ app }) => { const res = await app({ rawPath: '/db-check', requestContext: { http: { method: 'GET' } } }); console.log(res); }).catch(err => { console.error(err); process.exit(1); })\""
   },
   "dependencies": {
+    "dotenv": "^17.3.1",
     "pg": "^8.16.3"
   }
 }

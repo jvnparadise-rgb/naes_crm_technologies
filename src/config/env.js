@@ -1,4 +1,8 @@
+import { loadEnv } from './loadEnv.js';
+
 export function getEnv() {
+  loadEnv();
+
   return {
     nodeEnv: process.env.NODE_ENV || 'development',
     dbHost: process.env.DB_HOST || '',
