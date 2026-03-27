@@ -6,3 +6,5 @@ export { validateRelatedDomainContracts } from './validateRelatedDomainContracts
 export { opportunityWorkflowContract } from './opportunityWorkflowContract.js';
 export { auditEventContract } from './auditEventContract.js';
 export { validateWorkflowAndAuditContracts } from './validateWorkflowAndAuditContracts.js';
+export { quoteDomainContract } from './quoteDomainContract.js';
+export { validateQuoteDomainContract } from './validateQuoteDomainContract.js';
