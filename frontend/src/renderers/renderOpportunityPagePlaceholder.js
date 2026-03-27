@@ -2,6 +2,7 @@ import { createOpportunityPageModel } from '../models/OpportunityPageModel.js';
 import { renderOpportunityHeaderBlock } from './renderOpportunityHeaderBlock.js';
 import { renderOpportunityRelationshipBlock } from './renderOpportunityRelationshipBlock.js';
 import { renderOpportunityServiceToggleBlock } from './renderOpportunityServiceToggleBlock.js';
+import { renderOpportunityWorkflowBlock } from './renderOpportunityWorkflowBlock.js';
 
 export function renderOpportunityPagePlaceholder() {
   const model = createOpportunityPageModel();
