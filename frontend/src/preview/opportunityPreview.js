@@ -1,6 +1,74 @@
-import { renderOpportunityPagePlaceholder } from '../renderers/renderOpportunityPagePlaceholder.js';
-
-const view = renderOpportunityPagePlaceholder();
+const view = {
+  type: 'OpportunityPagePlaceholder',
+  pageTitle: 'Opportunities',
+  sections: [
+    { id: 'header', status: 'placeholder' },
+    { id: 'relationships', status: 'placeholder' },
+    { id: 'serviceToggle', status: 'placeholder' },
+    { id: 'pricingArea', status: 'placeholder' },
+    { id: 'workflow', status: 'placeholder' },
+    { id: 'quotes', status: 'placeholder' },
+    { id: 'audit', status: 'placeholder' },
+    { id: 'accountsLinkage', status: 'placeholder' },
+    { id: 'contactsLinkage', status: 'placeholder' }
+  ],
+  headerSection: {
+    sectionId: 'opportunityHeader'
+  },
+  headerSummary: {
+    summaryId: 'opportunityHeaderSummary',
+    fields: [
+      { key: 'name', label: 'Opportunity Name', required: true },
+      { key: 'serviceLine', label: 'Service Line', required: true },
+      { key: 'stage', label: 'Stage', required: true },
+      { key: 'owner', label: 'Owner', required: true },
+      { key: 'expectedCloseDate', label: 'Expected Close Date', required: false }
+    ]
+  },
+  relationshipSection: {
+    sectionId: 'accountRelationship'
+  },
+  relationshipSummary: {
+    summaryId: 'opportunityRelationshipSummary',
+    slots: [
+      { key: 'account', label: 'Account', required: true, cardinality: 'single' },
+      { key: 'primaryContact', label: 'Primary Contact', required: true, cardinality: 'single' },
+      { key: 'additionalContacts', label: 'Additional Contacts', required: false, cardinality: 'multiple' }
+    ]
+  },
+  serviceToggleSummary: {
+    summaryId: 'opportunityServiceToggleSummary',
+    options: [
+      { key: 'renewables', label: 'Renewables', required: true },
+      { key: 'stratosight', label: 'StratoSight', required: true },
+      { key: 'both', label: 'Both', required: true },
+      { key: 'otherOM', label: 'Other O&M', required: true }
+    ]
+  },
+  workflowSummary: {
+    summaryId: 'opportunityWorkflowSummary',
+    metrics: [
+      { key: 'stages', label: 'Stages', required: true },
+      { key: 'statuses', label: 'Statuses', required: true },
+      { key: 'rules', label: 'Rules', required: true }
+    ]
+  },
+  quotesSummary: {
+    summaryId: 'opportunityQuotesSummary',
+    metrics: [
+      { key: 'brandingProfiles', label: 'Branding Profiles', required: true },
+      { key: 'requiredActions', label: 'Required Actions', required: true },
+      { key: 'retentionRequirements', label: 'Retention Requirements', required: true }
+    ]
+  },
+  quotes: {
+    brandingProfiles: ['StratoSight', 'Renewables', 'Generic'],
+    actionCount: 4
+  },
+  audit: {
+    required: true
+  }
+};
 
 function listCard(title, items, mapFn) {
   return `
