@@ -1,79 +1,22 @@
-const view = {
-  type: 'OpportunityPagePlaceholder',
-  pageTitle: 'Opportunities',
-  sections: [
-    { id: 'header', status: 'placeholder' },
-    { id: 'relationships', status: 'placeholder' },
-    { id: 'serviceToggle', status: 'placeholder' },
-    { id: 'pricingArea', status: 'placeholder' },
-    { id: 'workflow', status: 'placeholder' },
-    { id: 'quotes', status: 'placeholder' },
-    { id: 'audit', status: 'placeholder' },
-    { id: 'accountsLinkage', status: 'placeholder' },
-    { id: 'contactsLinkage', status: 'placeholder' }
-  ],
-  headerSection: {
-    sectionId: 'opportunityHeader'
-  },
-  headerSummary: {
-    summaryId: 'opportunityHeaderSummary',
-    fields: [
-      { key: 'name', label: 'Opportunity Name', required: true },
-      { key: 'serviceLine', label: 'Service Line', required: true },
-      { key: 'stage', label: 'Stage', required: true },
-      { key: 'owner', label: 'Owner', required: true },
-      { key: 'expectedCloseDate', label: 'Expected Close Date', required: false }
-    ]
-  },
-  relationshipSection: {
-    sectionId: 'accountRelationship'
-  },
-  relationshipSummary: {
-    summaryId: 'opportunityRelationshipSummary',
-    slots: [
-      { key: 'account', label: 'Account', required: true, cardinality: 'single' },
-      { key: 'primaryContact', label: 'Primary Contact', required: true, cardinality: 'single' },
-      { key: 'additionalContacts', label: 'Additional Contacts', required: false, cardinality: 'multiple' }
-    ]
-  },
-  serviceToggleSummary: {
-    summaryId: 'opportunityServiceToggleSummary',
-    options: [
-      { key: 'renewables', label: 'Renewables', required: true },
-      { key: 'stratosight', label: 'StratoSight', required: true },
-      { key: 'both', label: 'Both', required: true },
-      { key: 'otherOM', label: 'Other O&M', required: true }
-    ]
-  },
-  workflowSummary: {
-    summaryId: 'opportunityWorkflowSummary',
-    metrics: [
-      { key: 'stages', label: 'Stages', required: true },
-      { key: 'statuses', label: 'Statuses', required: true },
-      { key: 'rules', label: 'Rules', required: true }
-    ]
-  },
-  quotesSummary: {
-    summaryId: 'opportunityQuotesSummary',
-    metrics: [
-      { key: 'brandingProfiles', label: 'Branding Profiles', required: true },
-      { key: 'requiredActions', label: 'Required Actions', required: true },
-      { key: 'retentionRequirements', label: 'Retention Requirements', required: true }
-    ]
-  },
-  quotes: {
-    brandingProfiles: ['StratoSight', 'Renewables', 'Generic'],
-    actionCount: 4
-  },
-  audit: {
-    required: true
-  }
-};
+import { buildFrontendShell } from '../layout/buildFrontendShell.js';
+import { renderOpportunityPagePlaceholder } from '../renderers/renderOpportunityPagePlaceholder.js';
+
+const shell = buildFrontendShell();
+const view = renderOpportunityPagePlaceholder();
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('\"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
 
 function listCard(title, items, mapFn) {
   return `
     <section class="card">
-      <h2>${title}</h2>
+      <h2>${escapeHtml(title)}</h2>
       <div class="list">
         ${items.map(mapFn).join('')}
       </div>
@@ -84,12 +27,12 @@ function listCard(title, items, mapFn) {
 function metaCard(title, entries) {
   return `
     <section class="card">
-      <h2>${title}</h2>
+      <h2>${escapeHtml(title)}</h2>
       <div class="meta">
         ${entries.map(([label, value]) => `
           <div class="meta-item">
-            <div class="label">${label}</div>
-            <div class="value">${value}</div>
+            <div class="label">${escapeHtml(label)}</div>
+            <div class="value">${escapeHtml(value)}</div>
           </div>
         `).join('')}
       </div>
@@ -97,120 +40,142 @@ function metaCard(title, entries) {
   `;
 }
 
+function renderSidebar() {
+  const items = Array.isArray(shell.sidebar?.items) ? shell.sidebar.items : [];
+  return `
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-kicker">${escapeHtml(shell.headerTitle ?? 'NAES CRM')}</div>
+        <div class="sidebar-brand-subtitle">Shell-mounted preview</div>
+      </div>
+      <div class="sidebar-list">
+        ${items.map((item) => `
+          <div class="sidebar-item ${item.pageType === 'OpportunityPagePlaceholder' ? 'sidebar-item-active' : ''}">
+            <span>${escapeHtml(item.label ?? item.pageType ?? 'Item')}</span>
+          </div>
+        `).join('')}
+      </div>
+    </aside>
+  `;
+}
+
+function renderTopbar() {
+  const segments = ['Technologies', 'Renewables', 'StratoSight'];
+  return `
+    <div class="topbar">
+      ${segments.map((segment) => `<div class="topbar-segment">${escapeHtml(segment)}</div>`).join('')}
+    </div>
+  `;
+}
+
 const app = document.getElementById('app');
 
 app.innerHTML = `
-  <div class="page">
-    <div class="topbar">
-      <div class="topbar-segment">Technologies</div>
-      <div class="topbar-segment">Renewables</div>
-      <div class="topbar-segment">StratoSight</div>
-    </div>
+  <div class="shell">
+    ${renderSidebar()}
 
-    <section class="hero">
-      <div>
-        <h1>${view.pageTitle} Local Preview</h1>
-        <p>Local contract-driven browser view for the current Opportunity placeholder build.</p>
+    <main class="main">
+      <div class="page">
+        ${renderTopbar()}
+
+        <section class="hero">
+          <div>
+            <h1>${escapeHtml(view.pageTitle)} Live Preview</h1>
+            <p>Browser preview driven from buildFrontendShell() and renderOpportunityPagePlaceholder(), not a separate mock.</p>
+          </div>
+          <div class="badge">${escapeHtml(view.type)}</div>
+        </section>
+
+        <div class="grid">
+          <div class="stack">
+            ${metaCard('Shell + Page Contracts', [
+              ['Shell Type', shell.type ?? 'missing'],
+              ['Header Title', shell.header?.title ?? 'missing'],
+              ['Sidebar Count', String(shell.sidebar?.itemCount ?? 0)],
+              ['Active Page Outlet', shell.pageOutlet?.type ?? 'missing'],
+              ['Header Block', view.headerBlock?.type ?? 'missing'],
+              ['Relationship Block', view.relationshipBlock?.type ?? 'missing'],
+              ['Service Toggle Block', view.serviceToggleBlock?.type ?? 'missing'],
+              ['Workflow Block', view.workflowBlock?.type ?? 'missing'],
+              ['Quotes Summary', view.summaries?.quotes?.summaryId ?? 'missing'],
+              ['Audit Summary', view.summaries?.audit?.summaryId ?? 'missing']
+            ])}
+
+            ${listCard(
+              'Shell Sidebar Items',
+              shell.sidebar?.items ?? [],
+              (item) => `
+                <div class="list-item">
+                  <div class="label">Navigation</div>
+                  <div class="value">${escapeHtml(item.label ?? item.pageType ?? 'Item')}</div>
+                </div>
+              `
+            )}
+
+            ${listCard(
+              'Required Placeholder Sections',
+              view.sections ?? [],
+              (section) => `
+                <div class="list-item">
+                  <div class="label">Section</div>
+                  <div class="value">${escapeHtml(section.id)}</div>
+                </div>
+              `
+            )}
+          </div>
+
+          <div class="stack">
+            ${listCard(
+              'Header Fields',
+              view.summaries?.header?.fields ?? [],
+              (field) => `
+                <div class="list-item">
+                  <div class="label">${escapeHtml(field.label)}</div>
+                  <div class="value">${escapeHtml(field.key)}${field.required ? ' , required' : ''}</div>
+                </div>
+              `
+            )}
+
+            ${listCard(
+              'Relationship Slots',
+              view.relationshipBlock?.slots ?? [],
+              (slot) => `
+                <div class="list-item">
+                  <div class="label">${escapeHtml(slot.label)}</div>
+                  <div class="value">${escapeHtml(slot.key)}${slot.required ? ' , required' : ''}</div>
+                </div>
+              `
+            )}
+
+            ${listCard(
+              'Service Toggle Options',
+              view.serviceToggleBlock?.options ?? [],
+              (option) => `
+                <div class="list-item">
+                  <div class="label">${escapeHtml(option.label)}</div>
+                  <div class="value">${escapeHtml(option.key)}</div>
+                </div>
+              `
+            )}
+
+            ${listCard(
+              'Workflow Metrics',
+              view.workflowBlock?.metrics ?? [],
+              (metric) => `
+                <div class="list-item">
+                  <div class="label">${escapeHtml(metric.label)}</div>
+                  <div class="value">${escapeHtml(metric.key)}</div>
+                </div>
+              `
+            )}
+          </div>
+        </div>
+
+        <pre class="json">${escapeHtml(JSON.stringify({ shell, view }, null, 2))}</pre>
       </div>
-      <div class="badge">${view.type}</div>
-    </section>
-
-    <div class="grid">
-      <div class="stack">
-        ${metaCard('Header Contract', [
-          ['Header Section', view.headerSection?.sectionId ?? 'missing'],
-          ['Header Summary', view.headerSummary?.summaryId ?? 'missing'],
-          ['Relationships Section', view.relationshipSection?.sectionId ?? 'missing'],
-          ['Relationships Summary', view.relationshipSummary?.summaryId ?? 'missing'],
-          ['Service Toggle Summary', view.serviceToggleSummary?.summaryId ?? 'missing'],
-          ['Workflow Summary', view.workflowSummary?.summaryId ?? 'missing'],
-          ['Quotes Summary', view.quotesSummary?.summaryId ?? 'missing'],
-          ['Audit Required', String(view.audit?.required ?? false)]
-        ])}
-
-        ${listCard(
-          'Required Placeholder Sections',
-          view.sections ?? [],
-          (section) => `
-            <div class="list-item">
-              <div class="label">Section</div>
-              <div class="value">${section.id}</div>
-            </div>
-          `
-        )}
-
-        ${listCard(
-          'Quote Branding Profiles',
-          view.quotes?.brandingProfiles ?? [],
-          (profile) => `
-            <div class="list-item">
-              <div class="label">Branding Profile</div>
-              <div class="value">${typeof profile === 'string' ? profile : JSON.stringify(profile)}</div>
-            </div>
-          `
-        )}
-      </div>
-
-      <div class="stack">
-        ${listCard(
-          'Header Summary Fields',
-          view.headerSummary?.fields ?? [],
-          (field) => `
-            <div class="list-item">
-              <div class="label">${field.label}</div>
-              <div class="value">${field.key}${field.required ? ' , required' : ''}</div>
-            </div>
-          `
-        )}
-
-        ${listCard(
-          'Relationship Summary Slots',
-          view.relationshipSummary?.slots ?? [],
-          (slot) => `
-            <div class="list-item">
-              <div class="label">${slot.label}</div>
-              <div class="value">${slot.key} , ${slot.cardinality}${slot.required ? ' , required' : ''}</div>
-            </div>
-          `
-        )}
-
-        ${listCard(
-          'Service Toggle Options',
-          view.serviceToggleSummary?.options ?? [],
-          (option) => `
-            <div class="list-item">
-              <div class="label">${option.label}</div>
-              <div class="value">${option.key}</div>
-            </div>
-          `
-        )}
-
-        ${listCard(
-          'Workflow Summary Metrics',
-          view.workflowSummary?.metrics ?? [],
-          (metric) => `
-            <div class="list-item">
-              <div class="label">${metric.label}</div>
-              <div class="value">${metric.key}</div>
-            </div>
-          `
-        )}
-
-        ${listCard(
-          'Quotes Summary Metrics',
-          view.quotesSummary?.metrics ?? [],
-          (metric) => `
-            <div class="list-item">
-              <div class="label">${metric.label}</div>
-              <div class="value">${metric.key}</div>
-            </div>
-          `
-        )}
-      </div>
-    </div>
-
-    <pre class="json">${JSON.stringify(view, null, 2)}</pre>
+    </main>
   </div>
 `;
 
-console.log('Opportunity preview view model:', view);
+console.log('Shell preview model:', shell);
+console.log('Opportunity page preview model:', view);

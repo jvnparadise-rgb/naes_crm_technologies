@@ -12,6 +12,8 @@ export function renderOpportunityPagePlaceholder() {
     pageTitle: model.header.title,
     headerBlock: renderOpportunityHeaderBlock(),
     relationshipBlock: renderOpportunityRelationshipBlock(),
+    serviceToggleBlock: renderOpportunityServiceToggleBlock(),
+    workflowBlock: renderOpportunityWorkflowBlock(),
     sections: model.requiredSections.map((sectionId) => ({
       id: sectionId,
       status: 'placeholder'
