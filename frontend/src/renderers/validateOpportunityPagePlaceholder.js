@@ -39,6 +39,10 @@ export function validateOpportunityPagePlaceholder() {
     throw new Error('Opportunity placeholder quotes summary contract is missing.');
   }
 
+  if (!view.auditSummary || view.auditSummary.summaryId !== 'opportunityAuditSummary') {
+    throw new Error('Opportunity placeholder audit summary contract is missing.');
+  }
+
   if (!view.relationships.accountRequired) {
     throw new Error('Account relationship must remain required in placeholder renderer.');
   }
@@ -57,6 +61,7 @@ export function validateOpportunityPagePlaceholder() {
     serviceToggleSummaryId: view.serviceToggleSummary.summaryId,
     workflowSummaryId: view.workflowSummary.summaryId,
     quotesSummaryId: view.quotesSummary.summaryId,
+    auditSummaryId: view.auditSummary.summaryId,
     sectionCount: view.sections.length,
     quoteActionCount: view.quotes.actionCount,
     auditRequired: view.audit.required

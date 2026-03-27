@@ -27,6 +27,7 @@ export function renderOpportunityPagePlaceholder() {
       actionCount: model.quotes.requiredActions.length
     },
     quotesSummary: model.quotesSummary,
-    audit: model.audit
+    audit: model.audit,
+    auditSummary: model.auditSummary
   };
 }

@@ -6,6 +6,7 @@ import { validateOpportunityRelationshipSummaryModel } from './validateOpportuni
 import { validateOpportunityServiceToggleSummaryModel } from './validateOpportunityServiceToggleSummaryModel.js';
 import { validateOpportunityWorkflowSummaryModel } from './validateOpportunityWorkflowSummaryModel.js';
 import { validateOpportunityQuotesSummaryModel } from './validateOpportunityQuotesSummaryModel.js';
+import { validateOpportunityAuditSummaryModel } from './validateOpportunityAuditSummaryModel.js';
 
 export function validateOpportunityPageModel() {
   const model = createOpportunityPageModel();
@@ -16,6 +17,7 @@ export function validateOpportunityPageModel() {
   const serviceToggleSummary = validateOpportunityServiceToggleSummaryModel();
   const workflowSummary = validateOpportunityWorkflowSummaryModel();
   const quotesSummary = validateOpportunityQuotesSummaryModel();
+  const auditSummary = validateOpportunityAuditSummaryModel();
 
   if (model.type !== 'OpportunityPageModel') {
     throw new Error('Opportunity page model did not initialize.');
@@ -49,6 +51,10 @@ export function validateOpportunityPageModel() {
     throw new Error('Opportunity quotes summary contract is missing.');
   }
 
+  if (!model.auditSummary || model.auditSummary.summaryId !== 'opportunityAuditSummary') {
+    throw new Error('Opportunity audit summary contract is missing.');
+  }
+
   if (!model.relationships.accountRequired) {
     throw new Error('Account relationship must be required.');
   }
@@ -78,6 +84,7 @@ export function validateOpportunityPageModel() {
     serviceToggleSummaryId: serviceToggleSummary.summaryId,
     workflowSummaryId: workflowSummary.summaryId,
     quotesSummaryId: quotesSummary.summaryId,
+    auditSummaryId: auditSummary.summaryId,
     serviceToggleCount: model.serviceToggle.options.length,
     workflowStageCount: model.workflow.stages.length,
     quoteBrandingProfileCount: model.quotes.brandingProfiles.length,

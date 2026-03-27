@@ -18,3 +18,5 @@ export { createOpportunityWorkflowSummaryModel } from './OpportunityWorkflowSumm
 export { validateOpportunityWorkflowSummaryModel } from './validateOpportunityWorkflowSummaryModel.js';
 export { createOpportunityQuotesSummaryModel } from './OpportunityQuotesSummaryModel.js';
 export { validateOpportunityQuotesSummaryModel } from './validateOpportunityQuotesSummaryModel.js';
+export { createOpportunityAuditSummaryModel } from './OpportunityAuditSummaryModel.js';
+export { validateOpportunityAuditSummaryModel } from './validateOpportunityAuditSummaryModel.js';

@@ -10,6 +10,7 @@ import { createOpportunityRelationshipSummaryModel } from './OpportunityRelation
 import { createOpportunityServiceToggleSummaryModel } from './OpportunityServiceToggleSummaryModel.js';
 import { createOpportunityWorkflowSummaryModel } from './OpportunityWorkflowSummaryModel.js';
 import { createOpportunityQuotesSummaryModel } from './OpportunityQuotesSummaryModel.js';
+import { createOpportunityAuditSummaryModel } from './OpportunityAuditSummaryModel.js';
 
 export function createOpportunityPageModel() {
   return {
@@ -64,6 +65,7 @@ export function createOpportunityPageModel() {
       required: opportunityQuoteUiContract.auditPanel.required,
       trackedEntityTypes: opportunityQuoteUiContract.auditPanel.trackedEntityTypes
     },
+    auditSummary: createOpportunityAuditSummaryModel(),
 
     requiredSections: opportunityQuoteUiContract.requiredSections
   };
