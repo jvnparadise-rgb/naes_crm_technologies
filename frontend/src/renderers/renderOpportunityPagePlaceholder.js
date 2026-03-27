@@ -1,4 +1,5 @@
 import { createOpportunityPageModel } from '../models/OpportunityPageModel.js';
+import { renderOpportunityHeaderBlock } from './renderOpportunityHeaderBlock.js';
 
 export function renderOpportunityPagePlaceholder() {
   const model = createOpportunityPageModel();
@@ -6,6 +7,7 @@ export function renderOpportunityPagePlaceholder() {
   return {
     type: 'OpportunityPagePlaceholder',
     pageTitle: model.header.title,
+    headerBlock: renderOpportunityHeaderBlock(),
     sections: model.requiredSections.map((sectionId) => ({
       id: sectionId,
       status: 'placeholder'

@@ -4,3 +4,5 @@ export { renderAccountsPagePlaceholder } from './renderAccountsPagePlaceholder.j
 export { validateAccountsPagePlaceholder } from './validateAccountsPagePlaceholder.js';
 export { renderContactsPagePlaceholder } from './renderContactsPagePlaceholder.js';
 export { validateContactsPagePlaceholder } from './validateContactsPagePlaceholder.js';
+export { renderOpportunityHeaderBlock } from './renderOpportunityHeaderBlock.js';
+export { validateOpportunityHeaderBlock } from './validateOpportunityHeaderBlock.js';

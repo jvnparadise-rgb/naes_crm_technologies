@@ -1,7 +1,9 @@
 import { renderOpportunityPagePlaceholder } from './renderOpportunityPagePlaceholder.js';
+import { validateOpportunityHeaderBlock } from './validateOpportunityHeaderBlock.js';
 
 export function validateOpportunityPagePlaceholder() {
   const view = renderOpportunityPagePlaceholder();
+  const headerBlock = validateOpportunityHeaderBlock();
 
   if (view.type !== 'OpportunityPagePlaceholder') {
     throw new Error('Opportunity placeholder renderer did not initialize.');
@@ -9,6 +11,10 @@ export function validateOpportunityPagePlaceholder() {
 
   if (!Array.isArray(view.sections) || view.sections.length === 0) {
     throw new Error('Opportunity placeholder sections are missing.');
+  }
+
+  if (!view.headerBlock || view.headerBlock.type !== 'OpportunityHeaderBlock') {
+    throw new Error('Opportunity placeholder header block is missing.');
   }
 
   if (!view.headerSection || view.headerSection.sectionId !== 'opportunityHeader') {
@@ -54,6 +60,7 @@ export function validateOpportunityPagePlaceholder() {
   return {
     ok: true,
     pageTitle: view.pageTitle,
+    headerBlockType: headerBlock.type,
     headerSectionId: view.headerSection.sectionId,
     headerSummaryId: view.headerSummary.summaryId,
     relationshipSectionId: view.relationshipSection.sectionId,
