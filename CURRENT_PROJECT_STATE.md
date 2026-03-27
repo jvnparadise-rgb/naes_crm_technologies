@@ -1,3 +1,41 @@
+## Current protected state
+
+### Protected checkpoint
+- Current protected branch: `main`
+- Current protected commit: `cdee875`
+- Commit message: `checkpoint: wire opportunity header and relationship section contracts`
+
+### Opportunity section-contract progress
+Completed and checkpointed:
+- Added `OpportunityHeaderSectionModel`
+- Added `OpportunityRelationshipSectionModel`
+- Added `validateOpportunityHeaderSectionModel`
+- Added `validateOpportunityRelationshipSectionModel`
+- Extended `OpportunityPageModel` with:
+  - `headerSection`
+  - `relationshipSection`
+- Extended `renderOpportunityPagePlaceholder()` to expose:
+  - `headerSection`
+  - `relationshipSection`
+- Extended `validateOpportunityPagePlaceholder()` to validate both section contracts
+
+### Current validated opportunity placeholder state
+- `pageTitle`: `Opportunities`
+- `headerSectionId`: `opportunityHeader`
+- `relationshipSectionId`: `accountRelationship`
+- `sectionCount`: `9`
+- `quoteActionCount`: `4`
+- `auditRequired`: `true`
+
+### Next smallest safe step
+- Update only the Opportunity track
+- Do not broaden into full UI rendering
+- Do not mutate Accounts or Contacts
+- Next likely safe implementation target:
+  - minimal header-summary placeholder contract, or
+  - minimal relationship-summary placeholder contract
+
+
 # CURRENT PROJECT STATE
 
 ## Repository
