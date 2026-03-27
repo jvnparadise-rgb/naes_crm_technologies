@@ -1,0 +1,25 @@
+import { createOpportunityPageModel } from '../models/OpportunityPageModel.js';
+
+export function renderOpportunityPagePlaceholder() {
+  const model = createOpportunityPageModel();
+
+  return {
+    type: 'OpportunityPagePlaceholder',
+    pageTitle: model.header.title,
+    sections: model.requiredSections.map((sectionId) => ({
+      id: sectionId,
+      status: 'placeholder'
+    })),
+    relationships: model.relationships,
+    serviceToggle: model.serviceToggle,
+    workflow: {
+      stageCount: model.workflow.stages.length,
+      statusCount: model.workflow.statuses.length
+    },
+    quotes: {
+      brandingProfiles: model.quotes.brandingProfiles,
+      actionCount: model.quotes.requiredActions.length
+    },
+    audit: model.audit
+  };
+}
