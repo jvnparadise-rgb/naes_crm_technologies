@@ -12,3 +12,5 @@ export { createOpportunityHeaderSummaryModel } from './OpportunityHeaderSummaryM
 export { validateOpportunityHeaderSummaryModel } from './validateOpportunityHeaderSummaryModel.js';
 export { createOpportunityRelationshipSummaryModel } from './OpportunityRelationshipSummaryModel.js';
 export { validateOpportunityRelationshipSummaryModel } from './validateOpportunityRelationshipSummaryModel.js';
+export { createOpportunityServiceToggleSummaryModel } from './OpportunityServiceToggleSummaryModel.js';
+export { validateOpportunityServiceToggleSummaryModel } from './validateOpportunityServiceToggleSummaryModel.js';

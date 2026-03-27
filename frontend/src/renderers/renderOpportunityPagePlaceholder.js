@@ -16,6 +16,7 @@ export function renderOpportunityPagePlaceholder() {
     relationshipSummary: model.relationshipSummary,
     relationships: model.relationships,
     serviceToggle: model.serviceToggle,
+    serviceToggleSummary: model.serviceToggleSummary,
     workflow: {
       stageCount: model.workflow.stages.length,
       statusCount: model.workflow.statuses.length

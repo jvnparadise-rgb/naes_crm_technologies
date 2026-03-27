@@ -7,6 +7,7 @@ import { createOpportunityHeaderSectionModel } from './OpportunityHeaderSectionM
 import { createOpportunityRelationshipSectionModel } from './OpportunityRelationshipSectionModel.js';
 import { createOpportunityHeaderSummaryModel } from './OpportunityHeaderSummaryModel.js';
 import { createOpportunityRelationshipSummaryModel } from './OpportunityRelationshipSummaryModel.js';
+import { createOpportunityServiceToggleSummaryModel } from './OpportunityServiceToggleSummaryModel.js';
 
 export function createOpportunityPageModel() {
   return {
@@ -32,6 +33,7 @@ export function createOpportunityPageModel() {
     serviceToggle: {
       options: opportunityDomainContract.serviceToggles
     },
+    serviceToggleSummary: createOpportunityServiceToggleSummaryModel(),
 
     pricingArea: {
       supportedToggles: pricingSchemaRegistry.toggles,
