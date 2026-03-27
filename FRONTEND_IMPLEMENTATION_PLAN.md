@@ -80,3 +80,17 @@ Pricing-aware areas must consume the pricing schema registry and not invent loca
 - Theme tokens are applied
 - Placeholder pages load for all approved routes
 - No hardcoded duplicate navigation structures exist
+
+## Updated first real implementation priority
+
+The first real implemented modules should be:
+1. Opportunities
+2. Accounts
+3. Contacts
+
+Opportunities should be treated as the hub module that anchors:
+- pricing behavior
+- quote generation
+- pipeline state
+- audit/change tracking
+- account/contact linkage

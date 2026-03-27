@@ -334,3 +334,15 @@ for:
 - Technologies / Generic
 - Renewables
 - StratoSight
+
+## Implementation priority order
+
+The first real CRM implementation priority order is:
+1. Opportunities
+2. Accounts
+3. Contacts
+
+Rationale:
+- Opportunities are the commercial and workflow hub of the CRM
+- Accounts and Contacts should be built immediately after Opportunities because they are core relationship dependencies
+- Pricing, quotes, pipeline behavior, and audit/change tracking should be designed around the Opportunity model first
