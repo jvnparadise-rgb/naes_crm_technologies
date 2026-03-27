@@ -8,3 +8,5 @@ export { createOpportunityHeaderSectionModel } from './OpportunityHeaderSectionM
 export { createOpportunityRelationshipSectionModel } from './OpportunityRelationshipSectionModel.js';
 export { validateOpportunityHeaderSectionModel } from './validateOpportunityHeaderSectionModel.js';
 export { validateOpportunityRelationshipSectionModel } from './validateOpportunityRelationshipSectionModel.js';
+export { createOpportunityHeaderSummaryModel } from './OpportunityHeaderSummaryModel.js';
+export { validateOpportunityHeaderSummaryModel } from './validateOpportunityHeaderSummaryModel.js';

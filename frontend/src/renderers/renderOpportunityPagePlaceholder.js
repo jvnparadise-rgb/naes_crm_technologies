@@ -11,6 +11,7 @@ export function renderOpportunityPagePlaceholder() {
       status: 'placeholder'
     })),
     headerSection: model.headerSection,
+    headerSummary: model.headerSummary,
     relationshipSection: model.relationshipSection,
     relationships: model.relationships,
     serviceToggle: model.serviceToggle,

@@ -5,6 +5,7 @@ import { pricingSchemaRegistry } from '../../../src/pricing/pricingSchemaRegistr
 import { opportunityQuoteUiContract } from '../../../src/ui-contracts/opportunityQuoteUiContract.js';
 import { createOpportunityHeaderSectionModel } from './OpportunityHeaderSectionModel.js';
 import { createOpportunityRelationshipSectionModel } from './OpportunityRelationshipSectionModel.js';
+import { createOpportunityHeaderSummaryModel } from './OpportunityHeaderSummaryModel.js';
 
 export function createOpportunityPageModel() {
   return {
@@ -16,6 +17,7 @@ export function createOpportunityPageModel() {
     },
 
     headerSection: createOpportunityHeaderSectionModel(),
+    headerSummary: createOpportunityHeaderSummaryModel(),
 
     relationships: {
       accountRequired: opportunityDomainContract.requiredRelationships.account,

@@ -15,6 +15,10 @@ export function validateOpportunityPagePlaceholder() {
     throw new Error('Opportunity placeholder header section contract is missing.');
   }
 
+  if (!view.headerSummary || view.headerSummary.summaryId !== 'opportunityHeaderSummary') {
+    throw new Error('Opportunity placeholder header summary contract is missing.');
+  }
+
   if (!view.relationshipSection || view.relationshipSection.sectionId !== 'accountRelationship') {
     throw new Error('Opportunity placeholder relationship section contract is missing.');
   }
@@ -31,6 +35,7 @@ export function validateOpportunityPagePlaceholder() {
     ok: true,
     pageTitle: view.pageTitle,
     headerSectionId: view.headerSection.sectionId,
+    headerSummaryId: view.headerSummary.summaryId,
     relationshipSectionId: view.relationshipSection.sectionId,
     sectionCount: view.sections.length,
     quoteActionCount: view.quotes.actionCount,
