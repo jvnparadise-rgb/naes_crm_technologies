@@ -170,3 +170,65 @@ Color system should be token-based:
 
 ## Non-negotiable outcome
 This project should remain clean, modular, extensible, and stable from the beginning so later changes are straightforward and do not crash unrelated areas.
+
+## Pricing card specification
+
+### Commercial toggles
+Approved pricing toggles:
+- Renewables
+- StratoSight
+- Both
+- Other O&M
+
+### Renewables pricing logic
+Renewables pricing should support two sizing frameworks:
+- MWDC
+- MWAC
+
+MWAC pricing should evaluate a bit lower than MWDC based on the calculation method.
+
+#### DG pricing
+DG applies to opportunities under 20 MWdc.
+
+DG pricing basis:
+- price per MW
+
+DG pricing range:
+- low: $14 per MW
+- high: $23 per MW
+
+#### USS pricing
+USS applies to opportunities over 20 MWdc.
+
+USS pricing basis:
+- price per MW
+
+USS pricing was specified with two overlapping references that must remain visible until normalized:
+- range stated as: $8 to $16 per MW
+- working low/high anchors stated as: $10 low and $17 high
+
+Do not silently normalize this conflict in code.
+This must remain explicit until final pricing normalization is approved.
+
+### StratoSight pricing logic
+StratoSight pricing basis:
+- price per square foot
+
+StratoSight pricing range:
+- low: $0.04 per sqft
+- high: $0.11 per sqft
+
+### Other O&M pricing logic
+Other O&M pricing is manual and based on sales-associate judgment.
+
+Other O&M should allow:
+- per-unit pricing entry
+- overall price entry
+
+### Pricing architecture rules
+- Pricing cards must be driven by explicit commercial logic, not scattered conditionals
+- Toggle selection must cleanly determine which pricing card set is shown
+- Both must support combined Renewables and StratoSight pricing presentation
+- Other O&M must remain flexible and manually adjustable
+- DG versus USS logic must be driven by MW threshold rules, not ad hoc overrides
+- MWDC and MWAC calculations must remain explicit and traceable
