@@ -11,9 +11,17 @@ fi
 printf '\033[1;92m=========== CHECKPOINT START ===========\033[0m\n'
 pwd
 git status --short || true
+
+if git diff --quiet && git diff --cached --quiet; then
+  echo "No changes to commit."
+  printf '\033[1;92m=========== CHECKPOINT END ===========\033[0m\n'
+  exit 0
+fi
+
 git add -A
 git commit -m "checkpoint: $MESSAGE"
 git push origin main
+
 printf '\n--- latest commit ---\n'
 git log --oneline -1
 printf '\033[1;92m=========== CHECKPOINT END ===========\033[0m\n'
