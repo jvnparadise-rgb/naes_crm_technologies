@@ -1,0 +1,69 @@
+# CURRENT PROJECT STATE
+
+## Repository
+- Repo path: /Users/jeffyarbrough/workspace/naes-crm-backend
+- Source of truth: local repo plus GitHub remote
+- Protected by: checkpoint script, tag script, blueprint, rules, handoff template
+
+## Current workflow guardrails
+- Work from local files only
+- One command block at a time
+- Checkpoint before meaningful changes
+- Push to origin/main after meaningful changes
+- Use milestone tags at major phases
+- Deploy to AWS only from local repo artifacts
+
+## Proven infrastructure state
+- API Gateway working
+- Lambda working
+- Aurora reachable from Lambda
+- Real PostgreSQL query works through deployed /db-check
+- Deployed backend is running from local repo package
+- Lambda handler is set to src/handler.handler
+
+## Current backend routes in code
+- GET /health
+- GET /db-check
+- GET /accounts
+- GET /contacts
+- GET /opportunities
+- GET /tasks
+- GET /activities
+
+## Repo-resident documentation completed
+- PROJECT_RULES.md
+- PROJECT_BLUEPRINT.md
+- SESSION_HANDOFF_TEMPLATE.md
+- CURRENT_PROJECT_STATE.md
+
+## Registry / structure state
+- Navigation blueprint defined in PROJECT_BLUEPRINT.md
+- Pricing card specification defined in PROJECT_BLUEPRINT.md
+- Core backend route skeletons added
+- Clean module folders established under src/
+
+## Pricing logic currently locked
+- Toggles: Renewables, StratoSight, Both, Other O&M
+- DG: under 20 MWdc, $14 to $23 per MW
+- USS: over 20 MWdc, stated range conflict preserved in blueprint
+- MWDC and MWAC supported, MWAC should evaluate a bit lower
+- StratoSight: $0.04 to $0.11 per sqft
+- Other O&M: manual per-unit or overall pricing
+
+## Milestones
+- v0.1: Infra proven and repo protection established
+- v0.2: Live backend deployed from local repo with working health and db-check
+
+## Current protected direction
+- Keep route/resource wiring clean
+- Keep sidebar/navigation from a single contract
+- Avoid scattered logic
+- Avoid aggressive rewrites
+- Build slowly and modularly
+
+## Recommended next step
+Create formal registry contracts for:
+1. navigation
+2. features/pages
+3. pricing schema
+Then continue into clean frontend shell and API expansion from those contracts.
