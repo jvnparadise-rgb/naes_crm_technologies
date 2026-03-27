@@ -5,6 +5,7 @@ import { validateOpportunityRelationshipSectionModel } from './validateOpportuni
 import { validateOpportunityRelationshipSummaryModel } from './validateOpportunityRelationshipSummaryModel.js';
 import { validateOpportunityServiceToggleSummaryModel } from './validateOpportunityServiceToggleSummaryModel.js';
 import { validateOpportunityWorkflowSummaryModel } from './validateOpportunityWorkflowSummaryModel.js';
+import { validateOpportunityQuotesSummaryModel } from './validateOpportunityQuotesSummaryModel.js';
 
 export function validateOpportunityPageModel() {
   const model = createOpportunityPageModel();
@@ -14,6 +15,7 @@ export function validateOpportunityPageModel() {
   const relationshipSummary = validateOpportunityRelationshipSummaryModel();
   const serviceToggleSummary = validateOpportunityServiceToggleSummaryModel();
   const workflowSummary = validateOpportunityWorkflowSummaryModel();
+  const quotesSummary = validateOpportunityQuotesSummaryModel();
 
   if (model.type !== 'OpportunityPageModel') {
     throw new Error('Opportunity page model did not initialize.');
@@ -41,6 +43,10 @@ export function validateOpportunityPageModel() {
 
   if (!model.workflowSummary || model.workflowSummary.summaryId !== 'opportunityWorkflowSummary') {
     throw new Error('Opportunity workflow summary contract is missing.');
+  }
+
+  if (!model.quotesSummary || model.quotesSummary.summaryId !== 'opportunityQuotesSummary') {
+    throw new Error('Opportunity quotes summary contract is missing.');
   }
 
   if (!model.relationships.accountRequired) {
@@ -71,6 +77,7 @@ export function validateOpportunityPageModel() {
     relationshipSummaryId: relationshipSummary.summaryId,
     serviceToggleSummaryId: serviceToggleSummary.summaryId,
     workflowSummaryId: workflowSummary.summaryId,
+    quotesSummaryId: quotesSummary.summaryId,
     serviceToggleCount: model.serviceToggle.options.length,
     workflowStageCount: model.workflow.stages.length,
     quoteBrandingProfileCount: model.quotes.brandingProfiles.length,

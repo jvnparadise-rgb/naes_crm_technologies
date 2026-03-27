@@ -9,6 +9,7 @@ import { createOpportunityHeaderSummaryModel } from './OpportunityHeaderSummaryM
 import { createOpportunityRelationshipSummaryModel } from './OpportunityRelationshipSummaryModel.js';
 import { createOpportunityServiceToggleSummaryModel } from './OpportunityServiceToggleSummaryModel.js';
 import { createOpportunityWorkflowSummaryModel } from './OpportunityWorkflowSummaryModel.js';
+import { createOpportunityQuotesSummaryModel } from './OpportunityQuotesSummaryModel.js';
 
 export function createOpportunityPageModel() {
   return {
@@ -57,6 +58,7 @@ export function createOpportunityPageModel() {
       retentionRequirements: quoteDomainContract.retentionRequirements,
       requiredActions: opportunityQuoteUiContract.quotePanel.requiredActions
     },
+    quotesSummary: createOpportunityQuotesSummaryModel(),
 
     audit: {
       required: opportunityQuoteUiContract.auditPanel.required,

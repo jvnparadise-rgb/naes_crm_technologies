@@ -16,3 +16,5 @@ export { createOpportunityServiceToggleSummaryModel } from './OpportunityService
 export { validateOpportunityServiceToggleSummaryModel } from './validateOpportunityServiceToggleSummaryModel.js';
 export { createOpportunityWorkflowSummaryModel } from './OpportunityWorkflowSummaryModel.js';
 export { validateOpportunityWorkflowSummaryModel } from './validateOpportunityWorkflowSummaryModel.js';
+export { createOpportunityQuotesSummaryModel } from './OpportunityQuotesSummaryModel.js';
+export { validateOpportunityQuotesSummaryModel } from './validateOpportunityQuotesSummaryModel.js';
