@@ -249,3 +249,88 @@ Design intent:
 - suitable for main-page/header presentation
 
 This strip should be implemented as a reusable shell model, not as scattered page-specific styling.
+
+## Sidebar user placard requirement
+
+The top-left sidebar area must include a user placard block.
+
+Required placard fields:
+- name
+- role/title
+- profile/access level
+- photo/avatar
+
+Layout requirement:
+- name, role/title, and profile/access level are stacked
+- photo/avatar is positioned to the right of the stacked text
+
+Example:
+- Jeff Yarbrough
+- VP of Operations
+- Admin
+
+This placard must be treated as part of the shell architecture, not a late UI patch.
+
+## User accounts and settings requirement
+
+User Accounts and Settings must be treated as first-class modules.
+
+These modules must support:
+- user identity display
+- title/role display
+- access/profile display
+- future permissions and visibility logic
+- connection to the sidebar placard contract
+
+## User role model
+
+Approved user roles:
+- Admin
+- Executive
+- Sales Manager
+- Sales Associate
+
+Role notes:
+- Admin has full access
+- Executive is an executive-view role
+- Sales Manager is a manager-level sales role
+- Sales Associate is an individual sales role
+
+These roles must be treated as the initial permission and visibility model foundation for the CRM.
+
+## Dashboard tutorial media requirement
+
+The dashboard must support an embedded tutorial/help video.
+
+Supported intent:
+- embedded Vimeo tutorial video
+- equivalent embedded tutorial/help media support
+
+This should be treated as a dashboard shell capability and not a one-off page hack.
+
+## Brand asset requirement
+
+The project must support logo/brand asset access for:
+- NAES Technologies
+- NAES Renewables
+- StratoSight
+
+These assets are required for:
+- quote branding and letterhead
+- main page branding
+- future shell/header usage where appropriate
+
+## Brand-aware quote requirement
+
+Quote rendering must be able to consume the correct branding assets and color identity based on service context.
+
+At minimum, quote output must be able to select the correct:
+- logo
+- letterhead
+- accent color
+- brand context
+
+for:
+- Technologies / Generic
+- Renewables
+- StratoSight

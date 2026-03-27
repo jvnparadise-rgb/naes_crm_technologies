@@ -7,3 +7,8 @@ export { validatePageStatusRegistry } from './validatePageStatusRegistry.js';
 export { topStripThemeTokens } from './topStripThemeTokens.js';
 export { createTopStripModel } from './topStripModel.js';
 export { validateTopStripModel } from './validateTopStripModel.js';
+export { userRoleRegistry } from './userRoleRegistry.js';
+export { validateUserRoleRegistry } from './validateUserRoleRegistry.js';
+export { createUserPlacardModel } from './userPlacardModel.js';
+export { createDashboardMediaModel } from './dashboardMediaModel.js';
+export { brandRegistry } from './brandRegistry.js';

@@ -67,3 +67,9 @@ Create formal registry contracts for:
 2. features/pages
 3. pricing schema
 Then continue into clean frontend shell and API expansion from those contracts.
+
+## User and shell requirements currently locked
+- Sidebar top-left placard required with name, title/role, profile/access level, and photo/avatar
+- Approved user roles: Admin, Executive, Sales Manager, Sales Associate
+- Dashboard must support embedded tutorial/help video such as Vimeo
+- Logo asset access required for NAES Technologies, NAES Renewables, and StratoSight
