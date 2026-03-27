@@ -8,24 +8,17 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: false
   },
-  {
-    id: 'training-user-guide',
-    label: 'Training / User Guide',
-    path: '/welcome/training-user-guide',
-    type: 'page',
-    parentId: 'welcome',
-    sidebar: true,
-    pricingContext: false
-  },
+
   {
     id: 'executive-dashboard',
-    label: 'Executive Dashboard',
+    label: 'Dashboard',
     path: '/executive-dashboard',
     type: 'page',
     parentId: null,
     sidebar: true,
     pricingContext: false
   },
+
   {
     id: 'my-pipeline',
     label: 'My Pipeline',
@@ -35,6 +28,7 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: false
   },
+
   {
     id: 'pipeline-rollup',
     label: 'Pipeline Rollup',
@@ -44,6 +38,7 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: false
   },
+
   {
     id: 'forecast-dashboard',
     label: 'Forecast Dashboard',
@@ -53,6 +48,7 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: false
   },
+
   {
     id: 'forecast-integrity',
     label: 'Forecast Integrity',
@@ -62,15 +58,17 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: false
   },
+
   {
     id: 'forecast-period-control',
-    label: 'Forecast Period Control',
+    label: 'Period Control',
     path: '/forecast-period-control',
     type: 'page',
     parentId: null,
     sidebar: true,
     pricingContext: false
   },
+
   {
     id: 'accounts',
     label: 'Accounts',
@@ -80,15 +78,7 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: false
   },
-  {
-    id: 'client-reports',
-    label: 'Client Reports',
-    path: '/accounts/client-reports',
-    type: 'resource',
-    parentId: 'accounts',
-    sidebar: true,
-    pricingContext: false
-  },
+
   {
     id: 'contacts',
     label: 'Contacts',
@@ -98,6 +88,7 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: false
   },
+
   {
     id: 'tasks',
     label: 'Tasks',
@@ -107,6 +98,7 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: false
   },
+
   {
     id: 'activities',
     label: 'Activities',
@@ -116,6 +108,7 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: false
   },
+
   {
     id: 'opportunities',
     label: 'Opportunities',
@@ -125,6 +118,7 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: true
   },
+
   {
     id: 'revenue-command-center',
     label: 'Revenue Command Center',
@@ -134,24 +128,7 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: true
   },
-  {
-    id: 'settings',
-    label: 'Settings',
-    path: '/settings',
-    type: 'page',
-    parentId: null,
-    sidebar: true,
-    pricingContext: false
-  },
-  {
-    id: 'user-access',
-    label: 'User Access',
-    path: '/user-access',
-    type: 'page',
-    parentId: null,
-    sidebar: true,
-    pricingContext: false
-  },
+
   {
     id: 'business-reviews',
     label: 'Business Reviews',
@@ -161,13 +138,53 @@ export const featureRegistry = [
     sidebar: true,
     pricingContext: false
   },
+
+  {
+    id: 'client-reports',
+    label: 'Client Reports',
+    path: '/client-reports',
+    type: 'page',
+    parentId: null,
+    sidebar: true,
+    pricingContext: false
+  },
+
+  {
+    id: 'user-access',
+    label: 'User Accounts',
+    path: '/user-access',
+    type: 'page',
+    parentId: null,
+    sidebar: true,
+    pricingContext: false
+  },
+
+  {
+    id: 'settings',
+    label: 'Settings',
+    path: '/settings',
+    type: 'page',
+    parentId: null,
+    sidebar: true,
+    pricingContext: false
+  },
+
+  {
+    id: 'training-user-guide',
+    label: 'Training / User Guide',
+    path: '/welcome/training-user-guide',
+    type: 'page',
+        sidebar: true,
+    pricingContext: false
+  },
+
   {
     id: 'revenue-intelligence',
     label: 'Revenue Intelligence',
     path: '/revenue-intelligence',
     type: 'page',
     parentId: null,
-    sidebar: true,
+    sidebar: false,
     pricingContext: true
   }
 ];

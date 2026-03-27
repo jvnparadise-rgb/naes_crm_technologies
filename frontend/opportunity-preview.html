@@ -1,239 +1,116 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NAES CRM, Opportunity Contract Preview</title>
+    <meta charset="utf-8" />
+    <title>NAES CRM Opportunity Preview</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       :root {
-        --bg: #f4f7f4;
+        --bg: #f3f6f1;
         --surface: #ffffff;
-        --surface-2: #f8fbf8;
-        --border: #d7e2d8;
-        --text: #173024;
-        --muted: #587062;
+        --border: #d5ded3;
+        --text: #142018;
+        --muted: #5f6f63;
         --accent: #2f6b4f;
-        --accent-soft: #e7f2eb;
+        --danger-bg: #fff3f1;
+        --danger-border: #e7b6ae;
+        --danger-text: #8b2f23;
       }
 
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: Arial, Helvetica, sans-serif;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: var(--bg);
         color: var(--text);
       }
 
-      .shell {
-        display: grid;
-        grid-template-columns: 280px 1fr;
+      #app {
         min-height: 100vh;
       }
 
-      .sidebar {
-        background: #f9fbf8;
-        border-right: 1px solid var(--border);
-        padding: 20px 14px;
-      }
-
-      .sidebar-brand {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 16px;
-        margin-bottom: 14px;
-      }
-
-      .sidebar-brand-kicker {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        color: var(--accent);
-        font-weight: 700;
-      }
-
-      .sidebar-brand-subtitle {
-        margin-top: 6px;
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      .sidebar-list {
-        display: grid;
-        gap: 8px;
-      }
-
-      .sidebar-item {
-        background: transparent;
-        border: 1px solid transparent;
-        border-radius: 14px;
-        padding: 12px 14px;
-        color: var(--text);
-        font-weight: 700;
-      }
-
-      .sidebar-item-active {
-        background: var(--accent);
-        color: #ffffff;
-        border-color: var(--accent);
-      }
-
-      .main {
-        min-width: 0;
-      }
-
-      .page {
-        max-width: 1280px;
-        margin: 0 auto;
+      .boot {
+        max-width: 980px;
+        margin: 48px auto;
         padding: 24px;
-      }
-
-      .topbar {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-        margin-bottom: 20px;
-      }
-
-      .topbar-segment {
-        background: linear-gradient(180deg, #ffffff 0%, #f3f8f4 100%);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 14px 16px;
-        text-align: center;
-        font-weight: 700;
-        color: var(--accent);
-      }
-
-      .hero {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 20px;
-        margin-bottom: 20px;
+        border-radius: 20px;
       }
 
-      .hero h1 {
-        margin: 0 0 6px 0;
-        font-size: 28px;
+      .boot h1 {
+        margin: 0 0 10px 0;
+        font-size: 24px;
       }
 
-      .hero p {
+      .boot p {
         margin: 0;
         color: var(--muted);
       }
 
-      .badge {
-        background: var(--accent-soft);
-        color: var(--accent);
-        border: 1px solid #cfe0d2;
-        border-radius: 999px;
-        padding: 8px 12px;
-        font-size: 12px;
-        font-weight: 700;
-        white-space: nowrap;
+      .error {
+        max-width: 1100px;
+        margin: 32px auto;
+        padding: 24px;
+        background: var(--danger-bg);
+        border: 1px solid var(--danger-border);
+        border-radius: 20px;
+        color: var(--danger-text);
       }
 
-      .grid {
-        display: grid;
-        grid-template-columns: 1.15fr 1fr;
-        gap: 20px;
+      .error h1 {
+        margin: 0 0 12px 0;
+        font-size: 24px;
       }
 
-      .stack {
-        display: grid;
-        gap: 20px;
-      }
-
-      .card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 18px;
-      }
-
-      .card h2 {
-        margin: 0 0 14px 0;
-        font-size: 18px;
-      }
-
-      .meta {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-      }
-
-      .meta-item, .list-item {
-        background: var(--surface-2);
-        border: 1px solid var(--border);
+      .error pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: rgba(255,255,255,0.65);
+        padding: 16px;
         border-radius: 14px;
-        padding: 12px;
-      }
-
-      .label {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--muted);
-        margin-bottom: 6px;
-      }
-
-      .value {
-        font-size: 14px;
-        font-weight: 700;
-      }
-
-      .list {
-        display: grid;
-        gap: 10px;
-      }
-
-      .json {
-        margin-top: 20px;
-        background: #102019;
-        color: #d7efe0;
-        border-radius: 18px;
-        padding: 18px;
         overflow: auto;
-        font-size: 12px;
+        font-size: 13px;
         line-height: 1.45;
-      }
-
-      @media (max-width: 980px) {
-        .shell {
-          grid-template-columns: 1fr;
-        }
-
-        .sidebar {
-          border-right: 0;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .grid {
-          grid-template-columns: 1fr;
-        }
-
-        .topbar {
-          grid-template-columns: 1fr;
-        }
-
-        .meta {
-          grid-template-columns: 1fr;
-        }
-
-        .hero {
-          flex-direction: column;
-          align-items: flex-start;
-        }
       }
     </style>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="./src/preview/opportunityPreview.js"></script>
+    <div id="app">
+      <div class="boot">
+        <h1>Loading NAES CRM Opportunity Preview</h1>
+        <p>If this fails, the exact browser error will be shown here instead of a blank page.</p>
+      </div>
+    </div>
+
+    <script type="module">
+      const app = document.getElementById('app');
+
+      function showError(error) {
+        const message =
+          error && error.stack
+            ? error.stack
+            : error && error.message
+              ? error.message
+              : String(error);
+
+        app.innerHTML = `
+          <div class="error">
+            <h1>Preview failed to load</h1>
+            <pre>${message.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</pre>
+          </div>
+        `;
+      }
+
+      window.addEventListener('error', (event) => {
+        showError(event.error || event.message || 'Unknown window error');
+      });
+
+      window.addEventListener('unhandledrejection', (event) => {
+        showError(event.reason || 'Unhandled promise rejection');
+      });
+
+      import('./src/preview/opportunityPreview.js').catch(showError);
+    </script>
   </body>
 </html>

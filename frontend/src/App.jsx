@@ -1,20 +1,26 @@
 import React from 'react';
 
-const sidebarItems = [
-  'Dashboard',
-  'My Pipeline',
-  'Pipeline Rollup',
-  'Forecast Dashboard',
-  'Forecast Integrity',
-  'Period Control',
-  'Accounts',
-  'Contacts',
-  'Tasks',
-  'Activities',
-  'Opportunities',
-  'Revenue Command Center',
-  'Client Reports',
-  'Settings'
+const sidebarSections = [
+  {
+    title: 'START',
+    items: ['Welcome', 'Dashboard']
+  },
+  {
+    title: 'PIPELINE',
+    items: ['My Pipeline', 'Pipeline Rollup', 'Forecast Dashboard', 'Forecast Integrity', 'Period Control']
+  },
+  {
+    title: 'CRM',
+    items: ['Accounts', 'Contacts', 'Tasks', 'Activities', 'Opportunities']
+  },
+  {
+    title: 'EXECUTION',
+    items: ['Revenue Command Center', 'Business Reviews', 'Client Reports']
+  },
+  {
+    title: 'ADMIN',
+    items: ['User Accounts', 'Settings']
+  }
 ];
 
 const topStrip = [
@@ -87,43 +93,49 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ padding: '16px 12px' }}>
-            <div style={{ marginBottom: '12px', padding: '0 8px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)' }}>
-              Workspace
-            </div>
-            <nav style={{ display: 'grid', gap: '4px' }}>
-              {sidebarItems.map((item) => {
-                const active = item === 'Opportunities';
-                return (
-                  <button
-                    key={item}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      width: '100%',
-                      borderRadius: '18px',
-                      padding: '10px 12px',
-                      border: 'none',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      background: active ? '#0B6771' : 'transparent',
-                      color: active ? '#fff' : 'rgba(255,255,255,0.82)',
-                      boxShadow: active ? '0 10px 24px rgba(0,0,0,0.28)' : 'none'
-                    }}
-                  >
-                    <span style={{ fontSize: '14px', fontWeight: 500 }}>{item}</span>
-                    {active ? <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', opacity: 0.8 }}>Active</span> : null}
-                  </button>
-                );
-              })}
+          <div style={{ padding: '16px 12px 24px 12px' }}>
+            <nav style={{ display: 'grid', gap: '14px' }}>
+              {sidebarSections.map((section) => (
+                <div key={section.title}>
+                  <div style={{ marginBottom: '8px', padding: '0 8px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)' }}>
+                    {section.title}
+                  </div>
+                  <div style={{ display: 'grid', gap: '4px' }}>
+                    {section.items.map((item) => {
+                      const active = item === 'Opportunities';
+                      return (
+                        <button
+                          key={item}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            width: '100%',
+                            borderRadius: '18px',
+                            padding: '10px 12px',
+                            border: 'none',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            background: active ? '#0B6771' : 'transparent',
+                            color: active ? '#fff' : 'rgba(255,255,255,0.82)',
+                            boxShadow: active ? '0 10px 24px rgba(0,0,0,0.28)' : 'none'
+                          }}
+                        >
+                          <span style={{ fontSize: '14px', fontWeight: 500 }}>{item}</span>
+                          {active ? <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', opacity: 0.8 }}>Active</span> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </nav>
           </div>
         </aside>
 
         <main style={{ minWidth: 0 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', borderBottom: '1px solid #0E545D', background: '#052F35' }}>
-            {topStrip.map((item) => (
+            {topStrip.map((item, idx) => (
               <div
                 key={item.label}
                 style={{
@@ -131,7 +143,7 @@ export default function App() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   padding: '12px 16px',
-                  borderRight: '1px solid #0E545D',
+                  borderRight: idx < topStrip.length - 1 ? '1px solid #0E545D' : 'none',
                   background: `linear-gradient(180deg, ${item.bg}, #052F35)`
                 }}
               >
