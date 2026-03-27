@@ -8,3 +8,5 @@ export { renderOpportunityHeaderBlock } from './renderOpportunityHeaderBlock.js'
 export { validateOpportunityHeaderBlock } from './validateOpportunityHeaderBlock.js';
 export { renderOpportunityRelationshipBlock } from './renderOpportunityRelationshipBlock.js';
 export { validateOpportunityRelationshipBlock } from './validateOpportunityRelationshipBlock.js';
+export { renderOpportunityServiceToggleBlock } from './renderOpportunityServiceToggleBlock.js';
+export { validateOpportunityServiceToggleBlock } from './validateOpportunityServiceToggleBlock.js';
