@@ -111,3 +111,42 @@ Then continue into clean frontend shell and API expansion from those contracts.
 - Approved user roles: Admin, Executive, Sales Manager, Sales Associate
 - Dashboard must support embedded tutorial/help video such as Vimeo
 - Logo asset access required for NAES Technologies, NAES Renewables, and StratoSight
+
+
+### Protected checkpoint
+- Current protected branch: `main`
+- Current protected commit: `f05ad12`
+- Commit message: `checkpoint: wire opportunity relationship summary contract`
+
+### Opportunity summary-contract progress
+Completed and checkpointed:
+- Added `OpportunityHeaderSummaryModel`
+- Added `validateOpportunityHeaderSummaryModel`
+- Added `OpportunityRelationshipSummaryModel`
+- Added `validateOpportunityRelationshipSummaryModel`
+- Extended `OpportunityPageModel` with:
+  - `headerSummary`
+  - `relationshipSummary`
+- Extended `renderOpportunityPagePlaceholder()` to expose:
+  - `headerSummary`
+  - `relationshipSummary`
+- Extended `validateOpportunityPagePlaceholder()` to validate both summary contracts
+
+### Current validated opportunity placeholder state
+- `pageTitle`: `Opportunities`
+- `headerSectionId`: `opportunityHeader`
+- `headerSummaryId`: `opportunityHeaderSummary`
+- `relationshipSectionId`: `accountRelationship`
+- `relationshipSummaryId`: `opportunityRelationshipSummary`
+- `sectionCount`: `9`
+- `quoteActionCount`: `4`
+- `auditRequired`: `true`
+
+### Next smallest safe step
+- Preserve contract-first progression
+- Do not jump into full page rendering
+- Do not mutate Accounts or Contacts
+- Next likely safe implementation target:
+  - minimal service-toggle summary contract, or
+  - minimal workflow summary contract
+
