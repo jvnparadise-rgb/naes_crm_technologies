@@ -243,248 +243,6 @@ function computeOpportunityCommercial(state) {
   };
 }
 
-
-function firstPillValue(...values) {
-  for (const value of values) {
-    if (value === null || value === undefined) continue;
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-      if (!trimmed || trimmed === 'N/A' || trimmed === 'Unknown') continue;
-      return trimmed;
-    }
-    if (typeof value === 'number' && !Number.isFinite(value)) continue;
-    return value;
-  }
-  return null;
-}
-
-function toFiniteNumber(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const num = Number(value);
-  return Number.isFinite(num) ? num : null;
-}
-
-function formatPillNumber(value) {
-  const num = toFiniteNumber(value);
-  if (num === null) return null;
-  return Number.isInteger(num) ? String(num) : String(Number(num.toFixed(1))).replace(/\.0$/, '');
-}
-
-function formatPillMw(value, unit) {
-  const formatted = formatPillNumber(value);
-  return formatted ? `${formatted} ${unit}` : null;
-}
-
-function formatPillSiteCount(value) {
-  const num = toFiniteNumber(value);
-  if (num === null) return null;
-  const normalized = Number.isInteger(num) ? num : Number(num.toFixed(1));
-  return `${normalized} ${Number(normalized) === 1 ? 'Site' : 'Sites'}`;
-}
-
-function formatPillCurrency(value) {
-  const num = toFiniteNumber(value);
-  if (num === null) return null;
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0
-  }).format(num);
-}
-
-function formatPillPct(value, suffix) {
-  const num = toFiniteNumber(value);
-  if (num === null) return null;
-  const normalized = Number.isInteger(num) ? String(num) : String(Number(num.toFixed(1))).replace(/\.0$/, '');
-  return `${normalized}% ${suffix}`;
-}
-
-function formatPillCloseDate(value) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const year = String(date.getFullYear()).slice(-2);
-  return `Close ${month}/${day}/${year}`;
-}
-
-function truncatePillValue(value, max = 28) {
-  if (!value) return value;
-  return value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value;
-}
-
-function stageTone(value) {
-  const text = String(value || '').toLowerCase();
-  if (text.includes('closed lost')) return 'danger';
-  if (text.includes('closed won')) return 'success';
-  if (text.includes('commit')) return 'success';
-  if (text.includes('security legal')) return 'warning';
-  if (text.includes('commercial')) return 'warning';
-  if (text.includes('solution fit')) return 'info';
-  if (text.includes('discovery')) return 'info';
-  if (text.includes('qualified')) return 'info';
-  return 'neutral';
-}
-
-function forecastTone(value) {
-  const text = String(value || '').replace(/\s+/g, '').toLowerCase();
-  if (text === 'commit') return 'success';
-  if (text === 'closed') return 'success';
-  if (text === 'bestcase') return 'info';
-  if (text === 'omitted') return 'muted';
-  return 'neutral';
-}
-
-function pricingBandTone(value) {
-  const text = String(value || '').trim().toLowerCase();
-  if (text === 'median' || text === 'mid') return 'success';
-  if (text === 'high') return 'warning';
-  return 'neutral';
-}
-
-function followUpTone(value) {
-  const text = String(value || '').replace(/\s+/g, '').toLowerCase();
-  if (text === 'current') return 'success';
-  if (text === 'duesoon') return 'warning';
-  if (text === 'overdue') return 'danger';
-  return 'neutral';
-}
-
-function hygieneTone(value) {
-  const text = String(value || '').replace(/\s+/g, '').toLowerCase();
-  if (text === 'healthy') return 'success';
-  if (text === 'warning') return 'warning';
-  if (text === 'atrisk') return 'danger';
-  return 'neutral';
-}
-
-function ctsTone(value) {
-  const num = toFiniteNumber(value);
-  if (num === null) return 'neutral';
-  if (num >= 75) return 'danger';
-  if (num >= 60) return 'warning';
-  return 'success';
-}
-
-function earningsTone(value) {
-  const num = toFiniteNumber(value);
-  if (num === null) return 'neutral';
-  if (num < 15) return 'danger';
-  if (num < 25) return 'warning';
-  return 'success';
-}
-
-function pillToneStyle(tone = 'neutral') {
-  const palette = {
-    neutral: { bg: '#F7F9F8', border: '#D8E2D7', label: '#6B7B88', text: '#425466' },
-    info: { bg: '#EEF7FC', border: '#C9E4F5', label: '#4F7C97', text: '#135E75' },
-    success: { bg: '#EDF8F1', border: '#CFE9D7', label: '#4D8A64', text: '#1F6B44' },
-    warning: { bg: '#FFF7EA', border: '#F0D8A6', label: '#A37928', text: '#8B5E12' },
-    danger: { bg: '#FFF1F1', border: '#EABDBD', label: '#B56D6D', text: '#A33A3A' },
-    muted: { bg: '#F2F4F6', border: '#D7DEE5', label: '#8A96A3', text: '#697786' }
-  };
-  return palette[tone] || palette.neutral;
-}
-
-function buildOpportunityPills(opportunity, options = {}) {
-  const { isMobile = false } = options;
-
-  const serviceLine = firstPillValue(opportunity.service_line, opportunity.serviceLine);
-  const marketSegment = firstPillValue(opportunity.market_segment, opportunity.marketSegment);
-  const opportunityType = firstPillValue(opportunity.opportunity_type, opportunity.opportunityType);
-  const stage = firstPillValue(opportunity.stage, opportunity.sales_stage);
-  const forecastCategory = firstPillValue(opportunity.forecast_category);
-  const mwac = firstPillValue(opportunity.total_mwac, opportunity.mwac);
-  const mwdc = firstPillValue(opportunity.total_mwdc, opportunity.mwdc);
-  const siteCount = firstPillValue(opportunity.site_count, opportunity.sites);
-  const commercialBasis = firstPillValue(opportunity.commercial_basis, opportunity.pricing_basis);
-  const pricingBand = firstPillValue(opportunity.pricing_band);
-  const calculatedRevenue = firstPillValue(opportunity.calculated_revenue, opportunity.amount_estimated, opportunity.calc_year1_total);
-  const ctsPct = firstPillValue(opportunity.estimated_cts_pct, opportunity.cts_pct);
-  const earningsPct = firstPillValue(opportunity.estimated_earnings_pct, opportunity.earnings_pct);
-  const followUpStatus = firstPillValue(opportunity.follow_up_status);
-  const forecastHygieneStatus = firstPillValue(opportunity.forecast_hygiene_status, opportunity.hygiene_status);
-  const owner = firstPillValue(opportunity.owner_full_name, opportunity.owner_name);
-  const expectedCloseDate = firstPillValue(opportunity.expected_close_date);
-  const scopeType = firstPillValue(opportunity.scope_type);
-  const geographicScope = firstPillValue(opportunity.geographic_scope, opportunity.region_scope);
-  const driverSummary = firstPillValue(opportunity.driver_summary, opportunity.pricing_driver_summary);
-
-  function createPill(key, label, fullValue, tone, priority, optional = false, truncate = false) {
-    if (fullValue === null || fullValue === undefined || fullValue === '') return null;
-    const normalized = String(fullValue);
-    return {
-      key,
-      label,
-      value: truncate ? truncatePillValue(normalized) : normalized,
-      fullValue: normalized,
-      tone,
-      priority,
-      optional
-    };
-  }
-
-  const pills = [
-    createPill('serviceLine', 'Service Line', serviceLine, 'neutral', 1),
-    createPill('marketSegment', 'Market Segment', marketSegment, 'neutral', 2),
-    createPill('opportunityType', 'Opportunity Type', opportunityType, 'neutral', 3, false, true),
-    createPill('stage', 'Stage', stage, stageTone(stage), 4),
-    createPill('forecastCategory', 'Forecast', forecastCategory, forecastTone(forecastCategory), 5),
-    createPill('mwac', 'MWAC', formatPillMw(mwac, 'MWAC'), 'info', 6),
-    createPill('mwdc', 'MWDC', formatPillMw(mwdc, 'MWDC'), 'info', 7),
-    createPill('siteCount', 'Sites', formatPillSiteCount(siteCount), 'info', 8),
-    createPill('commercialBasis', 'Commercial Basis', commercialBasis, 'neutral', 9),
-    createPill('pricingBand', 'Pricing Band', pricingBand, pricingBandTone(pricingBand), 10),
-    createPill('calculatedRevenue', 'Revenue', formatPillCurrency(calculatedRevenue), 'info', 11),
-    createPill('ctsPct', 'CTS', formatPillPct(ctsPct, 'CTS'), ctsTone(ctsPct), 12),
-    createPill('earningsPct', 'Earnings', formatPillPct(earningsPct, 'Earnings'), earningsTone(earningsPct), 13),
-    createPill('followUpStatus', 'Follow-Up', followUpStatus, followUpTone(followUpStatus), 14),
-    createPill('forecastHygieneStatus', 'Hygiene', forecastHygieneStatus, hygieneTone(forecastHygieneStatus), 15),
-    createPill('owner', 'Owner', owner, 'neutral', 16, true),
-    createPill('expectedCloseDate', 'Close', formatPillCloseDate(expectedCloseDate), 'info', 17, true),
-    createPill('scopeType', 'Scope', scopeType, 'neutral', 18, true, true),
-    createPill('geographicScope', 'Geography', geographicScope, 'neutral', 19, true, true),
-    createPill('driverSummary', 'Driver', driverSummary, 'neutral', 20, true, true)
-  ].filter(Boolean).sort((a, b) => a.priority - b.priority);
-
-  if (isMobile) {
-    return pills.filter((pill) => !pill.optional);
-  }
-
-  return pills.slice(0, 18);
-}
-
-function renderOpportunityPill(pill) {
-  const tone = pillToneStyle(pill.tone);
-  return (
-    <div
-      key={pill.key}
-      title={pill.fullValue}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        minWidth: 0,
-        maxWidth: '100%',
-        whiteSpace: 'nowrap',
-        borderRadius: '999px',
-        border: `1px solid ${tone.border}`,
-        background: tone.bg,
-        padding: '6px 10px',
-        gap: '6px',
-        lineHeight: 1
-      }}
-    >
-      <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', color: tone.label, flex: '0 0 auto' }}>
-        {pill.label}
-      </span>
-      <span style={{ fontSize: '12px', fontWeight: 600, color: tone.text, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {pill.value}
-      </span>
-    </div>
-  );
-}
-
 function renderHeaderBand(activePage, onBack, canGoBack) {
   const isWelcome = activePage === 'Welcome';
   const title = isWelcome ? 'Welcome to NAES CRM' : 'Ashley Furniture MSA';
@@ -546,166 +304,6 @@ function renderHeaderBand(activePage, onBack, canGoBack) {
         </div>
       </div>
     </div>
-  );
-}
-
-
-function getInitialPath() {
-  if (typeof window === 'undefined') return '/';
-  return window.location.pathname || '/';
-}
-
-function parseOpportunityRoute(pathname) {
-  if (!pathname) return { isOpportunities: false, detailId: null };
-
-  if (pathname === '/opportunities') {
-    return { isOpportunities: true, detailId: null };
-  }
-
-  const match = pathname.match(/^\/opportunities\/([^/]+)$/);
-  if (match) {
-    return { isOpportunities: true, detailId: match[1] };
-  }
-
-  return { isOpportunities: false, detailId: null };
-}
-
-function pushPath(path) {
-  if (typeof window === 'undefined') return;
-  window.history.pushState({}, '', path);
-}
-
-function replacePath(path) {
-  if (typeof window === 'undefined') return;
-  window.history.replaceState({}, '', path);
-}
-
-function OpportunitySummaryRow({ opportunity, onOpenOpportunity }) {
-  const pills = buildOpportunityPills(opportunity).filter((pill) =>
-    [
-      'serviceLine',
-      'marketSegment',
-      'stage',
-      'forecastCategory',
-      'mwac',
-      'mwdc',
-      'followUpStatus',
-      'forecastHygieneStatus',
-      'expectedCloseDate'
-    ].includes(pill.key)
-  );
-
-  const revenueValue = formatPillCurrency(opportunity.calculated_revenue) || '$0';
-  const earningsPct = Number(opportunity.estimated_earnings_pct || 0);
-  const weightedPct = opportunity.forecast_category === 'Commit'
-    ? 0.9
-    : opportunity.forecast_category === 'Best Case'
-    ? 0.6
-    : opportunity.forecast_category === 'Pipeline'
-    ? 0.3
-    : 0.5;
-
-  const potentialMarginValue = formatPillCurrency((Number(opportunity.calculated_revenue || 0) * earningsPct) / 100) || '$0';
-  const weightedValue = formatPillCurrency(Number(opportunity.calculated_revenue || 0) * weightedPct) || '$0';
-
-  return (
-    <button
-      onClick={() => onOpenOpportunity(opportunity.id)}
-      style={{
-        width: '100%',
-        border: '1px solid #E5ECE5',
-        background: '#FFFFFF',
-        borderRadius: '22px',
-        padding: '18px 20px',
-        textAlign: 'left',
-        cursor: 'pointer',
-        boxShadow: '0 8px 20px rgba(31,41,55,0.04)'
-      }}
-    >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(260px, 1.05fr) minmax(340px, 1.5fr) minmax(220px, 0.9fr)',
-          gap: '18px',
-          alignItems: 'start'
-        }}
-      >
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827' }}>
-            {opportunity.name}
-          </div>
-          <div style={{ marginTop: '4px', fontSize: '14px', color: '#64748b' }}>
-            {opportunity.account}
-          </div>
-
-          <div style={{ marginTop: '14px', display: 'grid', gap: '10px' }}>
-            <div>
-              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>
-                Owner
-              </div>
-              <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 600, color: '#111827' }}>
-                {opportunity.owner_full_name}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px',
-              rowGap: '8px',
-              alignItems: 'flex-start',
-              minWidth: 0,
-              maxWidth: '100%'
-            }}
-          >
-            {pills.map((pill) => renderOpportunityPill(pill))}
-          </div>
-        </div>
-
-        <div
-          style={{
-            borderRadius: '18px',
-            border: '1px solid #D7E6DA',
-            background: '#F7FBF8',
-            padding: '14px 16px',
-            display: 'grid',
-            gap: '10px',
-            minWidth: 0
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#64748b' }}>
-              Revenue
-            </div>
-            <div style={{ marginTop: '6px', fontSize: '30px', fontWeight: 800, color: '#0B6771', lineHeight: 1.05 }}>
-              {revenueValue}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>
-              Potential Margin
-            </div>
-            <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 700, color: '#111827' }}>
-              {potentialMarginValue}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>
-              Weighted Value
-            </div>
-            <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 700, color: '#111827' }}>
-              {weightedValue}
-            </div>
-          </div>
-        </div>
-      </div>
-    </button>
   );
 }
 
@@ -810,175 +408,7 @@ function renderWelcomePage() {
   );
 }
 
-
-function OpportunitiesOverviewPage({ onOpenOpportunity }) {
-  const summaryCards = [
-    { label: 'Open Pipeline', value: '$24.8M', sub: '42 active opportunities' },
-    { label: 'Weighted Pipeline', value: '$11.6M', sub: 'forecast-adjusted' },
-    { label: 'Commit This Quarter', value: '$6.4M', sub: '8 opportunities' },
-    { label: 'At-Risk Deals', value: '5', sub: 'stale or overdue follow-up' }
-  ];
-
-  const stageRollup = [
-    ['Prospecting', 4],
-    ['Qualified', 7],
-    ['Discovery', 9],
-    ['Solution Fit', 8],
-    ['Commercials', 6],
-    ['Security Legal', 3],
-    ['Commit', 5]
-  ];
-
-  const opportunityCards = [
-    {
-      id: 'ashley',
-      name: 'Ashley Furniture MSA',
-      account: 'Ashley Furniture Industries',
-      service_line: 'Both',
-      market_segment: 'USS',
-      opportunity_type: 'New customer / bundled services',
-      stage: '3 Solution Fit',
-      forecast_category: 'Best Case',
-      total_mwac: 187,
-      total_mwdc: 241.8,
-      site_count: 14,
-      commercial_basis: '$/MWDC/year + StratoSight sqft',
-      pricing_band: 'Mid',
-      calculated_revenue: 2500000,
-      estimated_cts_pct: 63,
-      estimated_earnings_pct: 37,
-      follow_up_status: 'DueSoon',
-      forecast_hygiene_status: 'Warning',
-      owner_full_name: 'Ashley Smith',
-      expected_close_date: '2026-04-30'
-    },
-    {
-      id: 'onyx',
-      name: 'Onyx Southwest O&M Renewal',
-      account: 'Onyx Renewables',
-      service_line: 'Renewables',
-      market_segment: 'USS',
-      opportunity_type: 'Renewal',
-      stage: '4 Commercials',
-      forecast_category: 'Commit',
-      total_mwac: 187,
-      total_mwdc: 241.8,
-      site_count: 14,
-      commercial_basis: '$/MWDC/year',
-      pricing_band: 'Median',
-      calculated_revenue: 2500000,
-      estimated_cts_pct: 63,
-      estimated_earnings_pct: 37,
-      follow_up_status: 'DueSoon',
-      forecast_hygiene_status: 'Warning',
-      owner_full_name: 'Ashley Smith',
-      expected_close_date: '2026-04-30'
-    },
-    {
-      id: 'retail',
-      name: 'Retail Roof Scan Program',
-      account: 'National Retail Group',
-      service_line: 'StratoSight',
-      market_segment: 'StratoSight',
-      opportunity_type: 'Expansion',
-      stage: '2 Discovery',
-      forecast_category: 'Pipeline',
-      total_mwac: null,
-      total_mwdc: null,
-      site_count: 21,
-      commercial_basis: 'Square footage',
-      pricing_band: 'Low',
-      calculated_revenue: 425000,
-      estimated_cts_pct: 49,
-      estimated_earnings_pct: 34,
-      follow_up_status: 'Overdue',
-      forecast_hygiene_status: 'Warning',
-      owner_full_name: 'Jeff Yarbrough',
-      expected_close_date: '2026-07-15'
-    }
-  ];
-
-  return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
-      <section style={shellCard}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <div>
-            {smallLabel('NAES CRM V3')}
-            <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 600 }}>Opportunities</h2>
-            <p style={{ marginTop: '12px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: '#475569' }}>
-              Full roll-up view with forecast, pipeline, and account-fed opportunity visibility.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{ borderRadius: '18px', border: '1px solid #D8E2D7', background: '#FBFCFB', padding: '10px 14px', fontSize: '14px', color: '#475569' }}>
-              Search opportunities
-            </div>
-            <div style={{ borderRadius: '18px', border: '1px solid #D8E2D7', background: '#FBFCFB', padding: '10px 14px', fontSize: '14px', color: '#475569' }}>
-              Filter: Forecast
-            </div>
-            <div style={{ borderRadius: '18px', border: '1px solid #D8E2D7', background: '#FBFCFB', padding: '10px 14px', fontSize: '14px', color: '#475569' }}>
-              Sort: Close Date
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-        {summaryCards.map((card) => (
-          <div key={card.label} style={{ borderRadius: '24px', background: '#FFFFFF', border: '1px solid #E5ECE5', boxShadow: '0 10px 24px rgba(31,41,55,0.05)', padding: '18px' }}>
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>{card.label}</div>
-            <div style={{ marginTop: '10px', fontSize: '28px', fontWeight: 700, color: '#111827' }}>{card.value}</div>
-            <div style={{ marginTop: '6px', fontSize: '13px', color: '#64748b' }}>{card.sub}</div>
-          </div>
-        ))}
-      </section>
-
-      <section style={shellCard}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div>
-            {smallLabel('Forecast and Stage Summary')}
-            <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 600 }}>Stage roll-up</h3>
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {['Pipeline', 'BestCase', 'Commit', 'Closed'].map((chip) => (
-              <span key={chip} style={{ borderRadius: '999px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-                {chip}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ marginTop: '18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
-          {stageRollup.map(([stage, count]) => (
-            <div key={stage} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#64748b' }}>{stage}</div>
-              <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 700, color: '#111827' }}>{count}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section style={shellCard}>
-        {smallLabel('Opportunity List')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 600 }}>Compact, scannable opportunities</h3>
-
-        <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
-          {opportunityCards.map((opportunity) => (
-            <OpportunitySummaryRow
-              key={opportunity.id}
-              opportunity={opportunity}
-              onOpenOpportunity={onOpenOpportunity}
-            />
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function OpportunityDetailPage({ onBackToOverview }) {
+function OpportunityPage() {
   const [serviceLine, setServiceLine] = useState('Both');
   const [renewablesPortfolioType, setRenewablesPortfolioType] = useState('DG');
   const [renewablesBasis, setRenewablesBasis] = useState('MWDC');
@@ -1027,97 +457,20 @@ function OpportunityDetailPage({ onBackToOverview }) {
     otherHigh
   ]);
 
-  const commercialChangeSnapshot = JSON.stringify({
-    serviceLine,
-    renewablesPortfolioType,
-    renewablesBasis,
-    renewablesSize,
-    stratoSqft,
-    otherDescription,
-    otherBasis,
-    otherQuantity,
-    otherTarget,
-    otherLow,
-    otherHigh,
-    pricingBasis: commercial.pricingBasis,
-    low: commercial.low,
-    target: commercial.target,
-    high: commercial.high,
-    weighted: commercial.weighted
-  });
-
-  const [lastSavedCommercialSnapshot, setLastSavedCommercialSnapshot] = useState('');
-
-  React.useEffect(() => {
-    if (!lastSavedCommercialSnapshot) {
-      setLastSavedCommercialSnapshot(commercialChangeSnapshot);
-    }
-  }, [commercialChangeSnapshot, lastSavedCommercialSnapshot]);
-
-  const hasCommercialChanges =
-    Boolean(lastSavedCommercialSnapshot) &&
-    lastSavedCommercialSnapshot !== commercialChangeSnapshot;
-
   function saveRevision() {
-    if (!hasCommercialChanges) return;
-    if (!changeReason.trim()) return;
-
+    const reason = changeReason.trim() || 'Commercial update';
     setRevisionHistory((prev) => [
       {
         version: prev.length + 1,
         when: dtNow(),
         who: 'Jeff Yarbrough',
-        reason: changeReason.trim(),
+        reason,
         summary: `${serviceLine} updated to target ${money(commercial.target)}`
       },
       ...prev
     ]);
-
-    setLastSavedCommercialSnapshot(commercialChangeSnapshot);
     setChangeReason('');
   }
-
-  const derivedMwac = serviceLine === 'Renewables' || serviceLine === 'Both'
-    ? (renewablesBasis === 'MWAC' ? Number(renewablesSize || 0) : Number(renewablesSize || 0) / 1.25)
-    : null;
-
-  const derivedMwdc = serviceLine === 'Renewables' || serviceLine === 'Both'
-    ? (renewablesBasis === 'MWDC' ? Number(renewablesSize || 0) : Number(renewablesSize || 0) * 1.25)
-    : null;
-
-  const opportunityPills = useMemo(() => buildOpportunityPills({
-    service_line: serviceLine,
-    market_segment: serviceLine === 'StratoSight'
-      ? 'StratoSight'
-      : serviceLine === 'Other O&M'
-      ? 'Other O&M'
-      : renewablesPortfolioType,
-    opportunity_type: 'New customer / bundled services',
-    stage: '3 Solution Fit',
-    forecast_category: 'Best Case',
-    total_mwac: derivedMwac,
-    total_mwdc: derivedMwdc,
-    site_count: 14,
-    commercial_basis: commercial.pricingBasis || serviceLine,
-    pricing_band: 'Mid',
-    calculated_revenue: commercial.target,
-    estimated_cts_pct: 63,
-    estimated_earnings_pct: 37,
-    follow_up_status: 'DueSoon',
-    forecast_hygiene_status: 'AtRisk',
-    owner_full_name: 'Jeff Yarbrough',
-    expected_close_date: '2026-06-30',
-    scope_type: serviceLine === 'Both' ? 'Bundled Renewables + StratoSight' : serviceLine,
-    geographic_scope: 'National, multi-site',
-    driver_summary: 'Bundled commercial structure with reporting support'
-  }), [
-    serviceLine,
-    renewablesPortfolioType,
-    renewablesBasis,
-    renewablesSize,
-    commercial.pricingBasis,
-    commercial.target
-  ]);
 
   const pricingFootnote =
     serviceLine === 'Renewables'
@@ -1128,101 +481,8 @@ function OpportunityDetailPage({ onBackToOverview }) {
       ? 'Bundled logic combines Renewables and StratoSight commercial paths.'
       : 'Other O&M uses manual commercial entry with no automatic pricing formula.';
 
-  const opportunitySnapshotCards = [
-    {
-      id: 'opp-ashley',
-      name: 'Ashley Furniture MSA',
-      account: 'Ashley Furniture Industries',
-      service_line: serviceLine,
-      market_segment: serviceLine === 'StratoSight' ? 'StratoSight' : renewablesPortfolioType,
-      opportunity_type: 'New customer / bundled services',
-      stage: '3 Solution Fit',
-      forecast_category: 'Best Case',
-      total_mwac: derivedMwac,
-      total_mwdc: derivedMwdc,
-      site_count: 14,
-      commercial_basis: commercial.pricingBasis || serviceLine,
-      pricing_band: 'Mid',
-      calculated_revenue: commercial.target,
-      estimated_cts_pct: 63,
-      estimated_earnings_pct: 37,
-      follow_up_status: 'DueSoon',
-      forecast_hygiene_status: 'AtRisk',
-      owner_full_name: 'Jeff Yarbrough',
-      expected_close_date: '2026-06-30',
-      scope_type: serviceLine === 'Both' ? 'Bundled Renewables + StratoSight' : serviceLine,
-      geographic_scope: 'National, multi-site',
-      driver_summary: 'Bundled commercial structure with reporting support'
-    },
-    {
-      id: 'opp-onyx',
-      name: 'Onyx DG Portfolio',
-      account: 'Onyx Renewables',
-      service_line: 'Renewables',
-      market_segment: 'DG',
-      opportunity_type: 'Renewal',
-      stage: '4 Commercials',
-      forecast_category: 'Commit',
-      total_mwac: 12,
-      total_mwdc: 15,
-      site_count: 33,
-      commercial_basis: 'DG MWAC annual',
-      pricing_band: 'High',
-      calculated_revenue: 192000,
-      estimated_cts_pct: 58,
-      estimated_earnings_pct: 29,
-      follow_up_status: 'Current',
-      forecast_hygiene_status: 'Healthy',
-      owner_full_name: 'Jeff Yarbrough',
-      expected_close_date: '2026-04-30',
-      scope_type: 'Full Scope O&M',
-      geographic_scope: 'Arizona',
-      driver_summary: 'Portfolio renewal with staffing and PM coverage'
-    },
-    {
-      id: 'opp-scan',
-      name: 'Retail Roof Scan Program',
-      account: 'National Retail Group',
-      service_line: 'StratoSight',
-      market_segment: 'StratoSight',
-      opportunity_type: 'Expansion',
-      stage: '2 Discovery',
-      forecast_category: 'Pipeline',
-      site_count: 21,
-      commercial_basis: 'Square footage',
-      pricing_band: 'Low',
-      calculated_revenue: 425000,
-      estimated_cts_pct: 49,
-      estimated_earnings_pct: 34,
-      follow_up_status: 'Overdue',
-      forecast_hygiene_status: 'Warning',
-      owner_full_name: 'Jeff Yarbrough',
-      expected_close_date: '2026-07-15',
-      scope_type: 'Thermal + RGB',
-      geographic_scope: 'Multi-state',
-      driver_summary: 'Roof scan expansion tied to annual reporting cadence'
-    }
-  ];
-
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
-      <div>
-        <button
-          onClick={onBackToOverview}
-          style={{
-            borderRadius: '16px',
-            border: '1px solid #DCE7DD',
-            background: '#FBFCFB',
-            color: '#334155',
-            padding: '10px 14px',
-            fontSize: '13px',
-            fontWeight: 600,
-            cursor: 'pointer'
-          }}
-        >
-          ← Back to Opportunities Overview
-        </button>
-      </div>
       <section style={shellCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
@@ -1236,10 +496,6 @@ function OpportunityDetailPage({ onBackToOverview }) {
             <p style={{ marginTop: '12px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: '#475569' }}>
               National opportunity spanning Renewables and StratoSight service lines, intended to tell the deal story quickly while feeding forecast, dashboard, quote, and reporting surfaces.
             </p>
-
-            <div style={{ marginTop: '14px', display: 'flex', flexWrap: 'wrap', gap: '8px', rowGap: '8px', alignItems: 'flex-start', minWidth: 0, maxWidth: '900px' }}>
-              {opportunityPills.map((pill) => renderOpportunityPill(pill))}
-            </div>
           </div>
 
           <div style={{ display: 'grid', gap: '12px', minWidth: '320px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
@@ -1394,48 +650,6 @@ function OpportunityDetailPage({ onBackToOverview }) {
                 </div>
               </div>
             ) : null}
-
-            <div style={{ marginTop: '18px', borderRadius: '18px', border: hasCommercialChanges ? '1px solid #BFD7C4' : '1px solid #DCE7DD', background: hasCommercialChanges ? '#F7FBF8' : '#FBFCFB', padding: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#54745D' }}>
-                    Commercial Change Approval
-                  </div>
-                  <div style={{ marginTop: '6px', fontSize: '14px', lineHeight: 1.55, color: '#475569' }}>
-                    Save commercial changes from this calculator here. Saved changes flow into Commercial History and the opportunity roll-up.
-                  </div>
-                </div>
-
-                <div style={{ borderRadius: '999px', background: hasCommercialChanges ? '#FFF7EA' : '#EDF8F1', color: hasCommercialChanges ? '#8B5E12' : '#1F6B44', padding: '6px 10px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                  {hasCommercialChanges ? 'Unsaved changes' : 'No pending changes'}
-                </div>
-              </div>
-
-              <div style={{ marginTop: '14px', display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'end' }}>
-                <div>
-                  {inputWrap('Reason for update', textInput(changeReason, (e) => setChangeReason(e.target.value), { placeholder: 'Customer added MW, pricing changed, scope revised, etc.' }))}
-                </div>
-
-                <div>
-                  <button
-                    onClick={saveRevision}
-                    disabled={!hasCommercialChanges || !changeReason.trim()}
-                    style={{
-                      borderRadius: '18px',
-                      border: '1px solid #0B6771',
-                      background: !hasCommercialChanges || !changeReason.trim() ? '#C8D6D8' : '#0B6771',
-                      color: '#fff',
-                      padding: '10px 16px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: !hasCommercialChanges || !changeReason.trim() ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    Save Commercial Change
-                  </button>
-                </div>
-              </div>
-            </div>
           </section>
 
           <section style={shellCard}>
@@ -1533,6 +747,18 @@ function OpportunityDetailPage({ onBackToOverview }) {
           {smallLabel('Commercial History')}
           <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Revision timeline with why it changed</h3>
 
+          <div style={{ marginTop: '16px', display: 'grid', gap: '10px' }}>
+            {inputWrap('Reason for update', textInput(changeReason, (e) => setChangeReason(e.target.value), { placeholder: 'Customer added 50 MW, pricing updated, scope changed, etc.' }))}
+            <div>
+              <button
+                onClick={saveRevision}
+                style={{ borderRadius: '18px', border: '1px solid #0B6771', background: '#0B6771', color: '#fff', padding: '10px 16px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Save Revision
+              </button>
+            </div>
+          </div>
+
           <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
             {revisionHistory.map((rev) => (
               <div key={`${rev.version}-${rev.when}`} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px' }}>
@@ -1555,49 +781,13 @@ function OpportunityDetailPage({ onBackToOverview }) {
 export default function App() {
   const [activePage, setActivePage] = useState('Welcome');
   const [pageHistory, setPageHistory] = useState(['Welcome']);
-  const [routePath, setRoutePath] = useState(getInitialPath());
 
   const flatItems = useMemo(() => sidebarSections.flatMap((section) => section.items), []);
-  const routeInfo = parseOpportunityRoute(routePath);
-
-  const safeActivePage =
-    routeInfo.isOpportunities
-      ? 'Opportunities'
-      : flatItems.includes(activePage)
-      ? activePage
-      : 'Welcome';
-
-  React.useEffect(() => {
-    const onPopState = () => {
-      setRoutePath(getInitialPath());
-    };
-
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
-  }, []);
+  const safeActivePage = flatItems.includes(activePage) ? activePage : 'Welcome';
 
   function navigate(nextPage) {
     setActivePage(nextPage);
     setPageHistory((prev) => [...prev, nextPage]);
-
-    if (nextPage === 'Opportunities') {
-      pushPath('/opportunities');
-      setRoutePath('/opportunities');
-      return;
-    }
-  }
-
-  function openOpportunityDetail(opportunityId) {
-    const nextPath = `/opportunities/${opportunityId}`;
-    pushPath(nextPath);
-    setRoutePath(nextPath);
-    setActivePage('Opportunities');
-  }
-
-  function returnToOpportunitiesOverview() {
-    pushPath('/opportunities');
-    setRoutePath('/opportunities');
-    setActivePage('Opportunities');
   }
 
   function goBack() {
@@ -1714,11 +904,7 @@ export default function App() {
             {safeActivePage === 'Welcome'
               ? renderWelcomePage()
               : safeActivePage === 'Opportunities'
-              ? (
-                routeInfo.detailId
-                  ? <OpportunityDetailPage onBackToOverview={returnToOpportunitiesOverview} />
-                  : <OpportunitiesOverviewPage onOpenOpportunity={openOpportunityDetail} />
-              )
+              ? <OpportunityPage />
               : (
                 <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
                   <section style={shellCard}>

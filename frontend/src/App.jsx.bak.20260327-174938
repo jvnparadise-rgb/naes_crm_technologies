@@ -589,24 +589,12 @@ function OpportunitySummaryRow({ opportunity, onOpenOpportunity }) {
       'forecastCategory',
       'mwac',
       'mwdc',
+      'calculatedRevenue',
       'followUpStatus',
       'forecastHygieneStatus',
       'expectedCloseDate'
     ].includes(pill.key)
   );
-
-  const revenueValue = formatPillCurrency(opportunity.calculated_revenue) || '$0';
-  const earningsPct = Number(opportunity.estimated_earnings_pct || 0);
-  const weightedPct = opportunity.forecast_category === 'Commit'
-    ? 0.9
-    : opportunity.forecast_category === 'Best Case'
-    ? 0.6
-    : opportunity.forecast_category === 'Pipeline'
-    ? 0.3
-    : 0.5;
-
-  const potentialMarginValue = formatPillCurrency((Number(opportunity.calculated_revenue || 0) * earningsPct) / 100) || '$0';
-  const weightedValue = formatPillCurrency(Number(opportunity.calculated_revenue || 0) * weightedPct) || '$0';
 
   return (
     <button
@@ -616,7 +604,7 @@ function OpportunitySummaryRow({ opportunity, onOpenOpportunity }) {
         border: '1px solid #E5ECE5',
         background: '#FFFFFF',
         borderRadius: '22px',
-        padding: '18px 20px',
+        padding: '16px 18px',
         textAlign: 'left',
         cursor: 'pointer',
         boxShadow: '0 8px 20px rgba(31,41,55,0.04)'
@@ -625,85 +613,50 @@ function OpportunitySummaryRow({ opportunity, onOpenOpportunity }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(260px, 1.05fr) minmax(340px, 1.5fr) minmax(220px, 0.9fr)',
-          gap: '18px',
+          gridTemplateColumns: 'minmax(280px, 1.5fr) minmax(140px, 0.8fr) minmax(140px, 0.8fr)',
+          gap: '16px',
           alignItems: 'start'
         }}
       >
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827' }}>
+          <div style={{ fontSize: '18px', fontWeight: 700, color: '#111827' }}>
             {opportunity.name}
           </div>
           <div style={{ marginTop: '4px', fontSize: '14px', color: '#64748b' }}>
             {opportunity.account}
           </div>
+        </div>
 
-          <div style={{ marginTop: '14px', display: 'grid', gap: '10px' }}>
-            <div>
-              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>
-                Owner
-              </div>
-              <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 600, color: '#111827' }}>
-                {opportunity.owner_full_name}
-              </div>
-            </div>
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>
+            Owner
+          </div>
+          <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+            {opportunity.owner_full_name}
           </div>
         </div>
 
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px',
-              rowGap: '8px',
-              alignItems: 'flex-start',
-              minWidth: 0,
-              maxWidth: '100%'
-            }}
-          >
-            {pills.map((pill) => renderOpportunityPill(pill))}
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>
+            Account
+          </div>
+          <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+            {opportunity.account}
           </div>
         </div>
+      </div>
 
-        <div
-          style={{
-            borderRadius: '18px',
-            border: '1px solid #D7E6DA',
-            background: '#F7FBF8',
-            padding: '14px 16px',
-            display: 'grid',
-            gap: '10px',
-            minWidth: 0
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#64748b' }}>
-              Revenue
-            </div>
-            <div style={{ marginTop: '6px', fontSize: '30px', fontWeight: 800, color: '#0B6771', lineHeight: 1.05 }}>
-              {revenueValue}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>
-              Potential Margin
-            </div>
-            <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 700, color: '#111827' }}>
-              {potentialMarginValue}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>
-              Weighted Value
-            </div>
-            <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 700, color: '#111827' }}>
-              {weightedValue}
-            </div>
-          </div>
-        </div>
+      <div
+        style={{
+          marginTop: '12px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '8px',
+          rowGap: '8px',
+          minWidth: 0
+        }}
+      >
+        {pills.map((pill) => renderOpportunityPill(pill))}
       </div>
     </button>
   );
@@ -1027,53 +980,18 @@ function OpportunityDetailPage({ onBackToOverview }) {
     otherHigh
   ]);
 
-  const commercialChangeSnapshot = JSON.stringify({
-    serviceLine,
-    renewablesPortfolioType,
-    renewablesBasis,
-    renewablesSize,
-    stratoSqft,
-    otherDescription,
-    otherBasis,
-    otherQuantity,
-    otherTarget,
-    otherLow,
-    otherHigh,
-    pricingBasis: commercial.pricingBasis,
-    low: commercial.low,
-    target: commercial.target,
-    high: commercial.high,
-    weighted: commercial.weighted
-  });
-
-  const [lastSavedCommercialSnapshot, setLastSavedCommercialSnapshot] = useState('');
-
-  React.useEffect(() => {
-    if (!lastSavedCommercialSnapshot) {
-      setLastSavedCommercialSnapshot(commercialChangeSnapshot);
-    }
-  }, [commercialChangeSnapshot, lastSavedCommercialSnapshot]);
-
-  const hasCommercialChanges =
-    Boolean(lastSavedCommercialSnapshot) &&
-    lastSavedCommercialSnapshot !== commercialChangeSnapshot;
-
   function saveRevision() {
-    if (!hasCommercialChanges) return;
-    if (!changeReason.trim()) return;
-
+    const reason = changeReason.trim() || 'Commercial update';
     setRevisionHistory((prev) => [
       {
         version: prev.length + 1,
         when: dtNow(),
         who: 'Jeff Yarbrough',
-        reason: changeReason.trim(),
+        reason,
         summary: `${serviceLine} updated to target ${money(commercial.target)}`
       },
       ...prev
     ]);
-
-    setLastSavedCommercialSnapshot(commercialChangeSnapshot);
     setChangeReason('');
   }
 
@@ -1394,48 +1312,6 @@ function OpportunityDetailPage({ onBackToOverview }) {
                 </div>
               </div>
             ) : null}
-
-            <div style={{ marginTop: '18px', borderRadius: '18px', border: hasCommercialChanges ? '1px solid #BFD7C4' : '1px solid #DCE7DD', background: hasCommercialChanges ? '#F7FBF8' : '#FBFCFB', padding: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#54745D' }}>
-                    Commercial Change Approval
-                  </div>
-                  <div style={{ marginTop: '6px', fontSize: '14px', lineHeight: 1.55, color: '#475569' }}>
-                    Save commercial changes from this calculator here. Saved changes flow into Commercial History and the opportunity roll-up.
-                  </div>
-                </div>
-
-                <div style={{ borderRadius: '999px', background: hasCommercialChanges ? '#FFF7EA' : '#EDF8F1', color: hasCommercialChanges ? '#8B5E12' : '#1F6B44', padding: '6px 10px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                  {hasCommercialChanges ? 'Unsaved changes' : 'No pending changes'}
-                </div>
-              </div>
-
-              <div style={{ marginTop: '14px', display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'end' }}>
-                <div>
-                  {inputWrap('Reason for update', textInput(changeReason, (e) => setChangeReason(e.target.value), { placeholder: 'Customer added MW, pricing changed, scope revised, etc.' }))}
-                </div>
-
-                <div>
-                  <button
-                    onClick={saveRevision}
-                    disabled={!hasCommercialChanges || !changeReason.trim()}
-                    style={{
-                      borderRadius: '18px',
-                      border: '1px solid #0B6771',
-                      background: !hasCommercialChanges || !changeReason.trim() ? '#C8D6D8' : '#0B6771',
-                      color: '#fff',
-                      padding: '10px 16px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: !hasCommercialChanges || !changeReason.trim() ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    Save Commercial Change
-                  </button>
-                </div>
-              </div>
-            </div>
           </section>
 
           <section style={shellCard}>
@@ -1532,6 +1408,18 @@ function OpportunityDetailPage({ onBackToOverview }) {
         <section style={shellCard}>
           {smallLabel('Commercial History')}
           <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Revision timeline with why it changed</h3>
+
+          <div style={{ marginTop: '16px', display: 'grid', gap: '10px' }}>
+            {inputWrap('Reason for update', textInput(changeReason, (e) => setChangeReason(e.target.value), { placeholder: 'Customer added 50 MW, pricing updated, scope changed, etc.' }))}
+            <div>
+              <button
+                onClick={saveRevision}
+                style={{ borderRadius: '18px', border: '1px solid #0B6771', background: '#0B6771', color: '#fff', padding: '10px 16px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Save Revision
+              </button>
+            </div>
+          </div>
 
           <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
             {revisionHistory.map((rev) => (

@@ -1027,53 +1027,18 @@ function OpportunityDetailPage({ onBackToOverview }) {
     otherHigh
   ]);
 
-  const commercialChangeSnapshot = JSON.stringify({
-    serviceLine,
-    renewablesPortfolioType,
-    renewablesBasis,
-    renewablesSize,
-    stratoSqft,
-    otherDescription,
-    otherBasis,
-    otherQuantity,
-    otherTarget,
-    otherLow,
-    otherHigh,
-    pricingBasis: commercial.pricingBasis,
-    low: commercial.low,
-    target: commercial.target,
-    high: commercial.high,
-    weighted: commercial.weighted
-  });
-
-  const [lastSavedCommercialSnapshot, setLastSavedCommercialSnapshot] = useState('');
-
-  React.useEffect(() => {
-    if (!lastSavedCommercialSnapshot) {
-      setLastSavedCommercialSnapshot(commercialChangeSnapshot);
-    }
-  }, [commercialChangeSnapshot, lastSavedCommercialSnapshot]);
-
-  const hasCommercialChanges =
-    Boolean(lastSavedCommercialSnapshot) &&
-    lastSavedCommercialSnapshot !== commercialChangeSnapshot;
-
   function saveRevision() {
-    if (!hasCommercialChanges) return;
-    if (!changeReason.trim()) return;
-
+    const reason = changeReason.trim() || 'Commercial update';
     setRevisionHistory((prev) => [
       {
         version: prev.length + 1,
         when: dtNow(),
         who: 'Jeff Yarbrough',
-        reason: changeReason.trim(),
+        reason,
         summary: `${serviceLine} updated to target ${money(commercial.target)}`
       },
       ...prev
     ]);
-
-    setLastSavedCommercialSnapshot(commercialChangeSnapshot);
     setChangeReason('');
   }
 
@@ -1394,48 +1359,6 @@ function OpportunityDetailPage({ onBackToOverview }) {
                 </div>
               </div>
             ) : null}
-
-            <div style={{ marginTop: '18px', borderRadius: '18px', border: hasCommercialChanges ? '1px solid #BFD7C4' : '1px solid #DCE7DD', background: hasCommercialChanges ? '#F7FBF8' : '#FBFCFB', padding: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#54745D' }}>
-                    Commercial Change Approval
-                  </div>
-                  <div style={{ marginTop: '6px', fontSize: '14px', lineHeight: 1.55, color: '#475569' }}>
-                    Save commercial changes from this calculator here. Saved changes flow into Commercial History and the opportunity roll-up.
-                  </div>
-                </div>
-
-                <div style={{ borderRadius: '999px', background: hasCommercialChanges ? '#FFF7EA' : '#EDF8F1', color: hasCommercialChanges ? '#8B5E12' : '#1F6B44', padding: '6px 10px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                  {hasCommercialChanges ? 'Unsaved changes' : 'No pending changes'}
-                </div>
-              </div>
-
-              <div style={{ marginTop: '14px', display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'end' }}>
-                <div>
-                  {inputWrap('Reason for update', textInput(changeReason, (e) => setChangeReason(e.target.value), { placeholder: 'Customer added MW, pricing changed, scope revised, etc.' }))}
-                </div>
-
-                <div>
-                  <button
-                    onClick={saveRevision}
-                    disabled={!hasCommercialChanges || !changeReason.trim()}
-                    style={{
-                      borderRadius: '18px',
-                      border: '1px solid #0B6771',
-                      background: !hasCommercialChanges || !changeReason.trim() ? '#C8D6D8' : '#0B6771',
-                      color: '#fff',
-                      padding: '10px 16px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: !hasCommercialChanges || !changeReason.trim() ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    Save Commercial Change
-                  </button>
-                </div>
-              </div>
-            </div>
           </section>
 
           <section style={shellCard}>
@@ -1532,6 +1455,18 @@ function OpportunityDetailPage({ onBackToOverview }) {
         <section style={shellCard}>
           {smallLabel('Commercial History')}
           <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Revision timeline with why it changed</h3>
+
+          <div style={{ marginTop: '16px', display: 'grid', gap: '10px' }}>
+            {inputWrap('Reason for update', textInput(changeReason, (e) => setChangeReason(e.target.value), { placeholder: 'Customer added 50 MW, pricing updated, scope changed, etc.' }))}
+            <div>
+              <button
+                onClick={saveRevision}
+                style={{ borderRadius: '18px', border: '1px solid #0B6771', background: '#0B6771', color: '#fff', padding: '10px 16px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Save Revision
+              </button>
+            </div>
+          </div>
 
           <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
             {revisionHistory.map((rev) => (

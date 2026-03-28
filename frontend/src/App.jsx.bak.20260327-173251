@@ -549,166 +549,6 @@ function renderHeaderBand(activePage, onBack, canGoBack) {
   );
 }
 
-
-function getInitialPath() {
-  if (typeof window === 'undefined') return '/';
-  return window.location.pathname || '/';
-}
-
-function parseOpportunityRoute(pathname) {
-  if (!pathname) return { isOpportunities: false, detailId: null };
-
-  if (pathname === '/opportunities') {
-    return { isOpportunities: true, detailId: null };
-  }
-
-  const match = pathname.match(/^\/opportunities\/([^/]+)$/);
-  if (match) {
-    return { isOpportunities: true, detailId: match[1] };
-  }
-
-  return { isOpportunities: false, detailId: null };
-}
-
-function pushPath(path) {
-  if (typeof window === 'undefined') return;
-  window.history.pushState({}, '', path);
-}
-
-function replacePath(path) {
-  if (typeof window === 'undefined') return;
-  window.history.replaceState({}, '', path);
-}
-
-function OpportunitySummaryRow({ opportunity, onOpenOpportunity }) {
-  const pills = buildOpportunityPills(opportunity).filter((pill) =>
-    [
-      'serviceLine',
-      'marketSegment',
-      'stage',
-      'forecastCategory',
-      'mwac',
-      'mwdc',
-      'followUpStatus',
-      'forecastHygieneStatus',
-      'expectedCloseDate'
-    ].includes(pill.key)
-  );
-
-  const revenueValue = formatPillCurrency(opportunity.calculated_revenue) || '$0';
-  const earningsPct = Number(opportunity.estimated_earnings_pct || 0);
-  const weightedPct = opportunity.forecast_category === 'Commit'
-    ? 0.9
-    : opportunity.forecast_category === 'Best Case'
-    ? 0.6
-    : opportunity.forecast_category === 'Pipeline'
-    ? 0.3
-    : 0.5;
-
-  const potentialMarginValue = formatPillCurrency((Number(opportunity.calculated_revenue || 0) * earningsPct) / 100) || '$0';
-  const weightedValue = formatPillCurrency(Number(opportunity.calculated_revenue || 0) * weightedPct) || '$0';
-
-  return (
-    <button
-      onClick={() => onOpenOpportunity(opportunity.id)}
-      style={{
-        width: '100%',
-        border: '1px solid #E5ECE5',
-        background: '#FFFFFF',
-        borderRadius: '22px',
-        padding: '18px 20px',
-        textAlign: 'left',
-        cursor: 'pointer',
-        boxShadow: '0 8px 20px rgba(31,41,55,0.04)'
-      }}
-    >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(260px, 1.05fr) minmax(340px, 1.5fr) minmax(220px, 0.9fr)',
-          gap: '18px',
-          alignItems: 'start'
-        }}
-      >
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827' }}>
-            {opportunity.name}
-          </div>
-          <div style={{ marginTop: '4px', fontSize: '14px', color: '#64748b' }}>
-            {opportunity.account}
-          </div>
-
-          <div style={{ marginTop: '14px', display: 'grid', gap: '10px' }}>
-            <div>
-              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>
-                Owner
-              </div>
-              <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 600, color: '#111827' }}>
-                {opportunity.owner_full_name}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px',
-              rowGap: '8px',
-              alignItems: 'flex-start',
-              minWidth: 0,
-              maxWidth: '100%'
-            }}
-          >
-            {pills.map((pill) => renderOpportunityPill(pill))}
-          </div>
-        </div>
-
-        <div
-          style={{
-            borderRadius: '18px',
-            border: '1px solid #D7E6DA',
-            background: '#F7FBF8',
-            padding: '14px 16px',
-            display: 'grid',
-            gap: '10px',
-            minWidth: 0
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#64748b' }}>
-              Revenue
-            </div>
-            <div style={{ marginTop: '6px', fontSize: '30px', fontWeight: 800, color: '#0B6771', lineHeight: 1.05 }}>
-              {revenueValue}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>
-              Potential Margin
-            </div>
-            <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 700, color: '#111827' }}>
-              {potentialMarginValue}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>
-              Weighted Value
-            </div>
-            <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 700, color: '#111827' }}>
-              {weightedValue}
-            </div>
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-}
-
 function renderWelcomePage() {
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
@@ -883,8 +723,6 @@ function OpportunitiesOverviewPage({ onOpenOpportunity }) {
       opportunity_type: 'Expansion',
       stage: '2 Discovery',
       forecast_category: 'Pipeline',
-      total_mwac: null,
-      total_mwdc: null,
       site_count: 21,
       commercial_basis: 'Square footage',
       pricing_band: 'Low',
@@ -910,16 +748,8 @@ function OpportunitiesOverviewPage({ onOpenOpportunity }) {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{ borderRadius: '18px', border: '1px solid #D8E2D7', background: '#FBFCFB', padding: '10px 14px', fontSize: '14px', color: '#475569' }}>
-              Search opportunities
-            </div>
-            <div style={{ borderRadius: '18px', border: '1px solid #D8E2D7', background: '#FBFCFB', padding: '10px 14px', fontSize: '14px', color: '#475569' }}>
-              Filter: Forecast
-            </div>
-            <div style={{ borderRadius: '18px', border: '1px solid #D8E2D7', background: '#FBFCFB', padding: '10px 14px', fontSize: '14px', color: '#475569' }}>
-              Sort: Close Date
-            </div>
+          <div style={{ borderRadius: '18px', border: '1px solid #CFE9D7', background: '#EDF8F1', padding: '12px 16px', fontSize: '14px', fontWeight: 600, color: '#1F6B44' }}>
+            View: My Pipeline / Team / Global
           </div>
         </div>
       </section>
@@ -934,44 +764,155 @@ function OpportunitiesOverviewPage({ onOpenOpportunity }) {
         ))}
       </section>
 
-      <section style={shellCard}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div>
-            {smallLabel('Forecast and Stage Summary')}
-            <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 600 }}>Stage roll-up</h3>
+      <section style={{ display: 'grid', gap: '24px', gridTemplateColumns: '1.6fr 1fr' }}>
+        <div style={shellCard}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div>
+              {smallLabel('Main Opportunity Roll-Up')}
+              <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 600 }}>Top-line forecasting and opportunity card format</h3>
+              <p style={{ marginTop: '8px', fontSize: '14px', lineHeight: 1.6, color: '#64748b' }}>
+                Each opportunity card shows the key commercial and forecast qualifiers before you open the detail workspace.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {['Pipeline', 'BestCase', 'Commit', 'Closed'].map((chip) => (
+                <span key={chip} style={{ borderRadius: '999px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                  {chip}
+                </span>
+              ))}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {['Pipeline', 'BestCase', 'Commit', 'Closed'].map((chip) => (
-              <span key={chip} style={{ borderRadius: '999px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>
-                {chip}
-              </span>
+          <div style={{ marginTop: '18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+            {stageRollup.map(([stage, count]) => (
+              <div key={stage} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#64748b' }}>{stage}</div>
+                <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 700, color: '#111827' }}>{count}</div>
+              </div>
             ))}
           </div>
+
+          <div style={{ marginTop: '18px', display: 'grid', gap: '14px' }}>
+            {opportunityCards.map((opportunity) => {
+              const pills = buildOpportunityPills(opportunity);
+              const isAshley = opportunity.id === 'ashley';
+
+              return (
+                <div key={opportunity.id} style={{ borderRadius: '24px', border: '1px solid #E5ECE5', background: '#FFFFFF', padding: '18px', boxShadow: '0 10px 24px rgba(31,41,55,0.05)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div style={{ minWidth: 0, flex: '1 1 420px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>Opportunity</div>
+                      <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 700, color: '#111827' }}>{opportunity.name}</div>
+                      <div style={{ marginTop: '4px', fontSize: '14px', color: '#64748b' }}>{opportunity.account}</div>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '8px', justifyItems: 'end' }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>Owner</div>
+                        <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 600, color: '#111827' }}>{opportunity.owner_full_name}</div>
+                      </div>
+
+                      <button
+                        onClick={() => isAshley ? onOpenOpportunity('ashley') : null}
+                        style={{
+                          borderRadius: '16px',
+                          border: '1px solid #0B6771',
+                          background: isAshley ? '#0B6771' : '#F2F5F2',
+                          color: isAshley ? '#fff' : '#64748b',
+                          padding: '10px 14px',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          cursor: isAshley ? 'pointer' : 'default'
+                        }}
+                      >
+                        {isAshley ? 'Open Opportunity' : 'Preview Only'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '14px', display: 'flex', flexWrap: 'wrap', gap: '8px', rowGap: '8px', minWidth: 0 }}>
+                    {pills.map((pill) => renderOpportunityPill(pill))}
+                  </div>
+
+                  <div style={{ marginTop: '18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                    <div style={{ borderRadius: '18px', background: '#FBFCFB', border: '1px solid #E5ECE5', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>Forecast</div>
+                      <div style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600 }}>{opportunity.forecast_category}</div>
+                    </div>
+                    <div style={{ borderRadius: '18px', background: '#FBFCFB', border: '1px solid #E5ECE5', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>Follow-Up</div>
+                      <div style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600 }}>{opportunity.follow_up_status}</div>
+                    </div>
+                    <div style={{ borderRadius: '18px', background: '#FBFCFB', border: '1px solid #E5ECE5', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>Commercial Basis</div>
+                      <div style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600 }}>{opportunity.commercial_basis}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div style={{ marginTop: '18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
-          {stageRollup.map(([stage, count]) => (
-            <div key={stage} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#64748b' }}>{stage}</div>
-              <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 700, color: '#111827' }}>{count}</div>
+        <div style={{ display: 'grid', gap: '24px' }}>
+          <section style={shellCard}>
+            {smallLabel('Account Feeding This Opportunity')}
+            <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 600 }}>Onyx Renewables, Southwest Portfolio</h3>
+            <p style={{ marginTop: '8px', fontSize: '14px', lineHeight: 1.6, color: '#64748b' }}>
+              The parent account record that ties contacts, opportunity summaries, and customer-level reporting together.
+            </p>
+
+            <div style={{ marginTop: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px', rowGap: '8px' }}>
+              {[
+                { key: 'a1', label: 'Customer', value: 'Customer', tone: 'neutral' },
+                { key: 'a2', label: 'Service', value: 'Renewables', tone: 'neutral' },
+                { key: 'a3', label: 'Segment', value: 'USS', tone: 'neutral' },
+                { key: 'a4', label: 'MWAC', value: '187 MWAC', tone: 'info' },
+                { key: 'a5', label: 'MWDC', value: '241.8 MWDC', tone: 'info' },
+                { key: 'a6', label: 'Sites', value: '14 Sites', tone: 'info' },
+                { key: 'a7', label: 'Account ID', value: 'NAES-1042', tone: 'neutral' },
+                { key: 'a8', label: 'Owner', value: 'Ashley Smith', tone: 'neutral' },
+                { key: 'a9', label: 'Open Opps', value: '3 Open Opps', tone: 'info' },
+                { key: 'a10', label: 'Portfolio', value: '$4,250,000', tone: 'info' },
+                { key: 'a11', label: 'Activity', value: '3/25/26', tone: 'info' },
+                { key: 'a12', label: 'Health', value: 'Healthy', tone: 'success' },
+                { key: 'a13', label: 'Region', value: 'Southwest', tone: 'neutral' },
+                { key: 'a14', label: 'Status', value: 'Active', tone: 'success' }
+              ].map((pill) => renderOpportunityPill(pill))}
             </div>
-          ))}
-        </div>
-      </section>
 
-      <section style={shellCard}>
-        {smallLabel('Opportunity List')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 600 }}>Compact, scannable opportunities</h3>
+            <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
+              <div style={{ borderRadius: '18px', background: '#FBFCFB', border: '1px solid #E5ECE5', padding: '14px 16px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>Related Contacts</div>
+                <div style={{ marginTop: '8px', fontSize: '14px', color: '#334155' }}>Megan Smethurst, Director of Operations</div>
+                <div style={{ marginTop: '4px', fontSize: '14px', color: '#334155' }}>Paul Baltadonis, Executive Sponsor</div>
+              </div>
+              <div style={{ borderRadius: '18px', background: '#FBFCFB', border: '1px solid #E5ECE5', padding: '14px 16px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>Account Wiring</div>
+                <div style={{ marginTop: '8px', fontSize: '14px', color: '#334155' }}>account.id → opportunity.account_id</div>
+                <div style={{ marginTop: '4px', fontSize: '14px', color: '#334155' }}>account.id → contact.account_id</div>
+                <div style={{ marginTop: '4px', fontSize: '14px', color: '#334155' }}>account.id → client_report.account_id</div>
+              </div>
+            </div>
+          </section>
 
-        <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
-          {opportunityCards.map((opportunity) => (
-            <OpportunitySummaryRow
-              key={opportunity.id}
-              opportunity={opportunity}
-              onOpenOpportunity={onOpenOpportunity}
-            />
-          ))}
+          <section style={shellCard}>
+            {smallLabel('Page Behavior')}
+            <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 600 }}>What the page is doing</h3>
+            <div style={{ marginTop: '14px', display: 'grid', gap: '10px' }}>
+              {[
+                'Top roll-up summarizes all open opportunities.',
+                'Each opportunity card exposes commercial and forecast pills.',
+                'Each opportunity ties back to one account via account_id.',
+                'The individual opportunity workspace holds calculator, quote, and revision controls.'
+              ].map((item) => (
+                <div key={item} style={{ borderRadius: '16px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '12px 14px', fontSize: '14px', color: '#334155' }}>
+                  {item}
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
       </section>
     </div>
@@ -1027,53 +968,18 @@ function OpportunityDetailPage({ onBackToOverview }) {
     otherHigh
   ]);
 
-  const commercialChangeSnapshot = JSON.stringify({
-    serviceLine,
-    renewablesPortfolioType,
-    renewablesBasis,
-    renewablesSize,
-    stratoSqft,
-    otherDescription,
-    otherBasis,
-    otherQuantity,
-    otherTarget,
-    otherLow,
-    otherHigh,
-    pricingBasis: commercial.pricingBasis,
-    low: commercial.low,
-    target: commercial.target,
-    high: commercial.high,
-    weighted: commercial.weighted
-  });
-
-  const [lastSavedCommercialSnapshot, setLastSavedCommercialSnapshot] = useState('');
-
-  React.useEffect(() => {
-    if (!lastSavedCommercialSnapshot) {
-      setLastSavedCommercialSnapshot(commercialChangeSnapshot);
-    }
-  }, [commercialChangeSnapshot, lastSavedCommercialSnapshot]);
-
-  const hasCommercialChanges =
-    Boolean(lastSavedCommercialSnapshot) &&
-    lastSavedCommercialSnapshot !== commercialChangeSnapshot;
-
   function saveRevision() {
-    if (!hasCommercialChanges) return;
-    if (!changeReason.trim()) return;
-
+    const reason = changeReason.trim() || 'Commercial update';
     setRevisionHistory((prev) => [
       {
         version: prev.length + 1,
         when: dtNow(),
         who: 'Jeff Yarbrough',
-        reason: changeReason.trim(),
+        reason,
         summary: `${serviceLine} updated to target ${money(commercial.target)}`
       },
       ...prev
     ]);
-
-    setLastSavedCommercialSnapshot(commercialChangeSnapshot);
     setChangeReason('');
   }
 
@@ -1394,48 +1300,6 @@ function OpportunityDetailPage({ onBackToOverview }) {
                 </div>
               </div>
             ) : null}
-
-            <div style={{ marginTop: '18px', borderRadius: '18px', border: hasCommercialChanges ? '1px solid #BFD7C4' : '1px solid #DCE7DD', background: hasCommercialChanges ? '#F7FBF8' : '#FBFCFB', padding: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#54745D' }}>
-                    Commercial Change Approval
-                  </div>
-                  <div style={{ marginTop: '6px', fontSize: '14px', lineHeight: 1.55, color: '#475569' }}>
-                    Save commercial changes from this calculator here. Saved changes flow into Commercial History and the opportunity roll-up.
-                  </div>
-                </div>
-
-                <div style={{ borderRadius: '999px', background: hasCommercialChanges ? '#FFF7EA' : '#EDF8F1', color: hasCommercialChanges ? '#8B5E12' : '#1F6B44', padding: '6px 10px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                  {hasCommercialChanges ? 'Unsaved changes' : 'No pending changes'}
-                </div>
-              </div>
-
-              <div style={{ marginTop: '14px', display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'end' }}>
-                <div>
-                  {inputWrap('Reason for update', textInput(changeReason, (e) => setChangeReason(e.target.value), { placeholder: 'Customer added MW, pricing changed, scope revised, etc.' }))}
-                </div>
-
-                <div>
-                  <button
-                    onClick={saveRevision}
-                    disabled={!hasCommercialChanges || !changeReason.trim()}
-                    style={{
-                      borderRadius: '18px',
-                      border: '1px solid #0B6771',
-                      background: !hasCommercialChanges || !changeReason.trim() ? '#C8D6D8' : '#0B6771',
-                      color: '#fff',
-                      padding: '10px 16px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: !hasCommercialChanges || !changeReason.trim() ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    Save Commercial Change
-                  </button>
-                </div>
-              </div>
-            </div>
           </section>
 
           <section style={shellCard}>
@@ -1533,6 +1397,18 @@ function OpportunityDetailPage({ onBackToOverview }) {
           {smallLabel('Commercial History')}
           <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Revision timeline with why it changed</h3>
 
+          <div style={{ marginTop: '16px', display: 'grid', gap: '10px' }}>
+            {inputWrap('Reason for update', textInput(changeReason, (e) => setChangeReason(e.target.value), { placeholder: 'Customer added 50 MW, pricing updated, scope changed, etc.' }))}
+            <div>
+              <button
+                onClick={saveRevision}
+                style={{ borderRadius: '18px', border: '1px solid #0B6771', background: '#0B6771', color: '#fff', padding: '10px 16px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Save Revision
+              </button>
+            </div>
+          </div>
+
           <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
             {revisionHistory.map((rev) => (
               <div key={`${rev.version}-${rev.when}`} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px' }}>
@@ -1555,49 +1431,17 @@ function OpportunityDetailPage({ onBackToOverview }) {
 export default function App() {
   const [activePage, setActivePage] = useState('Welcome');
   const [pageHistory, setPageHistory] = useState(['Welcome']);
-  const [routePath, setRoutePath] = useState(getInitialPath());
+  const [opportunitiesView, setOpportunitiesView] = useState('overview');
 
   const flatItems = useMemo(() => sidebarSections.flatMap((section) => section.items), []);
-  const routeInfo = parseOpportunityRoute(routePath);
-
-  const safeActivePage =
-    routeInfo.isOpportunities
-      ? 'Opportunities'
-      : flatItems.includes(activePage)
-      ? activePage
-      : 'Welcome';
-
-  React.useEffect(() => {
-    const onPopState = () => {
-      setRoutePath(getInitialPath());
-    };
-
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
-  }, []);
+  const safeActivePage = flatItems.includes(activePage) ? activePage : 'Welcome';
 
   function navigate(nextPage) {
     setActivePage(nextPage);
     setPageHistory((prev) => [...prev, nextPage]);
-
-    if (nextPage === 'Opportunities') {
-      pushPath('/opportunities');
-      setRoutePath('/opportunities');
-      return;
+    if (nextPage !== 'Opportunities') {
+      setOpportunitiesView('overview');
     }
-  }
-
-  function openOpportunityDetail(opportunityId) {
-    const nextPath = `/opportunities/${opportunityId}`;
-    pushPath(nextPath);
-    setRoutePath(nextPath);
-    setActivePage('Opportunities');
-  }
-
-  function returnToOpportunitiesOverview() {
-    pushPath('/opportunities');
-    setRoutePath('/opportunities');
-    setActivePage('Opportunities');
   }
 
   function goBack() {
@@ -1715,9 +1559,9 @@ export default function App() {
               ? renderWelcomePage()
               : safeActivePage === 'Opportunities'
               ? (
-                routeInfo.detailId
-                  ? <OpportunityDetailPage onBackToOverview={returnToOpportunitiesOverview} />
-                  : <OpportunitiesOverviewPage onOpenOpportunity={openOpportunityDetail} />
+                opportunitiesView === 'detail'
+                  ? <OpportunityDetailPage onBackToOverview={() => setOpportunitiesView('overview')} />
+                  : <OpportunitiesOverviewPage onOpenOpportunity={() => setOpportunitiesView('detail')} />
               )
               : (
                 <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
