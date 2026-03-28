@@ -790,7 +790,76 @@ function renderWelcomePage() {
 }
 
 
-function OpportunitiesOverviewPage({ onOpenOpportunity }) {
+const initialOpportunities = [
+  {
+    id: 'ashley',
+    name: 'Ashley Furniture MSA',
+    account: 'Ashley Furniture Industries',
+    service_line: 'Both',
+    market_segment: 'USS',
+    opportunity_type: 'New customer / bundled services',
+    stage: '3 Solution Fit',
+    forecast_category: 'Best Case',
+    total_mwac: 187,
+    total_mwdc: 241.8,
+    site_count: 14,
+    commercial_basis: '$/MWDC/year + StratoSight sqft',
+    pricing_band: 'Mid',
+    calculated_revenue: 2500000,
+    estimated_cts_pct: 63,
+    estimated_earnings_pct: 37,
+    follow_up_status: 'DueSoon',
+    forecast_hygiene_status: 'Warning',
+    owner_full_name: 'Ashley Smith',
+    expected_close_date: '2026-04-30'
+  },
+  {
+    id: 'onyx',
+    name: 'Onyx Southwest O&M Renewal',
+    account: 'Onyx Renewables',
+    service_line: 'Renewables',
+    market_segment: 'USS',
+    opportunity_type: 'Renewal',
+    stage: '4 Commercials',
+    forecast_category: 'Commit',
+    total_mwac: 187,
+    total_mwdc: 241.8,
+    site_count: 14,
+    commercial_basis: '$/MWDC/year',
+    pricing_band: 'Median',
+    calculated_revenue: 2500000,
+    estimated_cts_pct: 63,
+    estimated_earnings_pct: 37,
+    follow_up_status: 'DueSoon',
+    forecast_hygiene_status: 'Warning',
+    owner_full_name: 'Ashley Smith',
+    expected_close_date: '2026-04-30'
+  },
+  {
+    id: 'retail',
+    name: 'Retail Roof Scan Program',
+    account: 'National Retail Group',
+    service_line: 'StratoSight',
+    market_segment: 'StratoSight',
+    opportunity_type: 'Expansion',
+    stage: '2 Discovery',
+    forecast_category: 'Pipeline',
+    total_mwac: null,
+    total_mwdc: null,
+    site_count: 21,
+    commercial_basis: 'Square footage',
+    pricing_band: 'Low',
+    calculated_revenue: 425000,
+    estimated_cts_pct: 49,
+    estimated_earnings_pct: 34,
+    follow_up_status: 'Overdue',
+    forecast_hygiene_status: 'Warning',
+    owner_full_name: 'Jeff Yarbrough',
+    expected_close_date: '2026-07-15'
+  }
+];
+
+function OpportunitiesOverviewPage({ onOpenOpportunity, opportunities = [] }) {
   const summaryCards = [
     { label: 'Open Pipeline', value: '$24.8M', sub: '42 active opportunities' },
     { label: 'Weighted Pipeline', value: '$11.6M', sub: 'forecast-adjusted' },
@@ -808,74 +877,7 @@ function OpportunitiesOverviewPage({ onOpenOpportunity }) {
     ['Commit', 5]
   ];
 
-  const opportunityCards = [
-    {
-      id: 'ashley',
-      name: 'Ashley Furniture MSA',
-      account: 'Ashley Furniture Industries',
-      service_line: 'Both',
-      market_segment: 'USS',
-      opportunity_type: 'New customer / bundled services',
-      stage: '3 Solution Fit',
-      forecast_category: 'Best Case',
-      total_mwac: 187,
-      total_mwdc: 241.8,
-      site_count: 14,
-      commercial_basis: '$/MWDC/year + StratoSight sqft',
-      pricing_band: 'Mid',
-      calculated_revenue: 2500000,
-      estimated_cts_pct: 63,
-      estimated_earnings_pct: 37,
-      follow_up_status: 'DueSoon',
-      forecast_hygiene_status: 'Warning',
-      owner_full_name: 'Ashley Smith',
-      expected_close_date: '2026-04-30'
-    },
-    {
-      id: 'onyx',
-      name: 'Onyx Southwest O&M Renewal',
-      account: 'Onyx Renewables',
-      service_line: 'Renewables',
-      market_segment: 'USS',
-      opportunity_type: 'Renewal',
-      stage: '4 Commercials',
-      forecast_category: 'Commit',
-      total_mwac: 187,
-      total_mwdc: 241.8,
-      site_count: 14,
-      commercial_basis: '$/MWDC/year',
-      pricing_band: 'Median',
-      calculated_revenue: 2500000,
-      estimated_cts_pct: 63,
-      estimated_earnings_pct: 37,
-      follow_up_status: 'DueSoon',
-      forecast_hygiene_status: 'Warning',
-      owner_full_name: 'Ashley Smith',
-      expected_close_date: '2026-04-30'
-    },
-    {
-      id: 'retail',
-      name: 'Retail Roof Scan Program',
-      account: 'National Retail Group',
-      service_line: 'StratoSight',
-      market_segment: 'StratoSight',
-      opportunity_type: 'Expansion',
-      stage: '2 Discovery',
-      forecast_category: 'Pipeline',
-      total_mwac: null,
-      total_mwdc: null,
-      site_count: 21,
-      commercial_basis: 'Square footage',
-      pricing_band: 'Low',
-      calculated_revenue: 425000,
-      estimated_cts_pct: 49,
-      estimated_earnings_pct: 34,
-      follow_up_status: 'Overdue',
-      forecast_hygiene_status: 'Warning',
-      owner_full_name: 'Jeff Yarbrough',
-      expected_close_date: '2026-07-15'
-    }
-  ];
+  const opportunityCards = opportunities;
 
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
@@ -957,11 +959,15 @@ function OpportunitiesOverviewPage({ onOpenOpportunity }) {
   );
 }
 
-function OpportunityDetailPage({ onBackToOverview }) {
-  const [serviceLine, setServiceLine] = useState('Both');
-  const [renewablesPortfolioType, setRenewablesPortfolioType] = useState('DG');
-  const [renewablesBasis, setRenewablesBasis] = useState('MWDC');
-  const [renewablesSize, setRenewablesSize] = useState('16.4');
+function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunity }) {
+  const [serviceLine, setServiceLine] = useState(opportunity?.service_line || 'Both');
+  const [renewablesPortfolioType, setRenewablesPortfolioType] = useState(opportunity?.market_segment === 'StratoSight' ? 'DG' : (opportunity?.market_segment || 'DG'));
+  const [renewablesBasis, setRenewablesBasis] = useState(
+    String(opportunity?.commercial_basis || '').includes('MWAC') ? 'MWAC' : 'MWDC'
+  );
+  const [renewablesSize, setRenewablesSize] = useState(
+    opportunity?.total_mwdc != null ? String(opportunity.total_mwdc) : '16.4'
+  );
   const [stratoSqft, setStratoSqft] = useState('2450000');
   const [otherDescription, setOtherDescription] = useState('Auxiliary O&M Services');
   const [otherBasis, setOtherBasis] = useState('Fixed Total');
@@ -1041,16 +1047,31 @@ function OpportunityDetailPage({ onBackToOverview }) {
     if (!hasCommercialChanges) return;
     if (!changeReason.trim()) return;
 
-    setRevisionHistory((prev) => [
-      {
-        version: prev.length + 1,
-        when: dtNow(),
-        who: 'Jeff Yarbrough',
-        reason: changeReason.trim(),
-        summary: `${serviceLine} updated to target ${money(commercial.target)}`
-      },
-      ...prev
-    ]);
+    const nextRevision = {
+      version: revisionHistory.length + 1,
+      when: dtNow(),
+      who: 'Jeff Yarbrough',
+      reason: changeReason.trim(),
+      summary: `${serviceLine} updated to target ${money(commercial.target)}`
+    };
+
+    setRevisionHistory((prev) => [nextRevision, ...prev]);
+
+    if (opportunity?.id && onSaveOpportunity) {
+      onSaveOpportunity(opportunity.id, {
+        service_line: serviceLine,
+        market_segment: serviceLine === 'StratoSight'
+          ? 'StratoSight'
+          : serviceLine === 'Other O&M'
+          ? 'Other O&M'
+          : renewablesPortfolioType,
+        commercial_basis: commercial.pricingBasis || serviceLine,
+        calculated_revenue: commercial.target,
+        estimated_earnings_pct: serviceLine === 'Other O&M' ? 30 : 37,
+        total_mwac: derivedMwac,
+        total_mwdc: derivedMwdc
+      });
+    }
 
     setLastSavedCommercialSnapshot(commercialChangeSnapshot);
     setChangeReason('');
@@ -1535,6 +1556,7 @@ export default function App() {
   const [activePage, setActivePage] = useState('Welcome');
   const [pageHistory, setPageHistory] = useState(['Welcome']);
   const [routePath, setRoutePath] = useState(getInitialPath());
+  const [opportunities, setOpportunities] = useState(initialOpportunities);
 
   const flatItems = useMemo(() => sidebarSections.flatMap((section) => section.items), []);
   const routeInfo = parseOpportunityRoute(routePath);
@@ -1545,6 +1567,11 @@ export default function App() {
       : flatItems.includes(activePage)
       ? activePage
       : 'Welcome';
+
+  const selectedOpportunity =
+    routeInfo.detailId
+      ? opportunities.find((item) => item.id === routeInfo.detailId) || null
+      : null;
 
   React.useEffect(() => {
     const onPopState = () => {
@@ -1577,6 +1604,16 @@ export default function App() {
     pushPath('/opportunities');
     setRoutePath('/opportunities');
     setActivePage('Opportunities');
+  }
+
+  function saveOpportunityPatch(opportunityId, patch) {
+    setOpportunities((prev) =>
+      prev.map((item) =>
+        item.id === opportunityId
+          ? { ...item, ...patch }
+          : item
+      )
+    );
   }
 
   function goBack() {
@@ -1695,8 +1732,8 @@ export default function App() {
               : safeActivePage === 'Opportunities'
               ? (
                 routeInfo.detailId
-                  ? <OpportunityDetailPage onBackToOverview={returnToOpportunitiesOverview} />
-                  : <OpportunitiesOverviewPage onOpenOpportunity={openOpportunityDetail} />
+                  ? <OpportunityDetailPage onBackToOverview={returnToOpportunitiesOverview} opportunity={selectedOpportunity} onSaveOpportunity={saveOpportunityPatch} />
+                  : <OpportunitiesOverviewPage onOpenOpportunity={openOpportunityDetail} opportunities={opportunities} />
               )
               : (
                 <div style={{ maxWidth: '1280px', margin: '0 auto' }}>

@@ -3,14 +3,7 @@ import { opportunityWorkflowContract } from '../../../src/domain/opportunityWork
 import { quoteDomainContract } from '../../../src/domain/quoteDomainContract.js';
 import { pricingSchemaRegistry } from '../../../src/pricing/pricingSchemaRegistry.js';
 import { opportunityQuoteUiContract } from '../../../src/ui-contracts/opportunityQuoteUiContract.js';
-import { createOpportunityHeaderSectionModel } from './OpportunityHeaderSectionModel.js';
-import { createOpportunityRelationshipSectionModel } from './OpportunityRelationshipSectionModel.js';
-import { createOpportunityHeaderSummaryModel } from './OpportunityHeaderSummaryModel.js';
-import { createOpportunityRelationshipSummaryModel } from './OpportunityRelationshipSummaryModel.js';
-import { createOpportunityServiceToggleSummaryModel } from './OpportunityServiceToggleSummaryModel.js';
-import { createOpportunityWorkflowSummaryModel } from './OpportunityWorkflowSummaryModel.js';
-import { createOpportunityQuotesSummaryModel } from './OpportunityQuotesSummaryModel.js';
-import { createOpportunityAuditSummaryModel } from './OpportunityAuditSummaryModel.js';
+import { opportunityAccountLinkUiContract } from '../../../src/ui-contracts/opportunityAccountLinkUiContract.js';
 
 export function createOpportunityPageModel() {
   return {
@@ -21,22 +14,17 @@ export function createOpportunityPageModel() {
       entity: opportunityDomainContract.entity
     },
 
-    headerSection: createOpportunityHeaderSectionModel(),
-    headerSummary: createOpportunityHeaderSummaryModel(),
-
     relationships: {
       accountRequired: opportunityDomainContract.requiredRelationships.account,
       primaryContactOptional: opportunityDomainContract.requiredRelationships.primaryContact,
-      additionalContactsSupported: opportunityDomainContract.requiredRelationships.additionalContacts
+      additionalContactsSupported: opportunityDomainContract.requiredRelationships.additionalContacts,
+      accountLinkActions: opportunityAccountLinkUiContract.requiredActions,
+      inlineAccountCreateSupported: opportunityAccountLinkUiContract.relationshipArea.inlineAccountCreateSupported
     },
-
-    relationshipSection: createOpportunityRelationshipSectionModel(),
-    relationshipSummary: createOpportunityRelationshipSummaryModel(),
 
     serviceToggle: {
       options: opportunityDomainContract.serviceToggles
     },
-    serviceToggleSummary: createOpportunityServiceToggleSummaryModel(),
 
     pricingArea: {
       supportedToggles: pricingSchemaRegistry.toggles,
@@ -51,7 +39,6 @@ export function createOpportunityPageModel() {
       statuses: opportunityWorkflowContract.statuses,
       rules: opportunityWorkflowContract.rules
     },
-    workflowSummary: createOpportunityWorkflowSummaryModel(),
 
     quotes: {
       brandingProfiles: quoteDomainContract.brandingProfiles,
@@ -59,13 +46,11 @@ export function createOpportunityPageModel() {
       retentionRequirements: quoteDomainContract.retentionRequirements,
       requiredActions: opportunityQuoteUiContract.quotePanel.requiredActions
     },
-    quotesSummary: createOpportunityQuotesSummaryModel(),
 
     audit: {
       required: opportunityQuoteUiContract.auditPanel.required,
       trackedEntityTypes: opportunityQuoteUiContract.auditPanel.trackedEntityTypes
     },
-    auditSummary: createOpportunityAuditSummaryModel(),
 
     requiredSections: opportunityQuoteUiContract.requiredSections
   };
