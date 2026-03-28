@@ -1,12 +1,48 @@
 import React, { useMemo, useState } from 'react';
 
 const sidebarSections = [
-  { title: 'START', items: ['Welcome', 'Dashboard'] },
-  { title: 'PIPELINE', items: ['My Pipeline', 'Pipeline Rollup', 'Forecast Dashboard', 'Forecast Integrity', 'Period Control'] },
-  { title: 'CRM', items: ['Accounts', 'Contacts', 'Tasks', 'Activities', 'Opportunities'] },
-  { title: 'EXECUTION', items: ['Revenue Command Center', 'Business Reviews', 'Client Reports'] },
-  { title: 'ADMIN', items: ['User Accounts', 'Settings'] }
+  {
+    title: 'Overview',
+    items: ['Dashboard', 'My Pipeline', 'Pipeline Rollup', 'Revenue Command Center']
+  },
+  {
+    title: 'Forecasting',
+    items: ['Forecast Dashboard', 'Forecast Integrity', 'Period Control']
+  },
+  {
+    title: 'CRM',
+    items: ['Accounts', 'Contacts', 'Opportunities', 'Tasks', 'Activities']
+  },
+  {
+    title: 'Admin',
+    items: ['Settings']
+  }
 ];
+
+const naesTheme = {
+  bg: '#f4f8f4',
+  surface: '#ffffff',
+  surfaceAlt: '#f8fbf8',
+  border: '#d7e4d8',
+  text: '#18342a',
+  textMuted: '#5e786d',
+  textSoft: '#7f958b',
+  primary: '#3f8f66',
+  primaryStrong: '#2f7552',
+  primarySoft: '#e5f3ea',
+  accent: '#7fb3d5',
+  accentSoft: '#e9f3fb',
+  warning: '#e8a63c',
+  warningSoft: '#fff4de',
+  danger: '#d96b5f',
+  dangerSoft: '#fdecea',
+  success: '#3f8f66',
+  successSoft: '#e5f3ea',
+  shadowSm: '0 1px 2px rgba(16, 24, 40, 0.06)',
+  shadowMd: '0 8px 20px rgba(16, 24, 40, 0.08)',
+  radiusXl: '20px',
+  radius2xl: '24px'
+};
 
 const topStrip = [
   { label: 'TECHNOLOGIES', accent: '#19D4D4', bg: '#063C43' },
@@ -63,12 +99,332 @@ function buttonStyle(active = false) {
     padding: '12px 14px',
     textAlign: 'left',
     cursor: 'pointer',
-    border: `1px solid ${active ? '#0B6771' : '#DCE7DD'}`,
-    background: active ? '#0B6771' : '#FBFCFB',
-    color: active ? '#fff' : '#1f2937',
-    boxShadow: active ? '0 12px 24px rgba(11,103,113,0.22)' : 'none',
+    border: `1px solid ${active ? naesTheme.border : 'transparent'}`,
+    background: active ? naesTheme.primarySoft : 'transparent',
+    color: active ? naesTheme.primaryStrong : naesTheme.textMuted,
+    boxShadow: active ? naesTheme.shadowSm : 'none',
     fontWeight: 600
   };
+}
+
+function naesCardStyle(elevated = false) {
+  return {
+    background: naesTheme.surface,
+    border: `1px solid ${naesTheme.border}`,
+    borderRadius: elevated ? naesTheme.radius2xl : naesTheme.radiusXl,
+    boxShadow: elevated ? naesTheme.shadowMd : naesTheme.shadowSm
+  };
+}
+
+function renderUserPlacard() {
+  return (
+    <div style={{ borderRadius: '24px', border: '1px solid #0C5A63', background: '#055059', padding: '16px', boxShadow: '0 12px 28px rgba(0,0,0,0.24)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'rgba(255,255,255,0.58)' }}>
+            User Profile
+          </div>
+          <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: 700, color: '#fff' }}>
+            Jeff Yarbrough
+          </div>
+          <div style={{ marginTop: '2px', fontSize: '12px', color: 'rgba(255,255,255,0.65)' }}>
+            VP of Operations
+          </div>
+          <div style={{ marginTop: '8px', display: 'inline-flex', borderRadius: '999px', background: '#0B6771', padding: '4px 10px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#B6FFFB' }}>
+            Admin
+          </div>
+        </div>
+        <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: '#0C6670', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '18px', color: '#DDFEFB' }}>
+          JY
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderExecutiveDashboard() {
+  const kpis = [
+    { label: 'Open Pipeline', value: '$24.8M', sub: '42 active opportunities', tone: 'primary' },
+    { label: 'Weighted Pipeline', value: '$11.6M', sub: 'forecast-adjusted value', tone: 'accent' },
+    { label: 'Commit This Quarter', value: '$6.4M', sub: '8 opportunities', tone: 'success' },
+    { label: 'At-Risk Deals', value: '5', sub: 'stale or overdue follow-up', tone: 'warning' }
+  ];
+
+  const pipelineMix = [
+    { label: 'Renewables', value: 58, amount: '$14.4M', color: naesTheme.primary },
+    { label: 'StratoSight', value: 18, amount: '$4.5M', color: naesTheme.accent },
+    { label: 'Bundled', value: 16, amount: '$4.0M', color: '#5b8f78' },
+    { label: 'Other O&M', value: 8, amount: '$1.9M', color: '#9db7a8' }
+  ];
+
+  const forecastMix = [
+    { label: 'Pipeline', value: 31, amount: '$7.7M', color: '#c8d7cc' },
+    { label: 'Best Case', value: 26, amount: '$6.5M', color: naesTheme.accent },
+    { label: 'Commit', value: 26, amount: '$6.4M', color: naesTheme.success },
+    { label: 'Closed', value: 17, amount: '$4.2M', color: '#6fa382' }
+  ];
+
+  const stageRows = [
+    { stage: '0 Prospecting', count: 4, value: '$1.8M', pct: '7%' },
+    { stage: '1 Qualified', count: 7, value: '$3.1M', pct: '13%' },
+    { stage: '2 Discovery', count: 9, value: '$4.8M', pct: '19%' },
+    { stage: '3 Solution Fit', count: 8, value: '$5.2M', pct: '21%' },
+    { stage: '4 Commercials', count: 6, value: '$4.1M', pct: '17%' },
+    { stage: '5 Security Legal', count: 3, value: '$2.4M', pct: '10%' },
+    { stage: '6 Commit', count: 5, value: '$3.4M', pct: '13%' }
+  ];
+
+  const trendData = [
+    { quarter: 'Q1', pipeline: 8.2, weighted: 3.4, commit: 2.1 },
+    { quarter: 'Q2', pipeline: 10.6, weighted: 4.8, commit: 2.9 },
+    { quarter: 'Q3', pipeline: 12.9, weighted: 6.3, commit: 4.1 },
+    { quarter: 'Q4', pipeline: 24.8, weighted: 11.6, commit: 6.4 }
+  ];
+
+  const riskItems = [
+    { deal: 'Retail Roof Scan Program', reason: 'Overdue follow-up', tone: 'danger' },
+    { deal: 'Ashley Furniture MSA', reason: 'Warning hygiene', tone: 'warning' },
+    { deal: 'Onyx Southwest Renewal', reason: 'Close date pressure', tone: 'warning' },
+    { deal: 'Westlands Expansion', reason: 'Commercials aging', tone: 'warning' }
+  ];
+
+  function toneStyles(tone) {
+    if (tone === 'primary') return { bg: naesTheme.primarySoft, text: naesTheme.primaryStrong };
+    if (tone === 'accent') return { bg: naesTheme.accentSoft, text: '#32698d' };
+    if (tone === 'success') return { bg: naesTheme.successSoft, text: naesTheme.success };
+    if (tone === 'warning') return { bg: naesTheme.warningSoft, text: '#9a6700' };
+    if (tone === 'danger') return { bg: naesTheme.dangerSoft, text: '#b42318' };
+    return { bg: naesTheme.surfaceAlt, text: naesTheme.text };
+  }
+
+  function renderHorizontalBars(items) {
+    return (
+      <div style={{ display: 'grid', gap: '12px' }}>
+        {items.map((item) => (
+          <div key={item.label} style={{ display: 'grid', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: naesTheme.text }}>{item.label}</div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div style={{ fontSize: '12px', color: naesTheme.textMuted }}>{item.amount}</div>
+                <div style={{ minWidth: '42px', textAlign: 'right', fontSize: '12px', fontWeight: 700, color: naesTheme.text }}>{item.value}%</div>
+              </div>
+            </div>
+            <div style={{ height: '12px', borderRadius: '999px', background: '#edf3ee', overflow: 'hidden', border: `1px solid ${naesTheme.border}` }}>
+              <div
+                style={{
+                  width: `${item.value}%`,
+                  height: '100%',
+                  borderRadius: '999px',
+                  background: item.color
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function renderTrendChart() {
+    const max = Math.max(...trendData.map((d) => d.pipeline));
+    return (
+      <div style={{ display: 'grid', gap: '16px' }}>
+        <div style={{ height: '260px', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '18px', alignItems: 'end' }}>
+          {trendData.map((row) => (
+            <div key={row.quarter} style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'end', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'end', gap: '6px', height: '210px' }}>
+                <div
+                  title={`Pipeline ${row.pipeline}M`}
+                  style={{
+                    width: '22px',
+                    height: `${(row.pipeline / max) * 100}%`,
+                    background: naesTheme.primary,
+                    borderRadius: '10px 10px 0 0'
+                  }}
+                />
+                <div
+                  title={`Weighted ${row.weighted}M`}
+                  style={{
+                    width: '22px',
+                    height: `${(row.weighted / max) * 100}%`,
+                    background: naesTheme.accent,
+                    borderRadius: '10px 10px 0 0'
+                  }}
+                />
+                <div
+                  title={`Commit ${row.commit}M`}
+                  style={{
+                    width: '22px',
+                    height: `${(row.commit / max) * 100}%`,
+                    background: naesTheme.success,
+                    borderRadius: '10px 10px 0 0'
+                  }}
+                />
+              </div>
+              <div style={{ textAlign: 'center', fontSize: '12px', fontWeight: 700, color: naesTheme.textMuted }}>{row.quarter}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap' }}>
+          {[
+            ['Pipeline', naesTheme.primary],
+            ['Weighted', naesTheme.accent],
+            ['Commit', naesTheme.success]
+          ].map(([label, color]) => (
+            <div key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: naesTheme.textMuted }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '999px', background: color, display: 'inline-block' }} />
+              {label}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+      <section
+        style={{
+          ...naesCardStyle(true),
+          padding: '24px',
+          background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)'
+        }}
+      >
+        {smallLabel('Executive Dashboard')}
+        <h2 style={{ margin: '8px 0 0 0', fontSize: '26px', fontWeight: 700, color: naesTheme.text }}>
+          Executive command view
+        </h2>
+        <p style={{ marginTop: '10px', maxWidth: '860px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted }}>
+          Visual operating picture for pipeline, forecasting, opportunity quality, and commercial performance.
+        </p>
+      </section>
+
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
+        {kpis.map((card) => {
+          const tone = toneStyles(card.tone);
+          return (
+            <div key={card.label} style={{ ...naesCardStyle(false), padding: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+                {card.label}
+              </div>
+              <div style={{ marginTop: '10px', fontSize: '30px', fontWeight: 800, color: tone.text }}>
+                {card.value}
+              </div>
+              <div style={{ marginTop: '6px', fontSize: '13px', color: naesTheme.textMuted }}>
+                {card.sub}
+              </div>
+            </div>
+          );
+        })}
+      </section>
+
+      <section style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: '24px' }}>
+        <div style={{ ...naesCardStyle(true), padding: '24px' }}>
+          {smallLabel('Quarterly Trend')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>
+            Pipeline, weighted, and commit trend
+          </h3>
+          <div style={{ marginTop: '18px' }}>
+            {renderTrendChart()}
+          </div>
+        </div>
+
+        <div style={{ ...naesCardStyle(false), padding: '24px' }}>
+          {smallLabel('At-Risk Deals')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>
+            Immediate attention items
+          </h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '10px' }}>
+            {riskItems.map((item) => {
+              const tone = toneStyles(item.tone);
+              return (
+                <div
+                  key={item.deal}
+                  style={{
+                    borderRadius: '16px',
+                    border: `1px solid ${naesTheme.border}`,
+                    background: naesTheme.surfaceAlt,
+                    padding: '12px 14px',
+                    display: 'grid',
+                    gap: '4px'
+                  }}
+                >
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>{item.deal}</div>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: tone.text }}>{item.reason}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        <div style={{ ...naesCardStyle(false), padding: '24px' }}>
+          {smallLabel('Pipeline Mix')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>
+            Mix by service line
+          </h3>
+          <div style={{ marginTop: '18px' }}>
+            {renderHorizontalBars(pipelineMix)}
+          </div>
+        </div>
+
+        <div style={{ ...naesCardStyle(false), padding: '24px' }}>
+          {smallLabel('Forecast Mix')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>
+            Mix by forecast category
+          </h3>
+          <div style={{ marginTop: '18px' }}>
+            {renderHorizontalBars(forecastMix)}
+          </div>
+        </div>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '24px' }}>
+        {smallLabel('Stage Rollup')}
+        <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>
+          Opportunity stage summary
+        </h3>
+
+        <div style={{ marginTop: '18px', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
+            <thead>
+              <tr>
+                {['Stage', 'Deal Count', 'Pipeline Value', 'Mix %'].map((head) => (
+                  <th
+                    key={head}
+                    style={{
+                      textAlign: 'left',
+                      padding: '0 0 12px 0',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      letterSpacing: '0.16em',
+                      textTransform: 'uppercase',
+                      color: naesTheme.textSoft,
+                      borderBottom: `1px solid ${naesTheme.border}`
+                    }}
+                  >
+                    {head}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {stageRows.map((row) => (
+                <tr key={row.stage}>
+                  <td style={{ padding: '14px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', fontWeight: 600, color: naesTheme.text }}>{row.stage}</td>
+                  <td style={{ padding: '14px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>{row.count}</td>
+                  <td style={{ padding: '14px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>{row.value}</td>
+                  <td style={{ padding: '14px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', fontWeight: 700, color: naesTheme.primaryStrong }}>{row.pct}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
 }
 
 function inputWrap(label, children) {
@@ -1566,7 +1922,7 @@ export default function App() {
       ? 'Opportunities'
       : flatItems.includes(activePage)
       ? activePage
-      : 'Welcome';
+      : 'Dashboard';
 
   const selectedOpportunity =
     routeInfo.detailId
@@ -1590,6 +1946,11 @@ export default function App() {
       pushPath('/opportunities');
       setRoutePath('/opportunities');
       return;
+    }
+
+    if (routeInfo.isOpportunities) {
+      replacePath('/');
+      setRoutePath('/');
     }
   }
 
@@ -1646,20 +2007,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ marginTop: '12px', borderRadius: '24px', border: '1px solid #0C5A63', background: '#055059', padding: '16px', boxShadow: '0 12px 28px rgba(0,0,0,0.24)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>Jeff Yarbrough</div>
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)' }}>VP of Operations</div>
-                  <div style={{ marginTop: '8px', display: 'inline-flex', borderRadius: '999px', background: '#0B6771', padding: '4px 10px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#B6FFFB' }}>
-                    Admin
-                  </div>
-                </div>
-                <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: '#0C6670', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '18px', color: '#DDFEFB' }}>
-                  JY
-                </div>
-              </div>
-            </div>
+            <div style={{ marginTop: '12px' }}>{renderUserPlacard()}</div>
           </div>
 
           <div style={{ padding: '16px 12px 24px 12px' }}>
@@ -1727,7 +2075,9 @@ export default function App() {
           {renderHeaderBand(safeActivePage, goBack, canGoBack)}
 
           <div style={{ padding: '32px' }}>
-            {safeActivePage === 'Welcome'
+            {safeActivePage === 'Dashboard'
+              ? renderExecutiveDashboard()
+              : safeActivePage === 'Welcome'
               ? renderWelcomePage()
               : safeActivePage === 'Opportunities'
               ? (
@@ -1737,10 +2087,10 @@ export default function App() {
               )
               : (
                 <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
-                  <section style={shellCard}>
+                  <section style={{ ...naesCardStyle(false), padding: '24px' }}>
                     {smallLabel('Preview Placeholder')}
-                    <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 600 }}>{safeActivePage}</h2>
-                    <p style={{ marginTop: '12px', fontSize: '14px', lineHeight: 1.6, color: '#475569', maxWidth: '720px' }}>
+                    <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 700, color: naesTheme.text }}>{safeActivePage}</h2>
+                    <p style={{ marginTop: '12px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted, maxWidth: '720px' }}>
                       This section is reserved in the live preview shell and will be built out as we continue wiring the CRM surface area.
                     </p>
                   </section>
