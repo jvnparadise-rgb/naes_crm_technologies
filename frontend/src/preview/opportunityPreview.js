@@ -122,6 +122,24 @@ app.innerHTML = `
                 </div>
               `
             )}
+
+            ${listCard(
+              'Reserved Opportunity Zones',
+              [
+                ['Header', view.headerBlock?.type ?? 'missing'],
+                ['Relationships', view.relationshipBlock?.type ?? 'missing'],
+                ['Service Toggle', view.serviceToggleBlock?.type ?? 'missing'],
+                ['Workflow', view.workflowBlock?.type ?? 'missing'],
+                ['Quotes', view.summaries?.quotes?.summaryId ?? 'missing'],
+                ['Audit', view.summaries?.audit?.summaryId ?? 'missing']
+              ],
+              ([label, value]) => `
+                <div class="list-item">
+                  <div class="label">${escapeHtml(label)}</div>
+                  <div class="value">${escapeHtml(value)}</div>
+                </div>
+              `
+            )}
           </div>
 
           <div class="stack">

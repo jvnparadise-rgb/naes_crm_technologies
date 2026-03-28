@@ -495,27 +495,6 @@ function renderHeaderBand(activePage, onBack, canGoBack) {
 
   return (
     <div style={{ background: 'linear-gradient(90deg,#063F47 0%,#0A7983 40%,#21C8D3 70%,#239EE2 100%)', padding: '24px 32px 32px 32px', color: '#fff', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.08)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <button
-          onClick={onBack}
-          disabled={!canGoBack}
-          style={{
-            borderRadius: '999px',
-            border: '1px solid rgba(255,255,255,0.30)',
-            background: canGoBack ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
-            color: canGoBack ? '#fff' : 'rgba(255,255,255,0.55)',
-            padding: '8px 14px',
-            fontSize: '12px',
-            fontWeight: 700,
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            cursor: canGoBack ? 'pointer' : 'default'
-          }}
-        >
-          ← Back
-        </button>
-      </div>
-
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <div style={{ flex: '1 1 560px', minWidth: '320px' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)' }}>
