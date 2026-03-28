@@ -5,30 +5,35 @@ export function renderOpportunityRelationshipBlock() {
 
   return {
     type: 'OpportunityRelationshipBlock',
-    title: 'Relationships',
-    sectionId: model.relationshipSection.sectionId,
-    summaryId: model.relationshipSummary.summaryId,
-    slots: model.relationshipSummary.slots,
-    requirements: {
-      accountRequired: model.relationships.accountRequired,
-      primaryContactOptional: model.relationships.primaryContactOptional,
-      additionalContactsSupported: model.relationships.additionalContactsSupported
-    },
-    actions: [
+    accountRequired: model.relationships.accountRequired,
+    primaryContactOptional: model.relationships.primaryContactOptional,
+    additionalContactsSupported: model.relationships.additionalContactsSupported,
+    accountLinkActions: model.relationships.accountLinkActions,
+    inlineAccountCreateSupported: model.relationships.inlineAccountCreateSupported,
+    contactLinkActions: model.relationships.contactLinkActions,
+    inlineContactCreateSupported: model.relationships.inlineContactCreateSupported,
+    relationshipBlocks: [
       {
-        key: 'linkAccount',
-        label: 'Link Account',
-        status: model.relationships.accountRequired ? 'required' : 'enabled'
+        id: 'account-relationship',
+        label: 'Account Relationship',
+        actions: model.relationships.accountLinkActions,
+        inlineCreateSupported: model.relationships.inlineAccountCreateSupported
       },
       {
-        key: 'linkPrimaryContact',
-        label: 'Link Primary Contact',
-        status: model.relationships.primaryContactOptional ? 'enabled' : 'required'
+        id: 'primary-contact-relationship',
+        label: 'Primary Contact Relationship',
+        actions: model.relationships.contactLinkActions.filter(action =>
+          ['selectPrimaryContact', 'createPrimaryContact', 'bindContactToOpportunity'].includes(action)
+        ),
+        inlineCreateSupported: model.relationships.inlineContactCreateSupported
       },
       {
-        key: 'addAdditionalContacts',
-        label: 'Add Additional Contacts',
-        status: model.relationships.additionalContactsSupported ? 'enabled' : 'hidden'
+        id: 'additional-contacts-relationship',
+        label: 'Additional Contacts Relationship',
+        actions: model.relationships.contactLinkActions.filter(action =>
+          ['addAdditionalContact', 'createAdditionalContact', 'bindContactToOpportunity'].includes(action)
+        ),
+        inlineCreateSupported: model.relationships.inlineContactCreateSupported
       }
     ]
   };
