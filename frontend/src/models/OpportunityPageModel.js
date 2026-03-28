@@ -4,6 +4,7 @@ import { quoteDomainContract } from '../../../src/domain/quoteDomainContract.js'
 import { pricingSchemaRegistry } from '../../../src/pricing/pricingSchemaRegistry.js';
 import { opportunityQuoteUiContract } from '../../../src/ui-contracts/opportunityQuoteUiContract.js';
 import { opportunityAccountLinkUiContract } from '../../../src/ui-contracts/opportunityAccountLinkUiContract.js';
+import { opportunityContactLinkUiContract } from '../../../src/ui-contracts/opportunityContactLinkUiContract.js';
 
 export function createOpportunityPageModel() {
   return {
@@ -19,7 +20,9 @@ export function createOpportunityPageModel() {
       primaryContactOptional: opportunityDomainContract.requiredRelationships.primaryContact,
       additionalContactsSupported: opportunityDomainContract.requiredRelationships.additionalContacts,
       accountLinkActions: opportunityAccountLinkUiContract.requiredActions,
-      inlineAccountCreateSupported: opportunityAccountLinkUiContract.relationshipArea.inlineAccountCreateSupported
+      inlineAccountCreateSupported: opportunityAccountLinkUiContract.relationshipArea.inlineAccountCreateSupported,
+      contactLinkActions: opportunityContactLinkUiContract.requiredActions,
+      inlineContactCreateSupported: opportunityContactLinkUiContract.relationshipArea.inlineContactCreateSupported
     },
 
     serviceToggle: {

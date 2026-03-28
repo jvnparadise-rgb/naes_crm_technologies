@@ -1,5 +1,6 @@
 import { contactDomainContract } from '../../../src/domain/contactDomainContract.js';
 import { opportunityDomainContract } from '../../../src/domain/opportunityDomainContract.js';
+import { contactEntryUiContract } from '../../../src/ui-contracts/contactEntryUiContract.js';
 
 export function createContactsPageModel() {
   return {
@@ -17,6 +18,12 @@ export function createContactsPageModel() {
     relatedOpportunityContext: {
       linkedToOpportunityModel: true,
       serviceToggles: opportunityDomainContract.serviceToggles
+    },
+
+    contactEntry: {
+      requiredActions: contactEntryUiContract.requiredActions,
+      requiredFields: contactEntryUiContract.requiredFields,
+      createFlow: contactEntryUiContract.createFlow
     }
   };
 }
