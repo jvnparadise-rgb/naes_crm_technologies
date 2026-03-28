@@ -5,14 +5,10 @@ export function renderOpportunityWorkflowBlock() {
 
   return {
     type: 'OpportunityWorkflowBlock',
-    title: 'Workflow',
-    sectionId: 'opportunityWorkflow',
-    summaryId: model.workflowSummary.summaryId,
-    metrics: model.workflowSummary.metrics,
-    workflow: {
-      stages: model.workflow.stages,
-      statuses: model.workflow.statuses,
-      rules: model.workflow.rules
-    }
+    stages: model.workflow.stages,
+    statuses: model.workflow.statuses,
+    rules: model.workflow.rules,
+    stageCount: model.workflow.stages.length,
+    statusCount: model.workflow.statuses.length
   };
 }

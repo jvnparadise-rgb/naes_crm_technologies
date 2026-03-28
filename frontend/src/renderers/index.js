@@ -10,3 +10,5 @@ export { renderOpportunityRelationshipBlock } from './renderOpportunityRelations
 export { validateOpportunityRelationshipBlock } from './validateOpportunityRelationshipBlock.js';
 export { renderOpportunityServiceToggleBlock } from './renderOpportunityServiceToggleBlock.js';
 export { validateOpportunityServiceToggleBlock } from './validateOpportunityServiceToggleBlock.js';
+export { renderOpportunityWorkflowBlock } from './renderOpportunityWorkflowBlock.js';
+export { validateOpportunityWorkflowBlock } from './validateOpportunityWorkflowBlock.js';

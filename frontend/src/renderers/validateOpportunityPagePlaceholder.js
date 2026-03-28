@@ -15,6 +15,10 @@ export function validateOpportunityPagePlaceholder() {
     throw new Error('Opportunity service toggle block was not loaded into placeholder renderer.');
   }
 
+  if (!view.workflow || view.workflow.type !== 'OpportunityWorkflowBlock') {
+    throw new Error('Opportunity workflow block was not loaded into placeholder renderer.');
+  }
+
   if (!Array.isArray(view.sections) || view.sections.length === 0) {
     throw new Error('Opportunity placeholder sections are missing.');
   }
@@ -27,15 +31,12 @@ export function validateOpportunityPagePlaceholder() {
     throw new Error('Opportunity relationship blocks are incomplete in placeholder renderer.');
   }
 
-  if (view.workflow.stageCount < 1 || view.workflow.statusCount < 1) {
-    throw new Error('Workflow summary is invalid.');
-  }
-
   return {
     ok: true,
     pageTitle: view.pageTitle,
     headerTitle: view.header.title,
     serviceToggleOptionCount: view.serviceToggle.optionCount,
+    workflowStageCount: view.workflow.stageCount,
     sectionCount: view.sections.length,
     relationshipBlockCount: view.relationships.relationshipBlocks.length,
     quoteActionCount: view.quotes.actionCount,
