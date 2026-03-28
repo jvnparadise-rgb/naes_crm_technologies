@@ -12,3 +12,5 @@ coverage/
 global-bundle.pem
 
 frontend/src/*.bak.*
+
+backups/
