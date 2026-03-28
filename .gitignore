@@ -10,3 +10,5 @@ coverage/
 *.zip
 
 global-bundle.pem
+
+frontend/src/*.bak.*
