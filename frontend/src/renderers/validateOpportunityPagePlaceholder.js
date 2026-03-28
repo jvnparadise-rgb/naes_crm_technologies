@@ -7,6 +7,10 @@ export function validateOpportunityPagePlaceholder() {
     throw new Error('Opportunity placeholder renderer did not initialize.');
   }
 
+  if (!view.header || view.header.type !== 'OpportunityHeaderBlock') {
+    throw new Error('Opportunity header block was not loaded into placeholder renderer.');
+  }
+
   if (!Array.isArray(view.sections) || view.sections.length === 0) {
     throw new Error('Opportunity placeholder sections are missing.');
   }
@@ -26,6 +30,7 @@ export function validateOpportunityPagePlaceholder() {
   return {
     ok: true,
     pageTitle: view.pageTitle,
+    headerTitle: view.header.title,
     sectionCount: view.sections.length,
     relationshipBlockCount: view.relationships.relationshipBlocks.length,
     quoteActionCount: view.quotes.actionCount,

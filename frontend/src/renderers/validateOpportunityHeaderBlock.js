@@ -1,40 +1,28 @@
 import { renderOpportunityHeaderBlock } from './renderOpportunityHeaderBlock.js';
 
 export function validateOpportunityHeaderBlock() {
-  const view = renderOpportunityHeaderBlock();
+  const block = renderOpportunityHeaderBlock();
 
-  if (view.type !== 'OpportunityHeaderBlock') {
+  if (block.type !== 'OpportunityHeaderBlock') {
     throw new Error('Opportunity header block did not initialize.');
   }
 
-  if (view.sectionId !== 'opportunityHeader') {
-    throw new Error('Opportunity header block section id is invalid.');
+  if (!block.title || block.title !== 'Opportunities') {
+    throw new Error('Opportunity header title is invalid.');
   }
 
-  if (view.summaryId !== 'opportunityHeaderSummary') {
-    throw new Error('Opportunity header block summary id is invalid.');
+  if (!block.entity || block.entity !== 'opportunity') {
+    throw new Error('Opportunity header entity is invalid.');
   }
 
-  if (!Array.isArray(view.fields) || view.fields.length !== 5) {
-    throw new Error('Opportunity header block fields are invalid.');
-  }
-
-  if (!Array.isArray(view.badges) || view.badges.length < 3) {
-    throw new Error('Opportunity header block badges are invalid.');
-  }
-
-  if (!Array.isArray(view.actions) || view.actions.length < 2) {
-    throw new Error('Opportunity header block actions are invalid.');
+  if (block.summary.serviceToggleCount !== 4) {
+    throw new Error('Opportunity header service toggle count is invalid.');
   }
 
   return {
     ok: true,
-    type: view.type,
-    title: view.title,
-    sectionId: view.sectionId,
-    summaryId: view.summaryId,
-    fieldCount: view.fields.length,
-    badgeCount: view.badges.length,
-    actionCount: view.actions.length
+    title: block.title,
+    entity: block.entity,
+    workflowStageCount: block.summary.workflowStageCount
   };
 }

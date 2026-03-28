@@ -1,13 +1,16 @@
 import { createOpportunityPageModel } from '../models/OpportunityPageModel.js';
+import { renderOpportunityHeaderBlock } from './renderOpportunityHeaderBlock.js';
 import { renderOpportunityRelationshipBlock } from './renderOpportunityRelationshipBlock.js';
 
 export function renderOpportunityPagePlaceholder() {
   const model = createOpportunityPageModel();
+  const headerBlock = renderOpportunityHeaderBlock();
   const relationshipBlock = renderOpportunityRelationshipBlock();
 
   return {
     type: 'OpportunityPagePlaceholder',
     pageTitle: model.header.title,
+    header: headerBlock,
     sections: model.requiredSections.map((sectionId) => ({
       id: sectionId,
       status: 'placeholder'
