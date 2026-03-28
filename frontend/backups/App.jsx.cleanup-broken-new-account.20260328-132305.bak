@@ -1274,73 +1274,22 @@ function formatCurrency(value) {
   }).format(Number(value || 0));
 }
 
-function buildAccountFormFromRecord(record = {}) {
-  return {
-    name: record.name || '',
-    legalBusinessName: record.legalBusinessName || '',
-    businessType: record.businessType || '',
-    website: record.website || '',
-    linkedin: record.linkedin || '',
-    mainPhone: record.mainPhone || '',
-    generalEmail: record.generalEmail || '',
-    mainAddress: record.mainAddress || '',
-    city: record.city || '',
-    state: record.state || '',
-    zip: record.zip || '',
-    country: record.country || '',
-    primaryAccountOwner: record.primaryAccountOwner || '',
-    interestedServices: record.interestedServices || '',
-    totalMw: record.totalMw || '',
-    portfolioType: record.portfolioType || '',
-    generalFootprintRegion: record.generalFootprintRegion || '',
-    estimatedBuildingCount: record.estimatedBuildingCount || '',
-    estimatedSquareFootage: record.estimatedSquareFootage || '',
-    generalSiteType: record.generalSiteType || '',
-    notes: record.notes || ''
-  };
+function getAccountById(id) {
+  return accountRecords.find((item) => item.id === id) || null;
 }
 
-function buildContactFormFromRecord(record = {}) {
-  return {
-    firstName: record.firstName || '',
-    lastName: record.lastName || '',
-    fullName: record.fullName || record.name || '',
-    jobTitle: record.jobTitle || record.title || '',
-    accountId: record.accountId || '',
-    email: record.email || '',
-    mobilePhone: record.mobilePhone || '',
-    officePhone: record.officePhone || '',
-    address: record.address || '',
-    city: record.city || '',
-    state: record.state || '',
-    zip: record.zip || '',
-    linkedin: record.linkedin || '',
-    website: record.website || '',
-    preferredContactMethod: record.preferredContactMethod || '',
-    roleInBuyingProcess: record.roleInBuyingProcess || '',
-    notes: record.notes || '',
-    decisionMaker: Boolean(record.decisionMaker),
-    champion: Boolean(record.champion),
-    primaryContact: Boolean(record.primaryContact),
-  };
+function getContactById(id) {
+  return contactRecords.find((item) => item.id === id) || null;
 }
 
-function getAccountById(id, accounts = accountRecords) {
-  return accounts.find((item) => item.id === id) || null;
+function getContactsForAccount(accountId) {
+  return contactRecords.filter((item) => item.accountId === accountId);
 }
 
-function getContactById(id, contacts = contactRecords) {
-  return contacts.find((item) => item.id === id) || null;
-}
-
-function getContactsForAccount(accountId, contacts = contactRecords) {
-  return contacts.filter((item) => item.accountId === accountId);
-}
-
-function getOpportunitiesForAccount(accountId, opportunities, accounts = accountRecords) {
-  const account = getAccountById(accountId, accounts);
+function getOpportunitiesForAccount(accountId, opportunities) {
+  const account = getAccountById(accountId);
   if (!account) return [];
-  return opportunities.filter((item) => (account.openOpportunityIds || []).includes(item.id));
+  return opportunities.filter((item) => account.openOpportunityIds.includes(item.id));
 }
 
 const initialOpportunities = [
@@ -1412,581 +1361,137 @@ const initialOpportunities = [
   }
 ];
 
-
-
-function NewContactPage({ newContactForm = {}, accountOptions = [], onChangeNewContactField, onSaveNewContact, onCancelNewContact }) {
-  const fieldLabelStyle = {
-    fontSize: '10px',
-    fontWeight: 700,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    color: naesTheme.textSoft,
-  };
-
-  const inputStyle = {
-    width: '100%',
-    maxWidth: '100%',
-    boxSizing: 'border-box',
-    borderRadius: '12px',
-    border: `1px solid ${naesTheme.border}`,
-    background: '#fff',
-    padding: '10px 12px',
-    fontSize: '13px',
-    color: naesTheme.text,
-    marginTop: '6px',
-    display: 'block',
-  };
-
-  const sectionStyle = {
-    ...naesCardStyle(false),
-    padding: '18px',
-    maxWidth: '720px',
-    width: '100%',
-    margin: '0 auto',
-  };
-
-  const stackedGrid = {
-    marginTop: '12px',
-    display: 'grid',
-    gap: '12px',
-    gridTemplateColumns: '1fr',
-  };
-
-  return (
-    <div style={{ maxWidth: '760px', margin: '0 auto', display: 'grid', gap: '16px' }}>
-      <section style={{ ...naesCardStyle(true), padding: '18px', maxWidth: '720px', width: '100%', margin: '0 auto', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
-        {smallLabel('Contacts')}
-        <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>New Contact</h2>
-        <p style={{ marginTop: '10px', maxWidth: '620px', fontSize: '13px', lineHeight: 1.6, color: naesTheme.textMuted }}>
-          Create a clean person-level profile tied to an account.
-        </p>
-      </section>
-
-      <section style={sectionStyle}>
-        {smallLabel('Basic Contact Information')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Core person details
-        </h3>
-
-        <div style={stackedGrid}>
-          <div>
-            <div style={fieldLabelStyle}>First Name</div>
-            <input value={newContactForm.firstName ?? ''} onChange={(e) => onChangeNewContactField('firstName', e.target.value)} placeholder="Jane" style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Last Name</div>
-            <input value={newContactForm.lastName ?? ''} onChange={(e) => onChangeNewContactField('lastName', e.target.value)} placeholder="Smith" style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Job Title</div>
-            <input value={newContactForm.jobTitle ?? ''} onChange={(e) => onChangeNewContactField('jobTitle', e.target.value)} placeholder="Director of Operations" style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Company / Linked Account</div>
-            <select value={newContactForm.accountId ?? ''} onChange={(e) => onChangeNewContactField('accountId', e.target.value)} style={inputStyle}>
-              <option value="">Select account</option>
-              {accountOptions.map((account) => (
-                <option key={account.id} value={account.id}>{account.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </section>
-
-      <section style={sectionStyle}>
-        {smallLabel('Contact Information')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Reachability and channels
-        </h3>
-
-        <div style={stackedGrid}>
-          <div>
-            <div style={fieldLabelStyle}>Email</div>
-            <input value={newContactForm.email ?? ''} onChange={(e) => onChangeNewContactField('email', e.target.value)} placeholder="jane@company.com" style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Mobile Phone</div>
-            <input value={newContactForm.mobilePhone ?? ''} onChange={(e) => onChangeNewContactField('mobilePhone', e.target.value)} placeholder="(555) 555-5555" style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Office Phone</div>
-            <input value={newContactForm.officePhone ?? ''} onChange={(e) => onChangeNewContactField('officePhone', e.target.value)} placeholder="(555) 555-5555" style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>LinkedIn</div>
-            <input value={newContactForm.linkedin ?? ''} onChange={(e) => onChangeNewContactField('linkedin', e.target.value)} placeholder="https://linkedin.com/in/..." style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Website</div>
-            <input value={newContactForm.website ?? ''} onChange={(e) => onChangeNewContactField('website', e.target.value)} placeholder="Optional personal or professional website" style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Preferred Contact Method</div>
-            <input value={newContactForm.preferredContactMethod ?? ''} onChange={(e) => onChangeNewContactField('preferredContactMethod', e.target.value)} placeholder="Email, mobile, office phone..." style={inputStyle} />
-          </div>
-        </div>
-      </section>
-
-      <section style={sectionStyle}>
-        {smallLabel('Address and Buying Role')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Supporting details
-        </h3>
-
-        <div style={stackedGrid}>
-          <div>
-            <div style={fieldLabelStyle}>Address</div>
-            <input value={newContactForm.address ?? ''} onChange={(e) => onChangeNewContactField('address', e.target.value)} placeholder="123 Main Street" style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>City</div>
-            <input value={newContactForm.city ?? ''} onChange={(e) => onChangeNewContactField('city', e.target.value)} placeholder="Phoenix" style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>State</div>
-            <input value={newContactForm.state ?? ''} onChange={(e) => onChangeNewContactField('state', e.target.value)} placeholder="AZ" style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>ZIP</div>
-            <input value={newContactForm.zip ?? ''} onChange={(e) => onChangeNewContactField('zip', e.target.value)} placeholder="85004" style={inputStyle} />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Role in Buying Process</div>
-            <input value={newContactForm.roleInBuyingProcess ?? ''} onChange={(e) => onChangeNewContactField('roleInBuyingProcess', e.target.value)} placeholder="Decision maker, champion, evaluator..." style={inputStyle} />
-          </div>
-
-          <div style={{ display: 'grid', gap: '8px' }}>
-            {[
-              ['decisionMaker', 'Decision Maker'],
-              ['champion', 'Influencer / Champion'],
-              ['primaryContact', 'Primary Contact'],
-            ].map(([field, label]) => (
-              <label key={field} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: naesTheme.text }}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(newContactForm[field])}
-                  onChange={(e) => onChangeNewContactField(field, e.target.checked)}
-                />
-                {label}
-              </label>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section style={sectionStyle}>
-        {smallLabel('Notes')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Communication notes
-        </h3>
-
-        <div style={stackedGrid}>
-          <div>
-            <div style={fieldLabelStyle}>Notes</div>
-            <textarea
-              value={newContactForm.notes ?? ''}
-              onChange={(e) => onChangeNewContactField('notes', e.target.value)}
-              placeholder="Useful background, communication preferences, or relationship notes"
-              rows={5}
-              style={{ ...inputStyle, resize: 'vertical' }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={onSaveNewContact}
-              style={{
-                borderRadius: '14px',
-                border: `1px solid ${naesTheme.primary}`,
-                background: naesTheme.primary,
-                color: '#fff',
-                padding: '10px 16px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              Save Contact
-            </button>
-
-            <button
-              type="button"
-              onClick={onCancelNewContact}
-              style={{
-                borderRadius: '14px',
-                border: `1px solid ${naesTheme.border}`,
-                background: '#fff',
-                color: naesTheme.textMuted,
-                padding: '10px 16px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-
-function ContactsOverviewPage({ contacts = [], accounts = [], onOpenContact, onStartNewContact }) {
-  const totalContacts = contacts.length;
-  const decisionMakers = contacts.filter((item) => item.decisionMaker).length;
-  const primaryContacts = contacts.filter((item) => item.primaryContact).length;
-  const linkedAccounts = new Set(contacts.map((item) => item.accountId).filter(Boolean)).size;
-
-  const summaryCards = [
-    { label: 'Contacts', value: String(totalContacts), sub: 'person records' },
-    { label: 'Decision Makers', value: String(decisionMakers), sub: 'flagged contacts' },
-    { label: 'Primary Contacts', value: String(primaryContacts), sub: 'main relationship owners' },
-    { label: 'Linked Accounts', value: String(linkedAccounts), sub: 'companies represented' }
-  ];
-
-  function accountNameFor(contact) {
-    const account = accounts.find((item) => item.id === contact.accountId);
-    return account?.name || contact.accountName || '—';
-  }
-
+function ContactsOverviewPage({ contacts = [], onOpenContact }) {
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
-      <section style={{ ...naesCardStyle(true), padding: '26px 28px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
+      <section style={{ ...naesCardStyle(true), padding: '24px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
         {smallLabel('Contacts')}
-        <h2 style={{ margin: '8px 0 0 0', fontSize: '26px', fontWeight: 800, color: naesTheme.text }}>Contacts Roll-up</h2>
-        <p style={{ marginTop: '12px', maxWidth: '780px', fontSize: '14px', lineHeight: 1.65, color: naesTheme.textMuted }}>
-          Person-level records only. This is where names, titles, phone numbers, emails, LinkedIn, and account relationships live.
+        <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 700, color: naesTheme.text }}>Contact Roll-up</h2>
+        <p style={{ marginTop: '12px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted }}>
+          Relationship roll-up across customer, partner, and internal stakeholder records.
         </p>
-      </section>
-
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
-        {summaryCards.map((card) => (
-          <div key={card.label} style={{ ...naesCardStyle(false), padding: '20px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
-              {card.label}
-            </div>
-            <div style={{ marginTop: '10px', fontSize: '30px', fontWeight: 800, color: naesTheme.text }}>
-              {card.value}
-            </div>
-            <div style={{ marginTop: '6px', fontSize: '13px', color: naesTheme.textMuted }}>
-              {card.sub}
-            </div>
-          </div>
-        ))}
       </section>
 
       <section style={{ ...naesCardStyle(false), padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div>
-            {smallLabel('Contact List')}
-            <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 800, color: naesTheme.text }}>
-              Main page, click contact for detail
-            </h3>
-          </div>
+        {smallLabel('Contact Roll-up')}
+        <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>
+          Main page, click contact for detail
+        </h3>
 
-          <button
-            type="button"
-            onClick={onStartNewContact}
-            style={{
-              borderRadius: '18px',
-              border: `1px solid ${naesTheme.border}`,
-              background: naesTheme.primarySoft,
-              color: naesTheme.primaryStrong,
-              padding: '10px 16px',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
-            Add New Contact
-          </button>
-        </div>
+        <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
+          {contacts.map((contact) => {
+            const account = getAccountById(contact.accountId);
 
-        <div style={{ marginTop: '18px', overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
-            <thead>
-              <tr>
-                {['Full Name', 'Job Title', 'Company', 'Email', 'Mobile', 'Office', 'Preferred Contact', 'Flags'].map((head) => (
-                  <th
-                    key={head}
-                    style={{
-                      textAlign: 'left',
-                      padding: '0 12px 12px 0',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      letterSpacing: '0.16em',
-                      textTransform: 'uppercase',
-                      color: naesTheme.textSoft,
-                      borderBottom: `1px solid ${naesTheme.border}`
-                    }}
-                  >
-                    {head}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {contacts.map((contact) => {
-                const flags = [
-                  contact.decisionMaker ? 'DM' : null,
-                  contact.champion ? 'Champion' : null,
-                  contact.primaryContact ? 'Primary' : null,
-                ].filter(Boolean).join(', ');
+            return (
+              <button
+                key={contact.id}
+                type="button"
+                onClick={() => onOpenContact(contact.id)}
+                style={{
+                  borderRadius: '18px',
+                  border: `1px solid ${naesTheme.border}`,
+                  background: naesTheme.surfaceAlt,
+                  padding: '16px',
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: naesTheme.text }}>{contact.name}</div>
+                    <div style={{ marginTop: '4px', fontSize: '13px', color: naesTheme.textMuted }}>
+                      {contact.title}, {account?.name || 'No Account'}
+                    </div>
+                  </div>
 
-                return (
-                  <tr
-                    key={contact.id}
-                    onClick={() => onOpenContact(contact.id)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}` }}>
-                      <div style={{ fontSize: '14px', fontWeight: 800, color: naesTheme.text }}>
-                        {contact.fullName || [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.name || 'Contact'}
-                      </div>
-                    </td>
-                    <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>
-                      {contact.jobTitle || contact.title || '—'}
-                    </td>
-                    <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>
-                      {accountNameFor(contact)}
-                    </td>
-                    <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>
-                      {contact.email || '—'}
-                    </td>
-                    <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>
-                      {contact.mobilePhone || '—'}
-                    </td>
-                    <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>
-                      {contact.officePhone || '—'}
-                    </td>
-                    <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>
-                      {contact.preferredContactMethod || '—'}
-                    </td>
-                    <td style={{ padding: '16px 0 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '13px', color: naesTheme.textMuted }}>
-                      {flags || '—'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: naesTheme.primaryStrong }}>
+                    Open →
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </section>
     </div>
   );
 }
 
-function ContactDetailPage({ contactId, contacts = contactRecords, accounts = accountRecords, opportunities = [], onBackToContacts, onOpenAccount, onOpenOpportunity }) {
-  const contact = getContactById(contactId, contacts);
-  const linkedAccount = contact?.accountId ? getAccountById(contact.accountId, accounts) : null;
-  const relatedOpps = linkedAccount ? getOpportunitiesForAccount(linkedAccount.id, opportunities, accounts) : [];
+function ContactDetailPage({ contactId, onBackToContacts, onOpenAccount }) {
+  const contact = getContactById(contactId);
+  const account = contact ? getAccountById(contact.accountId) : null;
 
   if (!contact) {
     return (
-      <div style={{ maxWidth: '1080px', margin: '0 auto', display: 'grid', gap: '20px' }}>
-        <section style={{ ...naesCardStyle(false), padding: '20px' }}>
+      <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+        <section style={{ ...naesCardStyle(false), padding: '24px' }}>
           {smallLabel('Contact Detail')}
-          <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>Contact not found</h2>
-          <p style={{ marginTop: '10px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted }}>
-            The requested contact record does not exist in the current contact list.
+          <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 700, color: naesTheme.text }}>Contact not found</h2>
+          <p style={{ marginTop: '12px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted }}>
+            The requested contact record does not exist in the current local data set.
           </p>
-          <button type="button" onClick={onBackToContacts} style={{ ...buttonStyle(true), marginTop: '16px' }}>
-            Back to Contacts
-          </button>
+          <button type="button" onClick={onBackToContacts} style={{ ...buttonStyle(true), marginTop: '16px' }}>Back to Contacts</button>
         </section>
       </div>
     );
   }
 
-  const fullName = contact.fullName || [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.name || 'Contact';
-
-  const detailCard = {
-    ...naesCardStyle(false),
-    padding: '18px',
-  };
-
-  const fieldLabel = {
-    fontSize: '10px',
-    fontWeight: 700,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    color: naesTheme.textSoft,
-  };
-
-  const fieldBox = {
-    marginTop: '6px',
-    borderRadius: '12px',
-    border: `1px solid ${naesTheme.border}`,
-    background: '#fff',
-    padding: '10px 12px',
-    fontSize: '13px',
-    color: naesTheme.text,
-    minHeight: '42px',
-    display: 'flex',
-    alignItems: 'center',
-  };
-
-  const statCards = [
-    { label: 'Linked Account', value: linkedAccount?.name || '—', sub: 'company relationship' },
-    { label: 'Related Opportunities', value: String(relatedOpps.length), sub: 'through linked account' },
-    { label: 'Preferred Contact', value: contact.preferredContactMethod || '—', sub: 'communication preference' },
-    { label: 'Role', value: contact.roleInBuyingProcess || '—', sub: 'buying process role' }
-  ];
-
   return (
-    <div style={{ maxWidth: '1080px', margin: '0 auto', display: 'grid', gap: '20px' }}>
-      <section style={{ ...naesCardStyle(true), padding: '20px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <button type="button" onClick={onBackToContacts} style={{ ...buttonStyle(true) }}>
-            Back to Contacts
-          </button>
-
-          {linkedAccount ? (
-            <button type="button" onClick={() => onOpenAccount(linkedAccount.id)} style={{ ...buttonStyle(true) }}>
-              Open Linked Account
-            </button>
-          ) : null}
-        </div>
-
+    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+      <section style={{ ...naesCardStyle(true), padding: '24px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
+        <button type="button" onClick={onBackToContacts} style={{ ...buttonStyle(true), marginBottom: '14px' }}>← Back to Contacts</button>
         {smallLabel('Contact Detail')}
-        <h2 style={{ margin: '12px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>
-          {fullName}
-        </h2>
-        <p style={{ marginTop: '10px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted }}>
-          Saved person-level profile with contact details, company relationship, and connected CRM records.
+        <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 700, color: naesTheme.text }}>{contact.name}</h2>
+        <p style={{ marginTop: '12px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted }}>
+          Person-level relationship detail, ownership, activity, and account linkage.
         </p>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
-        {statCards.map((card) => (
-          <div key={card.label} style={{ ...naesCardStyle(false), padding: '18px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
-              {card.label}
-            </div>
-            <div style={{ marginTop: '8px', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-              {card.value}
-            </div>
-            <div style={{ marginTop: '6px', fontSize: '12px', color: naesTheme.textMuted }}>
-              {card.sub}
-            </div>
+      <section style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '24px' }}>
+        <div style={{ ...naesCardStyle(false), padding: '24px' }}>
+          {smallLabel('Profile')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>Contact profile</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+            {[
+              ['Name', contact.name],
+              ['Title', contact.title],
+              ['Email', contact.email],
+              ['Account', account?.name || 'No Account'],
+            ].map(([label, value]) => (
+              <div key={label} style={{ borderRadius: '18px', border: `1px solid ${naesTheme.border}`, background: naesTheme.surfaceAlt, padding: '14px 16px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>{label}</div>
+                <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>{value}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </section>
-
-      <section style={detailCard}>
-        {smallLabel('Contact Profile')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Saved contact information
-        </h3>
-
-        <div style={{ marginTop: '14px', display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
-          {[
-            ['First Name', contact.firstName],
-            ['Last Name', contact.lastName],
-            ['Full Name', fullName],
-            ['Job Title', contact.jobTitle || contact.title],
-            ['Company / Linked Account', linkedAccount?.name || '—'],
-            ['Email', contact.email],
-            ['Mobile Phone', contact.mobilePhone],
-            ['Office Phone', contact.officePhone],
-            ['Address', contact.address],
-            ['City', contact.city],
-            ['State', contact.state],
-            ['ZIP', contact.zip],
-            ['LinkedIn', contact.linkedin],
-            ['Website', contact.website],
-            ['Preferred Contact Method', contact.preferredContactMethod],
-            ['Role in Buying Process', contact.roleInBuyingProcess],
-            ['Decision Maker', contact.decisionMaker ? 'Yes' : 'No'],
-            ['Champion', contact.champion ? 'Yes' : 'No'],
-            ['Primary Contact', contact.primaryContact ? 'Yes' : 'No'],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <div style={fieldLabel}>{label}</div>
-              <div style={fieldBox}>{value || '—'}</div>
-            </div>
-          ))}
         </div>
-      </section>
 
-      <section style={detailCard}>
-        {smallLabel('Communication Notes')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Notes
-        </h3>
-        <div style={{ ...fieldBox, marginTop: '14px', minHeight: '84px', alignItems: 'flex-start' }}>
-          {contact.notes || '—'}
-        </div>
-      </section>
-
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '20px' }}>
-        <div style={detailCard}>
-          {smallLabel('Related Opportunities')}
-          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-            Opportunity visibility
-          </h3>
-          <div style={{ marginTop: '14px', display: 'grid', gap: '10px' }}>
-            {relatedOpps.length ? relatedOpps.map((opportunity) => (
+        <div style={{ ...naesCardStyle(false), padding: '24px' }}>
+          {smallLabel('Connected Records')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>Navigation</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
+            {account ? (
               <button
-                key={opportunity.id}
                 type="button"
-                onClick={() => onOpenOpportunity(opportunity.id)}
+                onClick={() => onOpenAccount(account.id)}
                 style={{
-                  textAlign: 'left',
-                  borderRadius: '12px',
+                  borderRadius: '18px',
                   border: `1px solid ${naesTheme.border}`,
-                  background: '#fff',
-                  padding: '12px 14px',
+                  background: naesTheme.surfaceAlt,
+                  padding: '14px 16px',
+                  textAlign: 'left',
                   cursor: 'pointer'
                 }}
               >
-                <div style={{ fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>
-                  {opportunity.name || 'Opportunity'}
-                </div>
-                <div style={{ marginTop: '4px', fontSize: '12px', color: naesTheme.textMuted }}>
-                  {opportunity.stage || 'No stage'}
-                </div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>View Account</div>
+                <div style={{ marginTop: '4px', fontSize: '13px', color: naesTheme.textMuted }}>{account.name}</div>
               </button>
-            )) : (
-              <div style={{ borderRadius: '12px', border: `1px solid ${naesTheme.border}`, background: '#fff', padding: '12px 14px', fontSize: '13px', color: naesTheme.textMuted }}>
-                No opportunities linked yet.
-              </div>
-            )}
-          </div>
-        </div>
+            ) : null}
 
-        <div style={detailCard}>
-          {smallLabel('Related Tasks')}
-          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-            Tasks
-          </h3>
-          <div style={{ borderRadius: '12px', border: `1px solid ${naesTheme.border}`, background: '#fff', padding: '12px 14px', marginTop: '14px', fontSize: '13px', color: naesTheme.textMuted }}>
-            Tasks section coming next.
-          </div>
-        </div>
-
-        <div style={detailCard}>
-          {smallLabel('Related Activities')}
-          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-            Activities
-          </h3>
-          <div style={{ borderRadius: '12px', border: `1px solid ${naesTheme.border}`, background: '#fff', padding: '12px 14px', marginTop: '14px', fontSize: '13px', color: naesTheme.textMuted }}>
-            Activities section coming next.
+            <div style={{ borderRadius: '18px', border: `1px solid ${naesTheme.border}`, background: naesTheme.surfaceAlt, padding: '14px 16px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>Opportunities</div>
+              <div style={{ marginTop: '4px', fontSize: '13px', color: naesTheme.textMuted }}>Relationship path reserved for next pass.</div>
+            </div>
           </div>
         </div>
       </section>
@@ -2096,7 +1601,6 @@ function OpportunitiesOverviewPage({ onOpenOpportunity, opportunities = [] }) {
 
 
 
-
 function NewAccountPage({ newAccountForm = {}, onChangeNewAccountField, onSaveNewAccount, onCancelNewAccount }) {
   const serviceOptions = [
     'Renewables O&M',
@@ -2110,220 +1614,710 @@ function NewAccountPage({ newAccountForm = {}, onChangeNewAccountField, onSaveNe
     ? currentServices.split(',').map((item) => item.trim()).filter(Boolean)
     : [];
 
-  const fieldLabelStyle = {
-    fontSize: '10px',
-    fontWeight: 700,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    color: naesTheme.textSoft,
-  };
-
-  const inputStyle = {
-    width: '100%',
-    maxWidth: '100%',
-    boxSizing: 'border-box',
-    borderRadius: '12px',
-    border: `1px solid ${naesTheme.border}`,
-    background: '#fff',
-    padding: '10px 12px',
-    fontSize: '13px',
-    color: naesTheme.text,
-    marginTop: '6px',
-    display: 'block',
-  };
-
-  const sectionStyle = {
-    ...naesCardStyle(false),
-    padding: '18px',
-    maxWidth: '720px',
-    width: '100%',
-    margin: '0 auto',
-  };
-
-  const stackedGrid = {
-    marginTop: '12px',
-    display: 'grid',
-    gap: '12px',
-    gridTemplateColumns: '1fr',
-  };
-
   return (
-    <div style={{ maxWidth: '760px', margin: '0 auto', display: 'grid', gap: '16px' }}>
-      <section style={{ ...naesCardStyle(true), padding: '18px', maxWidth: '720px', width: '100%', margin: '0 auto', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
+    <div style={{ maxWidth: '1140px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+      <section style={{ ...naesCardStyle(true), padding: '26px 28px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
         {smallLabel('Accounts')}
-        <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>New Account</h2>
-        <p style={{ marginTop: '10px', maxWidth: '620px', fontSize: '13px', lineHeight: 1.6, color: naesTheme.textMuted }}>
-          Create a company profile. Keep this page focused on who the company is, how to reach them, and what services they are interested in.
+        <h2 style={{ margin: '8px 0 0 0', fontSize: '26px', fontWeight: 800, color: naesTheme.text }}>New Account</h2>
+        <p style={{ marginTop: '12px', maxWidth: '780px', fontSize: '14px', lineHeight: 1.65, color: naesTheme.textMuted }}>
+          Create a simple company profile. Keep this page focused on who the company is, how to reach them, and what services they are interested in.
         </p>
       </section>
 
-      <section style={sectionStyle}>
-        {smallLabel('Company Information')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Core account identity
-        </h3>
+      <section style={{ ...naesCardStyle(false), padding: '26px 28px' }}>
+        <div>
+          {smallLabel('Company Information')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 800, color: naesTheme.text }}>
+            Core account identity
+          </h3>
+        </div>
 
-        <div style={stackedGrid}>
-          <div>
-            <div style={fieldLabelStyle}>Company Name</div>
+        <div style={{ marginTop: '18px', display: 'grid', gap: '18px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Company Name
+            </div>
             <input
               value={newAccountForm.name ?? ''}
               onChange={(e) => onChangeNewAccountField('name', e.target.value)}
               placeholder="Ashley Furniture Industries"
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
 
           <div>
-            <div style={fieldLabelStyle}>Legal / Business Name</div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Legal / Business Name
+            </div>
             <input
               value={newAccountForm.legalBusinessName ?? ''}
               onChange={(e) => onChangeNewAccountField('legalBusinessName', e.target.value)}
               placeholder="Ashley Furniture Industries, LLC"
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
 
           <div>
-            <div style={fieldLabelStyle}>Industry / Business Type</div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Industry / Business Type
+            </div>
             <input
               value={newAccountForm.businessType ?? ''}
               onChange={(e) => onChangeNewAccountField('businessType', e.target.value)}
               placeholder="Manufacturing, logistics, utility, commercial solar..."
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
         </div>
       </section>
 
-      <section style={sectionStyle}>
-        {smallLabel('Company Contact Information')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          General company contact points
-        </h3>
+      <section style={{ ...naesCardStyle(false), padding: '26px 28px' }}>
+        <div>
+          {smallLabel('Company Contact Information')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 800, color: naesTheme.text }}>
+            General company contact points
+          </h3>
+        </div>
 
-        <div style={stackedGrid}>
+        <div style={{ marginTop: '18px', display: 'grid', gap: '18px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
           <div>
-            <div style={fieldLabelStyle}>Website</div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Website
+            </div>
             <input
               value={newAccountForm.website ?? ''}
               onChange={(e) => onChangeNewAccountField('website', e.target.value)}
               placeholder="https://company.com"
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
 
           <div>
-            <div style={fieldLabelStyle}>LinkedIn</div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              LinkedIn
+            </div>
             <input
               value={newAccountForm.linkedin ?? ''}
               onChange={(e) => onChangeNewAccountField('linkedin', e.target.value)}
               placeholder="https://linkedin.com/company/..."
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
 
           <div>
-            <div style={fieldLabelStyle}>Main Phone</div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Main Phone
+            </div>
             <input
               value={newAccountForm.mainPhone ?? ''}
               onChange={(e) => onChangeNewAccountField('mainPhone', e.target.value)}
               placeholder="(555) 555-5555"
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
 
           <div>
-            <div style={fieldLabelStyle}>General Email</div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              General Email
+            </div>
             <input
               value={newAccountForm.generalEmail ?? ''}
               onChange={(e) => onChangeNewAccountField('generalEmail', e.target.value)}
               placeholder="info@company.com"
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
         </div>
       </section>
 
-      <section style={sectionStyle}>
-        {smallLabel('Address')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Main company address
-        </h3>
+      <section style={{ ...naesCardStyle(false), padding: '26px 28px' }}>
+        <div>
+          {smallLabel('Address')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 800, color: naesTheme.text }}>
+            Main company address
+          </h3>
+        </div>
 
-        <div style={stackedGrid}>
-          <div>
-            <div style={fieldLabelStyle}>Main Address</div>
+        <div style={{ marginTop: '18px', display: 'grid', gap: '18px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Main Address
+            </div>
             <input
               value={newAccountForm.mainAddress ?? ''}
               onChange={(e) => onChangeNewAccountField('mainAddress', e.target.value)}
               placeholder="123 Main Street"
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
 
           <div>
-            <div style={fieldLabelStyle}>City</div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              City
+            </div>
             <input
               value={newAccountForm.city ?? ''}
               onChange={(e) => onChangeNewAccountField('city', e.target.value)}
               placeholder="Phoenix"
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
 
           <div>
-            <div style={fieldLabelStyle}>State</div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              State
+            </div>
             <input
               value={newAccountForm.state ?? ''}
               onChange={(e) => onChangeNewAccountField('state', e.target.value)}
               placeholder="AZ"
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
 
           <div>
-            <div style={fieldLabelStyle}>ZIP</div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              ZIP
+            </div>
             <input
               value={newAccountForm.zip ?? ''}
               onChange={(e) => onChangeNewAccountField('zip', e.target.value)}
               placeholder="85004"
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
 
           <div>
-            <div style={fieldLabelStyle}>Country</div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Country
+            </div>
             <input
               value={newAccountForm.country ?? ''}
               onChange={(e) => onChangeNewAccountField('country', e.target.value)}
               placeholder="United States"
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
         </div>
       </section>
 
-      <section style={sectionStyle}>
-        {smallLabel('Service Interest')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Interest tags and simple footprint
-        </h3>
+      <section style={{ ...naesCardStyle(false), padding: '26px 28px' }}>
+        <div>
+          {smallLabel('Service Interest')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 800, color: naesTheme.text }}>
+            Interest tags and simple footprint
+          </h3>
+        </div>
 
-        <div style={stackedGrid}>
-          <div>
-            <div style={fieldLabelStyle}>Interested Services</div>
+        <div style={{ marginTop: '18px', display: 'grid', gap: '18px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Interested Services
+            </div>
             <input
               value={newAccountForm.interestedServices ?? ''}
               onChange={(e) => onChangeNewAccountField('interestedServices', e.target.value)}
               placeholder="Renewables O&M, StratoSight..."
-              style={inputStyle}
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
+            />
+            <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              {serviceOptions.map((option) => {
+                const selected = serviceValues.some((item) => item.toLowerCase() === option.toLowerCase());
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      const next = selected
+                        ? serviceValues.filter((item) => item.toLowerCase() !== option.toLowerCase())
+                        : [...serviceValues, option];
+                      onChangeNewAccountField('interestedServices', next.join(', '));
+                    }}
+                    style={{
+                      borderRadius: '999px',
+                      border: `1px solid ${selected ? naesTheme.primary : naesTheme.border}`,
+                      background: selected ? naesTheme.primarySoft : '#fff',
+                      color: selected ? naesTheme.primaryStrong : naesTheme.textMuted,
+                      padding: '8px 14px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Primary Account Owner
+            </div>
+            <input
+              value={newAccountForm.primaryAccountOwner ?? ''}
+              onChange={(e) => onChangeNewAccountField('primaryAccountOwner', e.target.value)}
+              placeholder="Assigned owner"
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              General Footprint / Region
+            </div>
+            <input
+              value={newAccountForm.generalFootprintRegion ?? ''}
+              onChange={(e) => onChangeNewAccountField('generalFootprintRegion', e.target.value)}
+              placeholder="Southwest, national, multi-state..."
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Total MW
+            </div>
+            <input
+              value={newAccountForm.totalMw ?? ''}
+              onChange={(e) => onChangeNewAccountField('totalMw', e.target.value)}
+              placeholder="Only if renewables is relevant"
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Portfolio Type
+            </div>
+            <input
+              value={newAccountForm.portfolioType ?? ''}
+              onChange={(e) => onChangeNewAccountField('portfolioType', e.target.value)}
+              placeholder="DG, USS, mixed..."
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Estimated Building Count
+            </div>
+            <input
+              value={newAccountForm.estimatedBuildingCount ?? ''}
+              onChange={(e) => onChangeNewAccountField('estimatedBuildingCount', e.target.value)}
+              placeholder="Only if StratoSight is relevant"
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Estimated Square Footage
+            </div>
+            <input
+              value={newAccountForm.estimatedSquareFootage ?? ''}
+              onChange={(e) => onChangeNewAccountField('estimatedSquareFootage', e.target.value)}
+              placeholder="Only if StratoSight is relevant"
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              General Site Type
+            </div>
+            <input
+              value={newAccountForm.generalSiteType ?? ''}
+              onChange={(e) => onChangeNewAccountField('generalSiteType', e.target.value)}
+              placeholder="Warehouse, rooftop, campus, utility site..."
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '26px 28px' }}>
+        <div>
+          {smallLabel('Notes')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 800, color: naesTheme.text }}>
+            Internal notes
+          </h3>
+        </div>
+
+        <div style={{ marginTop: '18px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+            Notes
+          </div>
+          <textarea
+            value={newAccountForm.notes ?? ''}
+            onChange={(e) => onChangeNewAccountField('notes', e.target.value)}
+            placeholder="Anything useful about the company, relationship, timing, or service interest"
+            rows={5}
+            style={{
+              width: '100%',
+              marginTop: '6px',
+              borderRadius: '14px',
+              border: `1px solid ${naesTheme.border}`,
+              background: '#fff',
+              padding: '12px 14px',
+              fontSize: '14px',
+              color: naesTheme.text,
+              resize: 'vertical'
+            }}
+          />
+        </div>
+
+        <div style={{ marginTop: '22px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={onSaveNewAccount}
+            style={{
+              borderRadius: '16px',
+              border: `1px solid ${naesTheme.primary}`,
+              background: naesTheme.primary,
+              color: '#fff',
+              padding: '11px 18px',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Save Account
+          </button>
+
+          <button
+            type="button"
+            onClick={onCancelNewAccount}
+            style={{
+              borderRadius: '16px',
+              border: `1px solid ${naesTheme.border}`,
+              background: '#fff',
+              color: naesTheme.textMuted,
+              padding: '11px 18px',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+) {
+  const serviceOptions = [
+    'Renewables O&M',
+    'StratoSight',
+    'Both',
+    'Other O&M'
+  ];
+
+  const currentServices = String(newAccountForm.interestedServices || '').trim();
+  const serviceValues = currentServices
+    ? currentServices.split(',').map((item) => item.trim()).filter(Boolean)
+    : [];
+
+  return (
+    <div style={{ maxWidth: '1120px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+      <section style={{ ...naesCardStyle(true), padding: '26px 28px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
+        {smallLabel('Accounts')}
+        <h2 style={{ margin: '8px 0 0 0', fontSize: '26px', fontWeight: 800, color: naesTheme.text }}>New Account</h2>
+        <p style={{ marginTop: '12px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.65, color: naesTheme.textMuted }}>
+          Create a clean company record. Keep this page focused on who the company is and what services they care about.
+        </p>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '26px 28px' }}>
+        <div>
+          {smallLabel('Company Record')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 800, color: naesTheme.text }}>
+            Core account information
+          </h3>
+        </div>
+
+        <div style={{ marginTop: '18px', display: 'grid', gap: '18px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Company Name
+            </div>
+            <input
+              value={newAccountForm.name ?? ''}
+              onChange={(e) => onChangeNewAccountField('name', e.target.value)}
+              placeholder="Ashley Furniture Industries"
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Business Type / Industry
+            </div>
+            <input
+              value={newAccountForm.businessType ?? ''}
+              onChange={(e) => onChangeNewAccountField('businessType', e.target.value)}
+              placeholder="Manufacturing, logistics, utility, commercial solar..."
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Website
+            </div>
+            <input
+              value={newAccountForm.website ?? ''}
+              onChange={(e) => onChangeNewAccountField('website', e.target.value)}
+              placeholder="https://company.com"
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '26px 28px' }}>
+        <div>
+          {smallLabel('Service Interest')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 800, color: naesTheme.text }}>
+            What they are interested in
+          </h3>
+        </div>
+
+        <div style={{ marginTop: '18px', display: 'grid', gap: '18px' }}>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Services Interested In
+            </div>
+            <input
+              value={newAccountForm.interestedServices ?? ''}
+              onChange={(e) => onChangeNewAccountField('interestedServices', e.target.value)}
+              placeholder="Renewables O&M, StratoSight..."
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             {serviceOptions.map((option) => {
               const selected = serviceValues.some((item) => item.toLowerCase() === option.toLowerCase());
+
               return (
                 <button
                   key={option}
@@ -2339,8 +2333,8 @@ function NewAccountPage({ newAccountForm = {}, onChangeNewAccountField, onSaveNe
                     border: `1px solid ${selected ? naesTheme.primary : naesTheme.border}`,
                     background: selected ? naesTheme.primarySoft : '#fff',
                     color: selected ? naesTheme.primaryStrong : naesTheme.textMuted,
-                    padding: '7px 12px',
-                    fontSize: '12px',
+                    padding: '8px 14px',
+                    fontSize: '13px',
                     fontWeight: 700,
                     cursor: 'pointer'
                   }}
@@ -2351,139 +2345,103 @@ function NewAccountPage({ newAccountForm = {}, onChangeNewAccountField, onSaveNe
             })}
           </div>
 
-          <div>
-            <div style={fieldLabelStyle}>Primary Account Owner</div>
-            <input
-              value={newAccountForm.primaryAccountOwner ?? ''}
-              onChange={(e) => onChangeNewAccountField('primaryAccountOwner', e.target.value)}
-              placeholder="Assigned owner"
-              style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>General Footprint / Region</div>
-            <input
-              value={newAccountForm.generalFootprintRegion ?? ''}
-              onChange={(e) => onChangeNewAccountField('generalFootprintRegion', e.target.value)}
-              placeholder="Southwest, national, multi-state..."
-              style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Total MW</div>
+          <div style={{ maxWidth: '360px' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+              Total MW
+            </div>
             <input
               value={newAccountForm.totalMw ?? ''}
               onChange={(e) => onChangeNewAccountField('totalMw', e.target.value)}
-              placeholder="Only if renewables is relevant"
-              style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Portfolio Type</div>
-            <input
-              value={newAccountForm.portfolioType ?? ''}
-              onChange={(e) => onChangeNewAccountField('portfolioType', e.target.value)}
-              placeholder="DG, USS, mixed..."
-              style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Estimated Building Count</div>
-            <input
-              value={newAccountForm.estimatedBuildingCount ?? ''}
-              onChange={(e) => onChangeNewAccountField('estimatedBuildingCount', e.target.value)}
-              placeholder="Only if StratoSight is relevant"
-              style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>Estimated Square Footage</div>
-            <input
-              value={newAccountForm.estimatedSquareFootage ?? ''}
-              onChange={(e) => onChangeNewAccountField('estimatedSquareFootage', e.target.value)}
-              placeholder="Only if StratoSight is relevant"
-              style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <div style={fieldLabelStyle}>General Site Type</div>
-            <input
-              value={newAccountForm.generalSiteType ?? ''}
-              onChange={(e) => onChangeNewAccountField('generalSiteType', e.target.value)}
-              placeholder="Warehouse, rooftop, campus, utility site..."
-              style={inputStyle}
+              placeholder="Only if Renewables O&M is relevant"
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#fff',
+                padding: '12px 14px',
+                fontSize: '14px',
+                color: naesTheme.text
+              }}
             />
           </div>
         </div>
       </section>
 
-      <section style={sectionStyle}>
-        {smallLabel('Notes')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Internal notes
-        </h3>
+      <section style={{ ...naesCardStyle(false), padding: '26px 28px' }}>
+        <div>
+          {smallLabel('Notes')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 800, color: naesTheme.text }}>
+            Internal context
+          </h3>
+        </div>
 
-        <div style={stackedGrid}>
-          <div>
-            <div style={fieldLabelStyle}>Notes</div>
-            <textarea
-              value={newAccountForm.notes ?? ''}
-              onChange={(e) => onChangeNewAccountField('notes', e.target.value)}
-              placeholder="Anything useful about the company, relationship, timing, or service interest"
-              rows={5}
-              style={{
-                ...inputStyle,
-                resize: 'vertical'
-              }}
-            />
+        <div style={{ marginTop: '18px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+            Notes
           </div>
+          <textarea
+            value={newAccountForm.notes ?? ''}
+            onChange={(e) => onChangeNewAccountField('notes', e.target.value)}
+            placeholder="Anything useful about the company, relationship, timing, or service interest"
+            rows={5}
+            style={{
+              width: '100%',
+              marginTop: '6px',
+              borderRadius: '14px',
+              border: `1px solid ${naesTheme.border}`,
+              background: '#fff',
+              padding: '12px 14px',
+              fontSize: '14px',
+              color: naesTheme.text,
+              resize: 'vertical'
+            }}
+          />
+        </div>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={onSaveNewAccount}
-              style={{
-                borderRadius: '14px',
-                border: `1px solid ${naesTheme.primary}`,
-                background: naesTheme.primary,
-                color: '#fff',
-                padding: '10px 16px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              Save Account
-            </button>
+        <div style={{ marginTop: '22px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={onSaveNewAccount}
+            style={{
+              borderRadius: '16px',
+              border: `1px solid ${naesTheme.primary}`,
+              background: naesTheme.primary,
+              color: '#fff',
+              padding: '11px 18px',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Save Account
+          </button>
 
-            <button
-              type="button"
-              onClick={onCancelNewAccount}
-              style={{
-                borderRadius: '14px',
-                border: `1px solid ${naesTheme.border}`,
-                background: '#fff',
-                color: naesTheme.textMuted,
-                padding: '10px 16px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onCancelNewAccount}
+            style={{
+              borderRadius: '16px',
+              border: `1px solid ${naesTheme.border}`,
+              background: '#fff',
+              color: naesTheme.textMuted,
+              padding: '11px 18px',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
         </div>
       </section>
     </div>
   );
 }
+
+
+
+
 function AccountsOverviewPage({ accounts = [], onOpenAccount, onStartNewAccount }) {
   const totalAccounts = accounts.length;
   const renewablesInterested = accounts.filter((item) => String(item.interestedServices || '').toLowerCase().includes('renewables')).length;
@@ -2613,253 +2571,254 @@ function AccountsOverviewPage({ accounts = [], onOpenAccount, onStartNewAccount 
     </div>
   );
 }
+) {
+  const totalAccounts = accounts.length;
+  const renewablesInterested = accounts.filter((item) => String(item.interestedServices || '').toLowerCase().includes('renewables')).length;
+  const websitesCaptured = accounts.filter((item) => String(item.website || '').trim()).length;
+  const mwTracked = accounts.reduce((acc, item) => acc + Number(item.totalMw || 0), 0);
 
-
-function AccountDetailPage({ accountId, accounts = accountRecords, contacts = contactRecords, opportunities = [], historyEntries = [], onBackToAccounts, onOpenOpportunity, onEditAccount }) {
-  const account = getAccountById(accountId, accounts);
-  const relatedContacts = getContactsForAccount(accountId, contacts);
-  const relatedOpps = getOpportunitiesForAccount(accountId, opportunities, accounts);
-
-  if (!account) {
-    return (
-      <div style={{ maxWidth: '1080px', margin: '0 auto', display: 'grid', gap: '20px' }}>
-        <section style={{ ...naesCardStyle(false), padding: '20px' }}>
-          {smallLabel('Account Detail')}
-          <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>Account not found</h2>
-          <p style={{ marginTop: '10px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted }}>
-            The requested account record does not exist in the current account list.
-          </p>
-          <button type="button" onClick={onBackToAccounts} style={{ ...buttonStyle(true), marginTop: '16px' }}>
-            Back to Accounts
-          </button>
-        </section>
-      </div>
-    );
-  }
-
-  const statCards = [
-    { label: 'Related Contacts', value: String(relatedContacts.length), sub: 'linked people' },
-    { label: 'Related Opportunities', value: String(relatedOpps.length), sub: 'linked deals' },
-    { label: 'Interested Services', value: account.interestedServices || '—', sub: 'service interest' },
-    { label: 'Total MW', value: account.totalMw || '—', sub: 'only if relevant' }
+  const summaryCards = [
+    { label: 'Accounts', value: String(totalAccounts), sub: 'company records' },
+    { label: 'Renewables Interest', value: String(renewablesInterested), sub: 'accounts with renewables interest' },
+    { label: 'Websites Captured', value: String(websitesCaptured), sub: 'account website recorded' },
+    { label: 'Total MW', value: String(mwTracked || 0), sub: 'only where relevant' }
   ];
 
-  const detailCard = {
-    ...naesCardStyle(false),
-    padding: '18px',
-  };
-
-  const fieldLabel = {
-    fontSize: '10px',
-    fontWeight: 700,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    color: naesTheme.textSoft,
-  };
-
-  const fieldBox = {
-    marginTop: '6px',
-    borderRadius: '12px',
-    border: `1px solid ${naesTheme.border}`,
-    background: '#fff',
-    padding: '10px 12px',
-    fontSize: '13px',
-    color: naesTheme.text,
-    minHeight: '42px',
-    display: 'flex',
-    alignItems: 'center',
-  };
-
   return (
-    <div style={{ maxWidth: '1080px', margin: '0 auto', display: 'grid', gap: '20px' }}>
-      <section style={{ ...naesCardStyle(true), padding: '20px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <button type="button" onClick={onBackToAccounts} style={{ ...buttonStyle(true) }}>
-            Back to Accounts
-          </button>
-
-          <button type="button" onClick={onEditAccount} style={{ ...buttonStyle(true) }}>
-            Edit Account
-          </button>
-        </div>
-
-        {smallLabel('Account Detail')}
-        <h2 style={{ margin: '12px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>
-          {account.name || 'Account'}
-        </h2>
-        <p style={{ marginTop: '10px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted }}>
-          Saved company profile with service interest, company information, and connected CRM records.
+    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+      <section style={{ ...naesCardStyle(true), padding: '26px 28px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
+        {smallLabel('Accounts')}
+        <h2 style={{ margin: '8px 0 0 0', fontSize: '26px', fontWeight: 800, color: naesTheme.text }}>Account Roll-up</h2>
+        <p style={{ marginTop: '12px', maxWidth: '780px', fontSize: '14px', lineHeight: 1.65, color: naesTheme.textMuted }}>
+          Clean company-level records. This is the parent layer for contacts and future opportunities, not the place for commercial deal detail.
         </p>
       </section>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
-        {statCards.map((card) => (
-          <div key={card.label} style={{ ...naesCardStyle(false), padding: '18px' }}>
+        {summaryCards.map((card) => (
+          <div key={card.label} style={{ ...naesCardStyle(false), padding: '20px' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
               {card.label}
             </div>
-            <div style={{ marginTop: '8px', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
+            <div style={{ marginTop: '10px', fontSize: '30px', fontWeight: 800, color: naesTheme.text }}>
               {card.value}
             </div>
-            <div style={{ marginTop: '6px', fontSize: '12px', color: naesTheme.textMuted }}>
+            <div style={{ marginTop: '6px', fontSize: '13px', color: naesTheme.textMuted }}>
               {card.sub}
             </div>
           </div>
         ))}
       </section>
 
-      <section style={detailCard}>
-        {smallLabel('Company Profile')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Saved account information
-        </h3>
+      <section style={{ ...naesCardStyle(false), padding: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div>
+            {smallLabel('Company List')}
+            <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 800, color: naesTheme.text }}>
+              Main page, click account for detail
+            </h3>
+          </div>
 
-        <div style={{ marginTop: '14px', display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
-          {[
-            ['Company Name', account.name],
-            ['Legal / Business Name', account.legalBusinessName],
-            ['Industry / Business Type', account.businessType],
-            ['Website', account.website],
-            ['LinkedIn', account.linkedin],
-            ['Main Phone', account.mainPhone],
-            ['General Email', account.generalEmail],
-            ['Main Address', account.mainAddress],
-            ['City', account.city],
-            ['State', account.state],
-            ['ZIP', account.zip],
-            ['Country', account.country],
-            ['Primary Account Owner', account.primaryAccountOwner],
-            ['Interested Services', account.interestedServices],
-            ['General Footprint / Region', account.generalFootprintRegion],
-            ['Total MW', account.totalMw],
-            ['Portfolio Type', account.portfolioType],
-            ['Estimated Building Count', account.estimatedBuildingCount],
-            ['Estimated Square Footage', account.estimatedSquareFootage],
-            ['General Site Type', account.generalSiteType],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <div style={fieldLabel}>{label}</div>
-              <div style={fieldBox}>{value || '—'}</div>
-            </div>
-          ))}
+          <button
+            type="button"
+            onClick={onStartNewAccount}
+            style={{
+              borderRadius: '18px',
+              border: `1px solid ${naesTheme.border}`,
+              background: naesTheme.primarySoft,
+              color: naesTheme.primaryStrong,
+              padding: '10px 16px',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Add New Account
+          </button>
+        </div>
+
+        <div style={{ marginTop: '18px', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
+            <thead>
+              <tr>
+                {['Company', 'Business Type', 'Services Interested In', 'Total MW', 'Website', 'Notes'].map((head) => (
+                  <th
+                    key={head}
+                    style={{
+                      textAlign: 'left',
+                      padding: '0 12px 12px 0',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      letterSpacing: '0.16em',
+                      textTransform: 'uppercase',
+                      color: naesTheme.textSoft,
+                      borderBottom: `1px solid ${naesTheme.border}`
+                    }}
+                  >
+                    {head}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {accounts.map((account) => (
+                <tr
+                  key={account.id}
+                  onClick={() => onOpenAccount(account.id)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}` }}>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: naesTheme.text }}>{account.name}</div>
+                  </td>
+                  <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>
+                    {account.businessType || '—'}
+                  </td>
+                  <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>
+                    {account.interestedServices || '—'}
+                  </td>
+                  <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>
+                    {account.totalMw || '—'}
+                  </td>
+                  <td style={{ padding: '16px 12px 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.primaryStrong }}>
+                    {account.website || '—'}
+                  </td>
+                  <td style={{ padding: '16px 0 16px 0', borderBottom: `1px solid ${naesTheme.border}`, fontSize: '14px', color: naesTheme.textMuted }}>
+                    {account.notes || '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
+    </div>
+  );
+}
+function AccountDetailPage({ accountId, opportunities = [], onBackToAccounts, onOpenOpportunity }) {
+  const account = getAccountById(accountId);
+  const relatedContacts = getContactsForAccount(accountId);
+  const relatedOpps = getOpportunitiesForAccount(accountId, opportunities);
 
-      <section style={detailCard}>
-        {smallLabel('Notes')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Internal account notes
-        </h3>
-        <div style={{ ...fieldBox, marginTop: '14px', minHeight: '84px', alignItems: 'flex-start' }}>
-          {account.notes || '—'}
-        </div>
+  if (!account) {
+    return (
+      <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+        <section style={{ ...naesCardStyle(false), padding: '24px' }}>
+          {smallLabel('Account Detail')}
+          <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 700, color: naesTheme.text }}>Account not found</h2>
+          <p style={{ marginTop: '12px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted }}>
+            The requested account record does not exist in the current local data set.
+          </p>
+          <button type="button" onClick={onBackToAccounts} style={{ ...buttonStyle(true), marginTop: '16px' }}>Back to Accounts</button>
+        </section>
+      </div>
+    );
+  }
+
+  const statCards = [
+    { label: 'Open Opportunities', value: String(relatedOpps.length) },
+    { label: 'Contacts', value: String(relatedContacts.length) },
+    { label: 'ARR', value: formatCurrency(account.arr) },
+    { label: 'Annual Revenue', value: formatCurrency(account.annualRevenue) }
+  ];
+
+  return (
+    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+      <section style={{ ...naesCardStyle(true), padding: '24px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
+        <button type="button" onClick={onBackToAccounts} style={{ ...buttonStyle(true), marginBottom: '14px' }}>← Back to Accounts</button>
+        {smallLabel('Account Detail')}
+        <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 700, color: naesTheme.text }}>{account.name}</h2>
+        <p style={{ marginTop: '12px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted }}>
+          Commercial summary, linked contacts, linked opportunities, and relationship detail.
+        </p>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px' }}>
-        <div style={detailCard}>
-          {smallLabel('Related Contacts')}
-          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-            Contacts tied to this account
-          </h3>
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
+        {statCards.map((card) => (
+          <div key={card.label} style={{ ...naesCardStyle(false), padding: '20px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: naesTheme.textSoft }}>{card.label}</div>
+            <div style={{ marginTop: '10px', fontSize: '30px', fontWeight: 800, color: naesTheme.text }}>{card.value}</div>
+          </div>
+        ))}
+      </section>
 
-          <div style={{ marginTop: '14px', display: 'grid', gap: '10px' }}>
-            {relatedContacts.length ? relatedContacts.map((contact) => (
-              <div key={contact.id} style={{ borderRadius: '12px', border: `1px solid ${naesTheme.border}`, background: '#fff', padding: '12px 14px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>
-                  {contact.fullName || [contact.firstName, contact.lastName].filter(Boolean).join(' ') || 'Contact'}
-                </div>
-                <div style={{ marginTop: '4px', fontSize: '12px', color: naesTheme.textMuted }}>
-                  {contact.title || 'No title'} • {contact.email || 'No email'}
-                </div>
+      <section style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: '24px' }}>
+        <div style={{ ...naesCardStyle(false), padding: '24px' }}>
+          {smallLabel('Commercial Summary')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>Primary account context</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+            {[
+              ['Account Name', account.name],
+              ['Segment', account.segment],
+              ['Region', account.region],
+              ['Owner', account.owner],
+              ['CTS %', `${account.ctsPercent}%`],
+              ['Margin %', `${account.marginPercent}%`],
+              ['ARR', formatCurrency(account.arr)],
+              ['Annual Revenue', formatCurrency(account.annualRevenue)],
+            ].map(([label, value]) => (
+              <div key={label} style={{ borderRadius: '18px', border: `1px solid ${naesTheme.border}`, background: naesTheme.surfaceAlt, padding: '14px 16px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>{label}</div>
+                <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>{value}</div>
               </div>
-            )) : (
-              <div style={{ borderRadius: '12px', border: `1px solid ${naesTheme.border}`, background: '#fff', padding: '12px 14px', fontSize: '13px', color: naesTheme.textMuted }}>
-                No contacts linked yet.
-              </div>
-            )}
+            ))}
           </div>
         </div>
 
-        <div style={detailCard}>
-          {smallLabel('Related Opportunities')}
-          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-            Open or linked deals
-          </h3>
+        <div style={{ ...naesCardStyle(false), padding: '24px' }}>
+          {smallLabel('Quick Navigation')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>Connected CRM records</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
+            {['Dashboard', 'Contacts', 'Opportunities'].map((label) => (
+              <div key={label} style={{ borderRadius: '18px', border: `1px solid ${naesTheme.border}`, background: naesTheme.surfaceAlt, padding: '14px 16px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <div style={{ marginTop: '14px', display: 'grid', gap: '10px' }}>
-            {relatedOpps.length ? relatedOpps.map((opportunity) => (
+      <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        <div style={{ ...naesCardStyle(false), padding: '24px' }}>
+          {smallLabel('Linked Contacts')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>Contacts tied to this account</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
+            {relatedContacts.map((contact) => (
+              <div key={contact.id} style={{ borderRadius: '18px', border: `1px solid ${naesTheme.border}`, background: naesTheme.surfaceAlt, padding: '14px 16px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>{contact.name}</div>
+                <div style={{ marginTop: '4px', fontSize: '13px', color: naesTheme.textMuted }}>{contact.title}, {contact.email}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ ...naesCardStyle(false), padding: '24px' }}>
+          {smallLabel('Linked Opportunities')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 700, color: naesTheme.text }}>Open or relevant deals</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
+            {relatedOpps.map((opp) => (
               <button
-                key={opportunity.id}
+                key={opp.id}
                 type="button"
-                onClick={() => onOpenOpportunity(opportunity.id)}
+                onClick={() => onOpenOpportunity(opp.id)}
                 style={{
-                  textAlign: 'left',
-                  borderRadius: '12px',
+                  borderRadius: '18px',
                   border: `1px solid ${naesTheme.border}`,
-                  background: '#fff',
-                  padding: '12px 14px',
+                  background: naesTheme.surfaceAlt,
+                  padding: '14px 16px',
+                  textAlign: 'left',
                   cursor: 'pointer'
                 }}
               >
-                <div style={{ fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>
-                  {opportunity.name || 'Opportunity'}
-                </div>
-                <div style={{ marginTop: '4px', fontSize: '12px', color: naesTheme.textMuted }}>
-                  {opportunity.stage || 'No stage'} • {opportunity.forecast_category || 'No forecast'}
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>{opp.name}</div>
+                    <div style={{ marginTop: '4px', fontSize: '13px', color: naesTheme.textMuted }}>{opp.stage}, {opp.forecast_category || opp.forecastCategory}, Close {opp.expected_close_date || opp.expectedClose}</div>
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: naesTheme.primaryStrong }}>{formatCurrency(opp.annualRevenue || opp.calculated_revenue || 0)}</div>
                 </div>
               </button>
-            )) : (
-              <div style={{ borderRadius: '12px', border: `1px solid ${naesTheme.border}`, background: '#fff', padding: '12px 14px', fontSize: '13px', color: naesTheme.textMuted }}>
-                No opportunities linked yet.
-              </div>
-            )}
+            ))}
           </div>
-        </div>
-      </section>
-
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px' }}>
-        <div style={detailCard}>
-          {smallLabel('Related Tasks')}
-          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-            Tasks
-          </h3>
-          <div style={{ borderRadius: '12px', border: `1px solid ${naesTheme.border}`, background: '#fff', padding: '12px 14px', marginTop: '14px', fontSize: '13px', color: naesTheme.textMuted }}>
-            Tasks section coming next.
-          </div>
-        </div>
-
-        <div style={detailCard}>
-          {smallLabel('Related Activities')}
-          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-            Activities
-          </h3>
-          <div style={{ borderRadius: '12px', border: `1px solid ${naesTheme.border}`, background: '#fff', padding: '12px 14px', marginTop: '14px', fontSize: '13px', color: naesTheme.textMuted }}>
-            Activities section coming next.
-          </div>
-        </div>
-      </section>
-
-      <section style={detailCard}>
-        {smallLabel('Edit History')}
-        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
-          Account change log
-        </h3>
-
-        <div style={{ marginTop: '14px', display: 'grid', gap: '10px' }}>
-          {historyEntries.length ? historyEntries.map((entry) => (
-            <div key={entry.id} style={{ borderRadius: '12px', border: `1px solid ${naesTheme.border}`, background: '#fff', padding: '12px 14px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: naesTheme.text }}>
-                {entry.action}
-              </div>
-              <div style={{ marginTop: '4px', fontSize: '12px', color: naesTheme.textMuted }}>
-                {entry.at} • {entry.user}
-              </div>
-            </div>
-          )) : (
-            <div style={{ borderRadius: '12px', border: `1px solid ${naesTheme.border}`, background: '#fff', padding: '12px 14px', fontSize: '13px', color: naesTheme.textMuted }}>
-              No edit history yet.
-            </div>
-          )}
         </div>
       </section>
     </div>
@@ -3463,37 +3422,33 @@ export default function App() {
   const [activePage, setActivePage] = useState('Welcome');
   const [pageHistory, setPageHistory] = useState(['Welcome']);
   const [accountDetailId, setAccountDetailId] = useState(null);
-  const [accountList, setAccountList] = useState(() => {
-    try {
-      const raw = window.localStorage.getItem('naes-crm-account-list');
-      return raw ? JSON.parse(raw) : accountRecords;
-    } catch (error) {
-      return accountRecords;
-    }
-  });
+  const [accountList, setAccountList] = useState(accountRecords);
   const [showNewAccountForm, setShowNewAccountForm] = useState(false);
-  const [showEditAccountForm, setShowEditAccountForm] = useState(false);
-  const [accountHistoryMap, setAccountHistoryMap] = useState(() => {
-    try {
-      const raw = window.localStorage.getItem('naes-crm-account-history');
-      return raw ? JSON.parse(raw) : {};
-    } catch (error) {
-      return {};
-    }
+  const [newAccountForm, setNewAccountForm] = useState({
+    name: '',
+    legalBusinessName: '',
+    businessType: '',
+    website: '',
+    linkedin: '',
+    mainPhone: '',
+    generalEmail: '',
+    mainAddress: '',
+    city: '',
+    state: '',
+    zip: '',
+    country: '',
+    primaryAccountOwner: '',
+    interestedServices: '',
+    totalMw: '',
+    portfolioType: '',
+    generalFootprintRegion: '',
+    estimatedBuildingCount: '',
+    estimatedSquareFootage: '',
+    generalSiteType: '',
+    notes: ''
   });
-  const [newAccountForm, setNewAccountForm] = useState(buildAccountFormFromRecord());
 
   const [contactDetailId, setContactDetailId] = useState(null);
-  const [contactList, setContactList] = useState(() => {
-    try {
-      const raw = window.localStorage.getItem('naes-crm-contact-list');
-      return raw ? JSON.parse(raw) : contactRecords;
-    } catch (error) {
-      return contactRecords;
-    }
-  });
-  const [showNewContactForm, setShowNewContactForm] = useState(false);
-  const [newContactForm, setNewContactForm] = useState(buildContactFormFromRecord());
 
   const [routePath, setRoutePath] = useState(getInitialPath());
   const [opportunities, setOpportunities] = useState(initialOpportunities);
@@ -3522,38 +3477,12 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  React.useEffect(() => {
-    try {
-      window.localStorage.setItem('naes-crm-account-list', JSON.stringify(accountList));
-    } catch (error) {
-      console.warn('Could not persist account list', error);
-    }
-  }, [accountList]);
-
-  React.useEffect(() => {
-    try {
-      window.localStorage.setItem('naes-crm-account-history', JSON.stringify(accountHistoryMap));
-    } catch (error) {
-      console.warn('Could not persist account history', error);
-    }
-  }, [accountHistoryMap]);
-
-  React.useEffect(() => {
-    try {
-      window.localStorage.setItem('naes-crm-contact-list', JSON.stringify(contactList));
-    } catch (error) {
-      console.warn('Could not persist contact list', error);
-    }
-  }, [contactList]);
-
   function navigate(nextPage) {
     setActivePage(nextPage);
     setPageHistory((prev) => [...prev, nextPage]);
     setAccountDetailId(null);
     setContactDetailId(null);
     setShowNewAccountForm(false);
-    setShowEditAccountForm(false);
-    setShowNewContactForm(false);
 
     if (nextPage === 'Opportunities') {
       pushPath('/opportunities');
@@ -3575,12 +3504,32 @@ export default function App() {
 
   
   
-  
   function cancelNewAccount() {
     setShowNewAccountForm(false);
-    setNewAccountForm(buildAccountFormFromRecord());
+    setNewAccountForm({
+      name: '',
+      legalBusinessName: '',
+      businessType: '',
+      website: '',
+      linkedin: '',
+      mainPhone: '',
+      generalEmail: '',
+      mainAddress: '',
+      city: '',
+      state: '',
+      zip: '',
+      country: '',
+      primaryAccountOwner: '',
+      interestedServices: '',
+      totalMw: '',
+      portfolioType: '',
+      generalFootprintRegion: '',
+      estimatedBuildingCount: '',
+      estimatedSquareFootage: '',
+      generalSiteType: '',
+      notes: ''
+    });
   }
-
 
 
 
@@ -3588,76 +3537,6 @@ export default function App() {
     setNewAccountForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function startEditAccount() {
-    const account = getAccountById(accountDetailId, accountList);
-    if (!account) return;
-    setNewAccountForm(buildAccountFormFromRecord(account));
-    setShowEditAccountForm(true);
-    setShowNewAccountForm(false);
-    setActivePage('Accounts');
-  }
-
-  function cancelEditAccount() {
-    setShowEditAccountForm(false);
-    setNewAccountForm(buildAccountFormFromRecord());
-  }
-
-  function saveEditedAccount() {
-    if (!accountDetailId) return;
-
-    const name = String(newAccountForm.name || '').trim();
-    if (!name) return;
-
-    setAccountList((prev) =>
-      prev.map((account) =>
-        account.id === accountDetailId
-          ? {
-              ...account,
-              name,
-              legalBusinessName: String(newAccountForm.legalBusinessName || '').trim(),
-              businessType: String(newAccountForm.businessType || '').trim(),
-              website: String(newAccountForm.website || '').trim(),
-              linkedin: String(newAccountForm.linkedin || '').trim(),
-              mainPhone: String(newAccountForm.mainPhone || '').trim(),
-              generalEmail: String(newAccountForm.generalEmail || '').trim(),
-              mainAddress: String(newAccountForm.mainAddress || '').trim(),
-              city: String(newAccountForm.city || '').trim(),
-              state: String(newAccountForm.state || '').trim(),
-              zip: String(newAccountForm.zip || '').trim(),
-              country: String(newAccountForm.country || '').trim(),
-              primaryAccountOwner: String(newAccountForm.primaryAccountOwner || '').trim(),
-              interestedServices: String(newAccountForm.interestedServices || '').trim(),
-              totalMw: String(newAccountForm.totalMw || '').trim(),
-              portfolioType: String(newAccountForm.portfolioType || '').trim(),
-              generalFootprintRegion: String(newAccountForm.generalFootprintRegion || '').trim(),
-              estimatedBuildingCount: String(newAccountForm.estimatedBuildingCount || '').trim(),
-              estimatedSquareFootage: String(newAccountForm.estimatedSquareFootage || '').trim(),
-              generalSiteType: String(newAccountForm.generalSiteType || '').trim(),
-              notes: String(newAccountForm.notes || '').trim(),
-            }
-          : account
-      )
-    );
-
-    setAccountHistoryMap((prev) => ({
-      ...prev,
-      [accountDetailId]: [
-        {
-          id: `hist-${Date.now()}`,
-          at: new Date().toLocaleString(),
-          user: 'Current User',
-          action: 'Edited account',
-        },
-        ...((prev[accountDetailId] || [])),
-      ],
-    }));
-
-    setShowEditAccountForm(false);
-    setNewAccountForm(buildAccountFormFromRecord());
-    setActivePage('Accounts');
-  }
-
-  
   
   
   function saveNewAccount() {
@@ -3704,24 +3583,33 @@ export default function App() {
     };
 
     setAccountList((prev) => [newRecord, ...prev]);
-    setAccountHistoryMap((prev) => ({
-      ...prev,
-      [id]: [
-        {
-          id: `hist-${Date.now()}`,
-          at: new Date().toLocaleString(),
-          user: 'Current User',
-          action: 'Created account',
-        },
-      ],
-    }));
     setShowNewAccountForm(false);
-    setShowEditAccountForm(false);
-    setAccountDetailId(null);
+    setAccountDetailId(id);
     setActivePage('Accounts');
-    setNewAccountForm(buildAccountFormFromRecord());
+    setNewAccountForm({
+      name: '',
+      legalBusinessName: '',
+      businessType: '',
+      website: '',
+      linkedin: '',
+      mainPhone: '',
+      generalEmail: '',
+      mainAddress: '',
+      city: '',
+      state: '',
+      zip: '',
+      country: '',
+      primaryAccountOwner: '',
+      interestedServices: '',
+      totalMw: '',
+      portfolioType: '',
+      generalFootprintRegion: '',
+      estimatedBuildingCount: '',
+      estimatedSquareFootage: '',
+      generalSiteType: '',
+      notes: ''
+    });
   }
-
 
 
 
@@ -3754,64 +3642,6 @@ export default function App() {
   function returnToContactsOverview() {
     setContactDetailId(null);
     setActivePage('Contacts');
-  }
-
-  function startNewContact() {
-    setContactDetailId(null);
-    setShowNewContactForm(true);
-    setActivePage('Contacts');
-  }
-
-  function cancelNewContact() {
-    setShowNewContactForm(false);
-    setNewContactForm(buildContactFormFromRecord());
-  }
-
-  function updateNewContactField(field, value) {
-    setNewContactForm((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function saveNewContact() {
-    const firstName = String(newContactForm.firstName || '').trim();
-    const lastName = String(newContactForm.lastName || '').trim();
-    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
-    if (!fullName) return;
-
-    const id = `contact-${fullName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new'}`;
-    const account = newContactForm.accountId ? getAccountById(newContactForm.accountId, accountList) : null;
-
-    const newRecord = {
-      id,
-      firstName,
-      lastName,
-      fullName,
-      name: fullName,
-      jobTitle: String(newContactForm.jobTitle || '').trim(),
-      title: String(newContactForm.jobTitle || '').trim(),
-      accountId: String(newContactForm.accountId || '').trim(),
-      accountName: account?.name || '',
-      email: String(newContactForm.email || '').trim(),
-      mobilePhone: String(newContactForm.mobilePhone || '').trim(),
-      officePhone: String(newContactForm.officePhone || '').trim(),
-      address: String(newContactForm.address || '').trim(),
-      city: String(newContactForm.city || '').trim(),
-      state: String(newContactForm.state || '').trim(),
-      zip: String(newContactForm.zip || '').trim(),
-      linkedin: String(newContactForm.linkedin || '').trim(),
-      website: String(newContactForm.website || '').trim(),
-      preferredContactMethod: String(newContactForm.preferredContactMethod || '').trim(),
-      roleInBuyingProcess: String(newContactForm.roleInBuyingProcess || '').trim(),
-      notes: String(newContactForm.notes || '').trim(),
-      decisionMaker: Boolean(newContactForm.decisionMaker),
-      champion: Boolean(newContactForm.champion),
-      primaryContact: Boolean(newContactForm.primaryContact),
-    };
-
-    setContactList((prev) => [newRecord, ...prev]);
-    setShowNewContactForm(false);
-    setContactDetailId(null);
-    setActivePage('Contacts');
-    setNewContactForm(buildContactFormFromRecord());
   }
 
   function openOpportunityDetail(opportunityId) {
@@ -3941,30 +3771,14 @@ export default function App() {
               ? renderWelcomePage()
               : safeActivePage === 'Accounts'
               ? (
-                showNewAccountForm
+                accountDetailId
+                  ? <AccountDetailPage accountId={accountDetailId} opportunities={opportunities} onBackToAccounts={returnToAccountsOverview} onOpenOpportunity={openOpportunityDetail} />
+                  : showNewAccountForm
                   ? <NewAccountPage
                       newAccountForm={newAccountForm}
                       onChangeNewAccountField={updateNewAccountField}
                       onSaveNewAccount={saveNewAccount}
                       onCancelNewAccount={cancelNewAccount}
-                    />
-                  : showEditAccountForm
-                  ? <NewAccountPage
-                      newAccountForm={newAccountForm}
-                      onChangeNewAccountField={updateNewAccountField}
-                      onSaveNewAccount={saveEditedAccount}
-                      onCancelNewAccount={cancelEditAccount}
-                    />
-                  : accountDetailId
-                  ? <AccountDetailPage
-                      accountId={accountDetailId}
-                      accounts={accountList}
-                      contacts={contactRecords}
-                      opportunities={opportunities}
-                      historyEntries={accountHistoryMap[accountDetailId] || []}
-                      onBackToAccounts={returnToAccountsOverview}
-                      onOpenOpportunity={openOpportunityDetail}
-                      onEditAccount={startEditAccount}
                     />
                   : <AccountsOverviewPage
                       accounts={accountList}
@@ -3974,30 +3788,9 @@ export default function App() {
               )
               : safeActivePage === 'Contacts'
               ? (
-                showNewContactForm
-                  ? <NewContactPage
-                      newContactForm={newContactForm}
-                      accountOptions={accountList}
-                      onChangeNewContactField={updateNewContactField}
-                      onSaveNewContact={saveNewContact}
-                      onCancelNewContact={cancelNewContact}
-                    />
-                  : contactDetailId
-                  ? <ContactDetailPage
-                      contactId={contactDetailId}
-                      contacts={contactList}
-                      accounts={accountList}
-                      opportunities={opportunities}
-                      onBackToContacts={returnToContactsOverview}
-                      onOpenAccount={openAccountDetail}
-                      onOpenOpportunity={openOpportunityDetail}
-                    />
-                  : <ContactsOverviewPage
-                      contacts={contactList}
-                      accounts={accountList}
-                      onOpenContact={openContactDetail}
-                      onStartNewContact={startNewContact}
-                    />
+                contactDetailId
+                  ? <ContactDetailPage contactId={contactDetailId} onBackToContacts={returnToContactsOverview} onOpenAccount={openAccountDetail} />
+                  : <ContactsOverviewPage contacts={contactRecords} onOpenContact={openContactDetail} />
               )
               : safeActivePage === 'Opportunities'
               ? (
