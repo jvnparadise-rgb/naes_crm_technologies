@@ -1,12 +1,13 @@
 # FRONTEND IMPLEMENTATION PLAN
 
 ## Objective
-Build the NAES CRM frontend shell in a controlled, modular way using the existing repo contracts.
+Build the NAES CRM frontend shell in a controlled, modular way from the current repository only, under the greenfield reset rules.
 
 ## Non-negotiable rules
+- Do not reuse or patch any prior CRM UI implementation from V1, V2, or V3
 - Do not hardcode scattered sidebar structures
 - Do not hardcode duplicated route labels
-- Do not bypass the registries
+- Do not bypass registries
 - Do not build large unvalidated UI batches
 - Do not mutate architecture to move faster
 - Build one shell layer at a time
@@ -61,11 +62,35 @@ Pricing-aware areas must consume the pricing schema registry and not invent loca
 6. Add styling tokens to shell
 7. Add first real page module intentionally
 
-## Initial target pages for first real implementations
-- Welcome
-- Accounts
-- Opportunities
-- Revenue Command Center
+## First real module order
+1. Accounts
+2. Contacts
+3. Opportunities
+
+## Accounts first-pass scope
+- Accounts list page
+- Account detail page
+- Account create page
+- Account edit page
+- Related panels for contacts, opportunities, and tasks
+- Clean list-to-detail navigation
+- Safe empty/loading/error states
+
+## Contacts first-pass scope
+- Contacts list page
+- Contact detail page
+- Contact create page
+- Contact edit page
+- Account relationship display
+- Safe empty/loading/error states
+
+## Opportunities first-pass scope
+- Opportunities rollup page
+- Opportunity detail page
+- Commercial summary section
+- Save with required reason when commercial inputs change
+- Audit history section
+- Feed summary values back to rollup view
 
 ## Stability requirements
 - Frontend shell should not crash if child pages are placeholders
@@ -80,17 +105,3 @@ Pricing-aware areas must consume the pricing schema registry and not invent loca
 - Theme tokens are applied
 - Placeholder pages load for all approved routes
 - No hardcoded duplicate navigation structures exist
-
-## Updated first real implementation priority
-
-The first real implemented modules should be:
-1. Opportunities
-2. Accounts
-3. Contacts
-
-Opportunities should be treated as the hub module that anchors:
-- pricing behavior
-- quote generation
-- pipeline state
-- audit/change tracking
-- account/contact linkage
