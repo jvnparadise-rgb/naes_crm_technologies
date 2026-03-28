@@ -1,11 +1,13 @@
 import { createOpportunityPageModel } from '../models/OpportunityPageModel.js';
 import { renderOpportunityHeaderBlock } from './renderOpportunityHeaderBlock.js';
 import { renderOpportunityRelationshipBlock } from './renderOpportunityRelationshipBlock.js';
+import { renderOpportunityServiceToggleBlock } from './renderOpportunityServiceToggleBlock.js';
 
 export function renderOpportunityPagePlaceholder() {
   const model = createOpportunityPageModel();
   const headerBlock = renderOpportunityHeaderBlock();
   const relationshipBlock = renderOpportunityRelationshipBlock();
+  const serviceToggleBlock = renderOpportunityServiceToggleBlock();
 
   return {
     type: 'OpportunityPagePlaceholder',
@@ -16,7 +18,7 @@ export function renderOpportunityPagePlaceholder() {
       status: 'placeholder'
     })),
     relationships: relationshipBlock,
-    serviceToggle: model.serviceToggle,
+    serviceToggle: serviceToggleBlock,
     workflow: {
       stageCount: model.workflow.stages.length,
       statusCount: model.workflow.statuses.length

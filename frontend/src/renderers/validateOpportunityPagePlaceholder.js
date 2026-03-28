@@ -11,6 +11,10 @@ export function validateOpportunityPagePlaceholder() {
     throw new Error('Opportunity header block was not loaded into placeholder renderer.');
   }
 
+  if (!view.serviceToggle || view.serviceToggle.type !== 'OpportunityServiceToggleBlock') {
+    throw new Error('Opportunity service toggle block was not loaded into placeholder renderer.');
+  }
+
   if (!Array.isArray(view.sections) || view.sections.length === 0) {
     throw new Error('Opportunity placeholder sections are missing.');
   }
@@ -31,6 +35,7 @@ export function validateOpportunityPagePlaceholder() {
     ok: true,
     pageTitle: view.pageTitle,
     headerTitle: view.header.title,
+    serviceToggleOptionCount: view.serviceToggle.optionCount,
     sectionCount: view.sections.length,
     relationshipBlockCount: view.relationships.relationshipBlocks.length,
     quoteActionCount: view.quotes.actionCount,
