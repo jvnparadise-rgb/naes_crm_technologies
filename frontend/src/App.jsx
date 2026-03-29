@@ -1428,7 +1428,7 @@ function ContactsOverviewPage({ contacts = [], accounts = [], onOpenContact, onS
   );
 }
 
-function ContactDetailPage({ contactId, contacts = contactRecords, accounts = accountRecords, opportunities = [], onBackToContacts, onOpenAccount, onOpenOpportunity }) {
+function ContactDetailPage({ contactId, contacts = contactRecords, accounts = accountRecords, opportunities = [], onBackToContacts, onOpenAccount, onOpenOpportunity, onEditContact }) {
   const contact = getContactById(contactId, contacts);
   const linkedAccount = contact?.accountId ? getAccountById(contact.accountId, accounts) : null;
   const relatedOpps = linkedAccount ? getOpportunitiesForAccount(linkedAccount.id, opportunities, accounts) : [];
@@ -1479,7 +1479,7 @@ function ContactDetailPage({ contactId, contacts = contactRecords, accounts = ac
   };
 
   const statCards = [
-    { label: 'Linked Account', value: linkedAccount?.name || '—', sub: 'company relationship' },
+    { label: 'Account', value: linkedAccount?.name || '—', sub: 'company relationship' },
     { label: 'Related Opportunities', value: String(relatedOpps.length), sub: 'through linked account' },
     { label: 'Preferred Contact', value: contact.preferredContactMethod || '—', sub: 'communication preference' },
     { label: 'Role', value: contact.roleInBuyingProcess || '—', sub: 'buying process role' }
@@ -1487,19 +1487,25 @@ function ContactDetailPage({ contactId, contacts = contactRecords, accounts = ac
 
   return (
     <div style={{ maxWidth: '1080px', margin: '0 auto', display: 'grid', gap: '20px' }}>
-      <section style={{ ...naesCardStyle(true), padding: '20px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <button type="button" onClick={onBackToContacts} style={{ ...buttonStyle(true) }}>
-            Back to Contacts
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '-8px' }}>
+        <button type="button" onClick={onBackToContacts} style={{ ...buttonStyle(true) }}>
+          Back to Contacts
+        </button>
+
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button type="button" onClick={onEditContact} style={{ ...buttonStyle(true) }}>
+            Edit Contact
           </button>
 
           {linkedAccount ? (
             <button type="button" onClick={() => onOpenAccount(linkedAccount.id)} style={{ ...buttonStyle(true) }}>
-              Open Linked Account
+              Open Account
             </button>
           ) : null}
         </div>
+      </div>
 
+      <section style={{ ...naesCardStyle(true), padding: '20px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
         {smallLabel('Contact Detail')}
         <h2 style={{ margin: '12px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>
           {fullName}
@@ -1537,7 +1543,7 @@ function ContactDetailPage({ contactId, contacts = contactRecords, accounts = ac
             ['Last Name', contact.lastName],
             ['Full Name', fullName],
             ['Job Title', contact.jobTitle || contact.title],
-            ['Company / Linked Account', linkedAccount?.name || '—'],
+            ['Company / Account', linkedAccount?.name || '—'],
             ['Email', contact.email],
             ['Mobile Phone', contact.mobilePhone],
             ['Office Phone', contact.officePhone],
@@ -3283,17 +3289,17 @@ function AccountDetailPage({ accountId, accounts = accountRecords, contacts = co
 
   return (
     <div style={{ maxWidth: '1080px', margin: '0 auto', display: 'grid', gap: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '-8px' }}>
+        <button type="button" onClick={onBackToAccounts} style={{ ...buttonStyle(true) }}>
+          Back to Accounts
+        </button>
+
+        <button type="button" onClick={onEditAccount} style={{ ...buttonStyle(true) }}>
+          Edit Account
+        </button>
+      </div>
+
       <section style={{ ...naesCardStyle(true), padding: '20px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <button type="button" onClick={onBackToAccounts} style={{ ...buttonStyle(true) }}>
-            Back to Accounts
-          </button>
-
-          <button type="button" onClick={onEditAccount} style={{ ...buttonStyle(true) }}>
-            Edit Account
-          </button>
-        </div>
-
         {smallLabel('Account Detail')}
         <h2 style={{ margin: '12px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>
           {account.name || 'Account'}
@@ -3473,6 +3479,247 @@ function AccountDetailPage({ accountId, accounts = accountRecords, contacts = co
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+
+function computeOpportunityCommercial({
+  serviceLine = 'Renewables',
+  renewablesPortfolioType = 'DG',
+  renewablesBasis = 'MWDC',
+  renewablesSize = 0,
+  stratoSqft = 0,
+  otherDescription = '',
+  otherBasis = 'Fixed Total',
+  otherQuantity = 0,
+  otherTarget = 0,
+  otherLow = 0,
+  otherHigh = 0
+} = {}) {
+  const n = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+  };
+
+  const line = String(serviceLine || 'Renewables').trim();
+  const portfolio = String(renewablesPortfolioType || 'DG').trim();
+  const basis = String(renewablesBasis || 'MWDC').trim();
+
+  if (line === 'Renewables' || line === 'Both') {
+    const size = n(renewablesSize);
+    const isUSS = portfolio.toUpperCase() === 'USS';
+
+    const lowRate = isUSS ? (basis === 'MWAC' ? 10 : 8) : (basis === 'MWAC' ? 17 : 14);
+    const targetRate = isUSS ? (basis === 'MWAC' ? 13 : 12) : (basis === 'MWAC' ? 22 : 18);
+    const highRate = isUSS ? (basis === 'MWAC' ? 17 : 16) : (basis === 'MWAC' ? 28 : 23);
+
+    const renewablesLow = size * lowRate * 1000;
+    const renewablesTarget = size * targetRate * 1000;
+    const renewablesHigh = size * highRate * 1000;
+
+    if (line === 'Renewables') {
+      return {
+        pricingBasis: `${portfolio} ${basis} annual`,
+        low: renewablesLow,
+        target: renewablesTarget,
+        high: renewablesHigh,
+        weighted: renewablesTarget * 0.6,
+        cts: 63,
+        earnings: 37,
+        lineItems: [
+          { label: 'Renewables Low', value: renewablesLow },
+          { label: 'Renewables Target', value: renewablesTarget },
+          { label: 'Renewables High', value: renewablesHigh }
+        ]
+      };
+    }
+
+    const sqft = n(stratoSqft);
+    const stratoLow = sqft * 0.04;
+    const stratoTarget = sqft * 0.07;
+    const stratoHigh = sqft * 0.11;
+
+    return {
+      pricingBasis: `Bundled ${portfolio} ${basis} + StratoSight`,
+      low: renewablesLow + stratoLow,
+      target: renewablesTarget + stratoTarget,
+      high: renewablesHigh + stratoHigh,
+      weighted: (renewablesTarget + stratoTarget) * 0.6,
+      cts: 61,
+      earnings: 39,
+      lineItems: [
+        { label: 'Renewables Target', value: renewablesTarget },
+        { label: 'StratoSight Target', value: stratoTarget },
+        { label: 'Bundled Total', value: renewablesTarget + stratoTarget }
+      ]
+    };
+  }
+
+  if (line === 'StratoSight') {
+    const sqft = n(stratoSqft);
+    const low = sqft * 0.04;
+    const target = sqft * 0.07;
+    const high = sqft * 0.11;
+
+    return {
+      pricingBasis: 'Square footage',
+      low,
+      target,
+      high,
+      weighted: target * 0.6,
+      cts: 49,
+      earnings: 34,
+      lineItems: [
+        { label: 'StratoSight Low', value: low },
+        { label: 'StratoSight Target', value: target },
+        { label: 'StratoSight High', value: high }
+      ]
+    };
+  }
+
+  const low = n(otherLow) || (n(otherQuantity) * n(otherTarget) * 0.9);
+  const target = n(otherTarget) || (n(otherQuantity) * n(otherTarget));
+  const high = n(otherHigh) || (target * 1.1);
+
+  return {
+    pricingBasis: otherBasis || 'Fixed Total',
+    low,
+    target,
+    high,
+    weighted: target * 0.6,
+    cts: 58,
+    earnings: 42,
+    lineItems: [
+      { label: otherDescription || 'Other O&M', value: target }
+    ]
+  };
+}
+
+
+function buildOpportunityPills(opportunity = {}) {
+  const pills = [];
+
+  const add = (label, value, tone = 'neutral') => {
+    const text = String(value || '').trim();
+    if (!text) return;
+    pills.push({ label, value: text, tone });
+  };
+
+  add('Service', opportunity.service_line || opportunity.serviceLine, 'info');
+  add('Segment', opportunity.market_segment || opportunity.marketSegment, 'neutral');
+  add('Type', opportunity.opportunity_type || opportunity.opportunityType, 'neutral');
+  add('Stage', opportunity.stage, 'warning');
+  add('Forecast', opportunity.forecast_category || opportunity.forecastCategory, 'success');
+  add('Basis', opportunity.commercial_basis || opportunity.commercialBasis, 'neutral');
+
+  if (opportunity.total_mwac != null && opportunity.total_mwac !== '') {
+    add('MWAC', opportunity.total_mwac, 'info');
+  }
+  if (opportunity.total_mwdc != null && opportunity.total_mwdc !== '') {
+    add('MWDC', opportunity.total_mwdc, 'info');
+  }
+  if (opportunity.site_count != null && opportunity.site_count !== '') {
+    add('Sites', opportunity.site_count, 'neutral');
+  }
+  if (opportunity.owner_full_name || opportunity.owner) {
+    add('Owner', opportunity.owner_full_name || opportunity.owner, 'neutral');
+  }
+  if (opportunity.expected_close_date) {
+    add('Close', opportunity.expected_close_date, 'warning');
+  }
+
+  return pills;
+}
+
+
+function renderOpportunityPill(pill = {}) {
+  const toneMap = {
+    success: { bg: '#EAF4EC', border: '#CFE3D4', text: '#2F6B4F' },
+    warning: { bg: '#FFF3DE', border: '#F3D7A6', text: '#9B6A11' },
+    info: { bg: '#EEF5FB', border: '#D4E3F2', text: '#2A5B84' },
+    neutral: { bg: '#F4F8F5', border: '#D8E2DC', text: '#334155' },
+  };
+
+  const tone = toneMap[pill.tone] || toneMap.neutral;
+
+  return (
+    <span
+      key={`${pill.label}-${pill.value}`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        borderRadius: '999px',
+        border: `1px solid ${tone.border}`,
+        background: tone.bg,
+        color: tone.text,
+        padding: '6px 10px',
+        fontSize: '12px',
+        fontWeight: 700,
+        whiteSpace: 'nowrap'
+      }}
+    >
+      <span style={{ opacity: 0.72 }}>{pill.label}</span>
+      <span>{pill.value}</span>
+    </span>
+  );
+}
+
+
+function textInput(value, onChange, options = {}) {
+  return (
+    <input
+      value={value ?? ''}
+      onChange={onChange}
+      placeholder={options.placeholder || ''}
+      disabled={Boolean(options.disabled)}
+      style={{
+        width: '100%',
+        borderRadius: '12px',
+        border: '1px solid #DCE7DD',
+        background: options.disabled ? '#F4F6F7' : '#fff',
+        color: options.disabled ? '#64748b' : '#1f2937',
+        padding: '10px 12px',
+        fontSize: '13px',
+        boxSizing: 'border-box'
+      }}
+    />
+  );
+}
+
+
+function selectInput(value, onChange, choices = []) {
+  return (
+    <select
+      value={value ?? ''}
+      onChange={onChange}
+      style={{
+        width: '100%',
+        borderRadius: '12px',
+        border: '1px solid #DCE7DD',
+        background: '#fff',
+        color: '#1f2937',
+        padding: '10px 12px',
+        fontSize: '13px',
+        boxSizing: 'border-box'
+      }}
+    >
+      {choices.map((choice) => (
+        <option key={choice} value={choice}>{choice}</option>
+      ))}
+    </select>
+  );
+}
+
+
+function inputWrap(label, input) {
+  return (
+    <div>
+      <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b', marginBottom: '6px' }}>
+        {label}
+      </div>
+      {input}
     </div>
   );
 }
@@ -4280,6 +4527,7 @@ export default function App() {
     }
   });
   const [showNewContactForm, setShowNewContactForm] = useState(false);
+  const [showEditContactForm, setShowEditContactForm] = useState(false);
   const [newContactForm, setNewContactForm] = useState(buildContactFormFromRecord());
 
   function openWelcomeNewContact() {
@@ -4437,6 +4685,8 @@ export default function App() {
 
   function startNewAccount() {
     setAccountDetailId(null);
+    setShowEditAccountForm(false);
+    setNewAccountForm(buildAccountFormFromRecord());
     setActivePage('Accounts');
     setShowNewAccountForm(true);
   }
@@ -4585,7 +4835,7 @@ export default function App() {
     }));
     setShowNewAccountForm(false);
     setShowEditAccountForm(false);
-    setAccountDetailId(null);
+    setAccountDetailId(id);
     setActivePage('Accounts');
     setNewAccountForm(buildAccountFormFromRecord());
   }
@@ -4626,6 +4876,8 @@ export default function App() {
 
   function startNewContact() {
     setContactDetailId(null);
+    setShowEditContactForm(false);
+    setNewContactForm(buildContactFormFromRecord());
     setShowNewContactForm(true);
     setActivePage('Contacts');
   }
@@ -4637,6 +4889,69 @@ export default function App() {
 
   function updateNewContactField(field, value) {
     setNewContactForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function startEditContact() {
+    const contact = getContactById(contactDetailId, contactList);
+    if (!contact) return;
+    setNewContactForm(buildContactFormFromRecord(contact));
+    setShowEditContactForm(true);
+    setShowNewContactForm(false);
+    setActivePage('Contacts');
+  }
+
+  function cancelEditContact() {
+    setShowEditContactForm(false);
+    setNewContactForm(buildContactFormFromRecord());
+  }
+
+  function saveEditedContact() {
+    if (!contactDetailId) return;
+
+    const firstName = String(newContactForm.firstName || '').trim();
+    const lastName = String(newContactForm.lastName || '').trim();
+    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+    if (!fullName) return;
+
+    const account = newContactForm.accountId ? getAccountById(newContactForm.accountId, accountList) : null;
+
+    setContactList((prev) =>
+      prev.map((contact) =>
+        contact.id === contactDetailId
+          ? {
+              ...contact,
+              firstName,
+              lastName,
+              fullName,
+              name: fullName,
+              jobTitle: String(newContactForm.jobTitle || '').trim(),
+              title: String(newContactForm.jobTitle || '').trim(),
+              accountId: String(newContactForm.accountId || '').trim(),
+              accountName: account?.name || '',
+              email: String(newContactForm.email || '').trim(),
+              mobilePhone: String(newContactForm.mobilePhone || '').trim(),
+              officePhone: String(newContactForm.officePhone || '').trim(),
+              address: String(newContactForm.address || '').trim(),
+              city: String(newContactForm.city || '').trim(),
+              state: String(newContactForm.state || '').trim(),
+              zip: String(newContactForm.zip || '').trim(),
+              linkedin: String(newContactForm.linkedin || '').trim(),
+              website: String(newContactForm.website || '').trim(),
+              preferredContactMethod: String(newContactForm.preferredContactMethod || '').trim(),
+              roleInBuyingProcess: String(newContactForm.roleInBuyingProcess || '').trim(),
+              notes: String(newContactForm.notes || '').trim(),
+              decisionMaker: Boolean(newContactForm.decisionMaker),
+              champion: Boolean(newContactForm.champion),
+              primaryContact: Boolean(newContactForm.primaryContact),
+            }
+          : contact
+      )
+    );
+
+    setShowEditContactForm(false);
+    setShowNewContactForm(false);
+    setNewContactForm(buildContactFormFromRecord());
+    setActivePage('Contacts');
   }
 
   function saveNewContact() {
@@ -4677,7 +4992,7 @@ export default function App() {
 
     setContactList((prev) => [newRecord, ...prev]);
     setShowNewContactForm(false);
-    setContactDetailId(null);
+    setContactDetailId(id);
     setActivePage('Contacts');
     setNewContactForm(buildContactFormFromRecord());
   }
@@ -5192,6 +5507,14 @@ function openOpportunityDetail(opportunityId) {
                       onSaveNewContact={saveNewContact}
                       onCancelNewContact={cancelNewContact}
                     />
+                  : showEditContactForm
+                  ? <NewContactPage
+                      newContactForm={newContactForm}
+                      accountOptions={accountList}
+                      onChangeNewContactField={updateNewContactField}
+                      onSaveNewContact={saveEditedContact}
+                      onCancelNewContact={cancelEditContact}
+                    />
                   : contactDetailId
                   ? <ContactDetailPage
                       contactId={contactDetailId}
@@ -5201,6 +5524,7 @@ function openOpportunityDetail(opportunityId) {
                       onBackToContacts={returnToContactsOverview}
                       onOpenAccount={openAccountDetail}
                       onOpenOpportunity={openOpportunityDetail}
+                      onEditContact={startEditContact}
                     />
                   : <ContactsOverviewPage
                       contacts={contactList}
