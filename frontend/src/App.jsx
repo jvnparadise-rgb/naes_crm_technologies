@@ -85,6 +85,15 @@ function dtNow() {
   return new Date().toLocaleString();
 }
 
+function safeParseStoredJson(raw, fallback) {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 function smallLabel(text) {
   return (
     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#54745D' }}>
@@ -229,7 +238,7 @@ function renderExecutiveDashboard() {
     const max = Math.max(...trendData.map((d) => d.pipeline));
     return (
       <div style={{ display: 'grid', gap: '16px' }}>
-        <div style={{ height: '260px', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '18px', alignItems: 'end' }}>
+        <div style={{ height: '260px', display: 'grid', gridTemplateColumns: '1fr', gap: '18px', alignItems: 'end' }}>
           {trendData.map((row) => (
             <div key={row.quarter} style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'end', gap: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'end', gap: '6px', height: '210px' }}>
@@ -300,7 +309,7 @@ function renderExecutiveDashboard() {
         </p>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
+      <section style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
         {kpis.map((card) => {
           const tone = toneStyles(card.tone);
           return (
@@ -1113,7 +1122,7 @@ function OpportunitySummaryRow({ opportunity, onOpenOpportunity }) {
 
 function renderWelcomePage() {
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '20px' }}>
       <section style={shellCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
@@ -1124,7 +1133,7 @@ function renderWelcomePage() {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gap: '12px', minWidth: '320px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          <div style={{ display: 'grid', gap: '12px', minWidth: '320px', gridTemplateColumns: '1fr' }}>
             {welcomeKpis.map(([label, value]) => (
               <div key={label} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px' }}>
                 <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>{label}</div>
@@ -1345,70 +1354,31 @@ function getOpportunitiesForAccount(accountId, opportunities, accounts = account
 
 const initialOpportunities = [
   {
-    id: 'ashley',
-    name: 'Ashley Furniture MSA',
-    account: 'Ashley Furniture Industries',
-    service_line: 'Both',
-    market_segment: 'USS',
-    opportunity_type: 'New customer / bundled services',
-    stage: '3 Solution Fit',
-    forecast_category: 'Best Case',
-    total_mwac: 187,
-    total_mwdc: 241.8,
-    site_count: 14,
-    commercial_basis: '$/MWDC/year + StratoSight sqft',
-    pricing_band: 'Mid',
-    calculated_revenue: 2500000,
-    estimated_cts_pct: 63,
-    estimated_earnings_pct: 37,
-    follow_up_status: 'DueSoon',
-    forecast_hygiene_status: 'Warning',
-    owner_full_name: 'Ashley Smith',
-    expected_close_date: '2026-04-30'
-  },
-  {
-    id: 'onyx',
-    name: 'Onyx Southwest O&M Renewal',
-    account: 'Onyx Renewables',
-    service_line: 'Renewables',
-    market_segment: 'USS',
-    opportunity_type: 'Renewal',
-    stage: '4 Commercials',
-    forecast_category: 'Commit',
-    total_mwac: 187,
-    total_mwdc: 241.8,
-    site_count: 14,
-    commercial_basis: '$/MWDC/year',
-    pricing_band: 'Median',
-    calculated_revenue: 2500000,
-    estimated_cts_pct: 63,
-    estimated_earnings_pct: 37,
-    follow_up_status: 'DueSoon',
-    forecast_hygiene_status: 'Warning',
-    owner_full_name: 'Ashley Smith',
-    expected_close_date: '2026-04-30'
-  },
-  {
-    id: 'retail',
-    name: 'Retail Roof Scan Program',
-    account: 'National Retail Group',
-    service_line: 'StratoSight',
-    market_segment: 'StratoSight',
-    opportunity_type: 'Expansion',
-    stage: '2 Discovery',
-    forecast_category: 'Pipeline',
-    total_mwac: null,
-    total_mwdc: null,
-    site_count: 21,
-    commercial_basis: 'Square footage',
-    pricing_band: 'Low',
-    calculated_revenue: 425000,
-    estimated_cts_pct: 49,
-    estimated_earnings_pct: 34,
-    follow_up_status: 'Overdue',
-    forecast_hygiene_status: 'Warning',
+    id: 'opp-stormys-brew-co-001',
+    name: "Stormy's Brew, Co. Initial Opportunity",
+    account_id: 'acct-stormys-brew-co',
+    primary_contact_id: '',
     owner_full_name: 'Jeff Yarbrough',
-    expected_close_date: '2026-07-15'
+    owner_team_name: 'NAES',
+    stage: '0 Prospecting',
+    forecast_category: 'Pipeline',
+    probability: 10,
+    expected_close_date: '',
+    opportunity_type: 'New Customer',
+    service_line: 'Renewables',
+    market_segment: 'DG',
+    commercial_basis: 'MWDC',
+    total_mwdc: 0,
+    total_mwac: null,
+    estimated_square_footage: null,
+    amount_estimated: 0,
+    calc_year1_total: 0,
+    calc_arr_total: 0,
+    amount_total: 0,
+    last_activity_date: '',
+    staleness_flag: 'Current',
+    created_at: dtNow(),
+    updated_at: dtNow()
   }
 ];
 
@@ -1674,7 +1644,7 @@ function ContactsOverviewPage({ contacts = [], accounts = [], onOpenContact, onS
         </p>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
+      <section style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
         {summaryCards.map((card) => (
           <div key={card.label} style={{ ...naesCardStyle(false), padding: '20px' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
@@ -1872,7 +1842,7 @@ function ContactDetailPage({ contactId, contacts = contactRecords, accounts = ac
         </p>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
+      <section style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
         {statCards.map((card) => (
           <div key={card.label} style={{ ...naesCardStyle(false), padding: '18px' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
@@ -1994,25 +1964,584 @@ function ContactDetailPage({ contactId, contacts = contactRecords, accounts = ac
   );
 }
 
-function OpportunitiesOverviewPage({ onOpenOpportunity, opportunities = [] }) {
+
+
+function buildOpportunityFormFromRecord(opportunity = {}) {
+  return {
+    name: String(opportunity.name || ''),
+    accountId: String(opportunity.account_id || opportunity.accountId || ''),
+    primaryContactId: String(opportunity.primary_contact_id || opportunity.primaryContactId || ''),
+    owner: String(opportunity.owner_full_name || opportunity.owner || 'Jeff Yarbrough'),
+    team: String(opportunity.owner_team_name || opportunity.team || 'NAES'),
+    stage: String(opportunity.stage || '0 Prospecting'),
+    forecastCategory: String(opportunity.forecast_category || opportunity.forecastCategory || 'Pipeline'),
+    probability: String(opportunity.probability ?? '10'),
+    expectedCloseDate: String(opportunity.expected_close_date || opportunity.expectedCloseDate || ''),
+    opportunityType: String(opportunity.opportunity_type || opportunity.opportunityType || 'New Customer'),
+    serviceLine: String(opportunity.service_line || opportunity.serviceLine || 'Renewables'),
+    marketSegment: String(opportunity.market_segment || opportunity.marketSegment || 'DG'),
+    commercialBasis: String(opportunity.commercial_basis || opportunity.commercialBasis || 'MWDC'),
+    sizingValue: String(
+      opportunity.total_mwdc ??
+      opportunity.total_mwac ??
+      opportunity.estimated_square_footage ??
+      ''
+    )
+  };
+}
+
+
+
+
+
+
+function NewOpportunityPage({
+  newOpportunityForm,
+  accountOptions = [],
+  contactOptions = [],
+  onChangeNewOpportunityField,
+  onSaveNewOpportunity,
+  onCancelNewOpportunity
+}) {
+  const formColumnStyle = {
+    width: '100%',
+    maxWidth: '700px'
+  };
+
+  const fieldStyle = {
+    width: '100%',
+    borderRadius: '14px',
+    border: '1px solid #D8E2D7',
+    background: '#FFFFFF',
+    padding: '12px 14px',
+    fontSize: '14px',
+    color: '#111827',
+    outline: 'none',
+    boxSizing: 'border-box'
+  };
+
+  const labelStyle = {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#64748b',
+    marginBottom: '6px'
+  };
+
+  const metricCardStyle = {
+    borderRadius: '18px',
+    border: '1px solid #E5ECE5',
+    background: '#FBFCFB',
+    padding: '14px 16px'
+  };
+
+  const n = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const getStratoSightBand = (sqft) => {
+    if (sqft <= 25000) return { low: 0.09, selected: 0.11, high: 0.13 };
+    if (sqft <= 100000) return { low: 0.08, selected: 0.095, high: 0.11 };
+    if (sqft <= 500000) return { low: 0.06, selected: 0.075, high: 0.09 };
+    if (sqft <= 2000000) return { low: 0.05, selected: 0.06, high: 0.075 };
+    if (sqft <= 10000000) return { low: 0.04, selected: 0.05, high: 0.06 };
+    if (sqft <= 50000000) return { low: 0.035, selected: 0.04, high: 0.05 };
+    return { low: 0.03, selected: 0.035, high: 0.04 };
+  };
+
+  const getDgBand = (mwdc) => {
+    if (mwdc <= 1) return { low: 21000, selected: 24000, high: 27000 };
+    if (mwdc <= 3) return { low: 19000, selected: 22000, high: 25000 };
+    if (mwdc <= 5) return { low: 18000, selected: 21000, high: 24000 };
+    if (mwdc <= 10) return { low: 17000, selected: 19500, high: 22000 };
+    if (mwdc <= 15) return { low: 16000, selected: 18000, high: 20000 };
+    return { low: 15000, selected: 16500, high: 18000 };
+  };
+
+  const getUssBand = (mwac) => {
+    if (mwac <= 50) return { low: 13000, selected: 16000, high: 18000 };
+    if (mwac <= 100) return { low: 11000, selected: 14000, high: 16000 };
+    if (mwac <= 250) return { low: 9500, selected: 12000, high: 14000 };
+    if (mwac <= 500) return { low: 8500, selected: 10500, high: 12500 };
+    if (mwac <= 1000) return { low: 7500, selected: 9000, high: 10500 };
+    if (mwac <= 2000) return { low: 7000, selected: 8000, high: 9000 };
+    return { low: 6500, selected: 7000, high: 8000 };
+  };
+
+  const serviceLine = String(newOpportunityForm.serviceLine || 'Renewables');
+  const contactMode = String(newOpportunityForm.primaryContactMode || 'existing');
+  const renewablesSegment = String(newOpportunityForm.renewablesSegment || 'DG');
+  const renewablesBasis = renewablesSegment === 'USS' ? 'MWAC' : 'MWDC';
+
+  const renewablesSize = n(newOpportunityForm.renewablesSize || newOpportunityForm.sizingValue || 0);
+  const stratoSqft = n(newOpportunityForm.stratoSqftTotal || 0);
+  const otherQty = n(newOpportunityForm.otherOmQuantity || 0);
+  const otherSelectedRate = n(newOpportunityForm.otherOmSelectedRate || 0);
+
+  const renewablesBand = renewablesSegment === 'USS'
+    ? getUssBand(renewablesSize)
+    : getDgBand(renewablesSize);
+
+  const renewablesLow = renewablesSize * renewablesBand.low;
+  const renewablesSelected = renewablesSize * renewablesBand.selected;
+  const renewablesHigh = renewablesSize * renewablesBand.high;
+
+  const stratoBand = getStratoSightBand(stratoSqft);
+  const stratoLow = stratoSqft * stratoBand.low;
+  const stratoSelected = stratoSqft * stratoBand.selected;
+  const stratoHigh = stratoSqft * stratoBand.high;
+
+  const otherLowRate = n(newOpportunityForm.otherOmLowRate || 0);
+  const otherHighRate = n(newOpportunityForm.otherOmHighRate || 0);
+
+  const otherLow = otherQty * otherLowRate;
+  const otherSelected = otherQty * otherSelectedRate;
+  const otherHigh = otherQty * otherHighRate;
+
+  let totalLow = 0;
+  let totalSelected = 0;
+  let totalHigh = 0;
+  let mathNote = 'Select a service line and enter sizing to see pricing math.';
+
+  if (serviceLine === 'Renewables') {
+    totalLow = renewablesLow;
+    totalSelected = renewablesSelected;
+    totalHigh = renewablesHigh;
+    mathNote = `${renewablesBasis} total × auto-banded ${renewablesSegment} rate`;
+  } else if (serviceLine === 'StratoSight') {
+    totalLow = stratoLow;
+    totalSelected = stratoSelected;
+    totalHigh = stratoHigh;
+    mathNote = `Total sqft × auto-banded StratoSight rate from $0.04 to $0.11+ based on scale`;
+  } else if (serviceLine === 'Both') {
+    totalLow = renewablesLow + stratoLow;
+    totalSelected = renewablesSelected + stratoSelected;
+    totalHigh = renewablesHigh + stratoHigh;
+    mathNote = `Renewables subtotal + StratoSight subtotal`;
+  } else if (serviceLine === 'Other O&M') {
+    totalLow = otherLow;
+    totalSelected = otherSelected;
+    totalHigh = otherHigh;
+    mathNote = `Quantity × low / selected / high rate`;
+  }
+
+  return (
+    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '20px' }}>
+      <section style={shellCard}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div>
+            {smallLabel('NAES CRM V3')}
+            <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 600 }}>Add New Opportunity</h2>
+            <p style={{ marginTop: '12px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: '#475569' }}>
+              Create the base opportunity cleanly first. The service sections below now change based on what you are selling.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={onCancelNewOpportunity}
+              style={{
+                borderRadius: '999px',
+                border: '1px solid #D8E2D7',
+                background: '#FFFFFF',
+                padding: '10px 16px',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: '#334155',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onSaveNewOpportunity}
+              style={{
+                borderRadius: '18px',
+                border: '1px solid #D8E2D7',
+                background: '#DDE9DF',
+                padding: '10px 16px',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: '#2F7A55',
+                cursor: 'pointer'
+              }}
+            >
+              Save Opportunity
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section style={shellCard}>
+        {smallLabel('Core Deal Information')}
+        <div style={{ ...formColumnStyle, marginTop: '16px', display: 'grid', gap: '16px' }}>
+          <div>
+            <div style={labelStyle}>Opportunity Name</div>
+            <input style={fieldStyle} value={newOpportunityForm.name || ''} onChange={(e) => onChangeNewOpportunityField('name', e.target.value)} />
+          </div>
+
+          <div>
+            <div style={labelStyle}>Linked Account</div>
+            <select style={fieldStyle} value={newOpportunityForm.accountId || ''} onChange={(e) => onChangeNewOpportunityField('accountId', e.target.value)}>
+              <option value="">Select account</option>
+              {accountOptions.map((account) => (
+                <option key={account.id} value={account.id}>{account.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div style={labelStyle}>Primary Contact Source</div>
+            <select style={fieldStyle} value={contactMode} onChange={(e) => onChangeNewOpportunityField('primaryContactMode', e.target.value)}>
+              <option value="existing">Existing Contact</option>
+              <option value="freeform">New Contact Name</option>
+            </select>
+          </div>
+
+          {contactMode === 'existing' ? (
+            <div>
+              <div style={labelStyle}>Primary Contact</div>
+              <select style={fieldStyle} value={newOpportunityForm.primaryContactId || ''} onChange={(e) => onChangeNewOpportunityField('primaryContactId', e.target.value)}>
+                <option value="">Select contact</option>
+                {contactOptions.map((contact) => (
+                  <option key={contact.id} value={contact.id}>{contact.fullName || contact.name}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <div style={labelStyle}>Primary Contact Name</div>
+              <input style={fieldStyle} value={newOpportunityForm.primaryContactName || ''} onChange={(e) => onChangeNewOpportunityField('primaryContactName', e.target.value)} placeholder="Enter customer contact name" />
+            </div>
+          )}
+
+          <div>
+            <div style={labelStyle}>Opportunity Type</div>
+            <select style={fieldStyle} value={newOpportunityForm.opportunityType || 'New Customer'} onChange={(e) => onChangeNewOpportunityField('opportunityType', e.target.value)}>
+              <option>New Customer</option>
+              <option>Renewal</option>
+              <option>Expansion</option>
+              <option>Cross-Sell</option>
+              <option>Strategic</option>
+            </select>
+          </div>
+
+          <div>
+            <div style={labelStyle}>NAES Opportunity Owner</div>
+            <input style={fieldStyle} value={newOpportunityForm.owner || ''} onChange={(e) => onChangeNewOpportunityField('owner', e.target.value)} />
+          </div>
+
+          <div>
+            <div style={labelStyle}>NAES Team</div>
+            <input style={fieldStyle} value={newOpportunityForm.team || ''} onChange={(e) => onChangeNewOpportunityField('team', e.target.value)} />
+          </div>
+        </div>
+      </section>
+
+      <section style={shellCard}>
+        {smallLabel('Service Classification')}
+        <div style={{ ...formColumnStyle, marginTop: '16px', display: 'grid', gap: '16px' }}>
+          <div>
+            <div style={labelStyle}>Service Line</div>
+            <select style={fieldStyle} value={serviceLine} onChange={(e) => onChangeNewOpportunityField('serviceLine', e.target.value)}>
+              <option>Renewables</option>
+              <option>StratoSight</option>
+              <option>Both</option>
+              <option>Other O&amp;M</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      {(serviceLine === 'Renewables' || serviceLine === 'Both') && (
+        <section style={shellCard}>
+          {smallLabel(serviceLine === 'Both' ? 'Renewables Component' : 'Renewables Intake')}
+          <div style={{ ...formColumnStyle, marginTop: '16px', display: 'grid', gap: '16px' }}>
+            <div>
+              <div style={labelStyle}>Renewables Segment</div>
+              <select style={fieldStyle} value={renewablesSegment} onChange={(e) => onChangeNewOpportunityField('renewablesSegment', e.target.value)}>
+                <option>DG</option>
+                <option>USS</option>
+              </select>
+            </div>
+
+            <div>
+              <div style={labelStyle}>{renewablesBasis} Total</div>
+              <input style={fieldStyle} value={newOpportunityForm.renewablesSize || newOpportunityForm.sizingValue || ''} onChange={(e) => onChangeNewOpportunityField('renewablesSize', e.target.value)} />
+            </div>
+
+            <div>
+              <div style={labelStyle}>Site Count</div>
+              <input style={fieldStyle} value={newOpportunityForm.renewablesSiteCount || ''} onChange={(e) => onChangeNewOpportunityField('renewablesSiteCount', e.target.value)} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
+              <div style={metricCardStyle}>
+                <div style={labelStyle}>Low</div>
+                <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(renewablesLow)}</div>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>{formatCurrency(renewablesBand.low)}/{renewablesBasis}</div>
+              </div>
+              <div style={metricCardStyle}>
+                <div style={labelStyle}>Selected</div>
+                <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(renewablesSelected)}</div>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>{formatCurrency(renewablesBand.selected)}/{renewablesBasis}</div>
+              </div>
+              <div style={metricCardStyle}>
+                <div style={labelStyle}>High</div>
+                <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(renewablesHigh)}</div>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>{formatCurrency(renewablesBand.high)}/{renewablesBasis}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {(serviceLine === 'StratoSight' || serviceLine === 'Both') && (
+        <section style={shellCard}>
+          {smallLabel(serviceLine === 'Both' ? 'StratoSight Component' : 'StratoSight Intake')}
+          <div style={{ ...formColumnStyle, marginTop: '16px', display: 'grid', gap: '16px' }}>
+            <div>
+              <div style={labelStyle}>Number of Buildings</div>
+              <input style={fieldStyle} value={newOpportunityForm.stratoBuildingCount || ''} onChange={(e) => onChangeNewOpportunityField('stratoBuildingCount', e.target.value)} />
+            </div>
+
+            <div>
+              <div style={labelStyle}>Site Count</div>
+              <input style={fieldStyle} value={newOpportunityForm.stratoSiteCount || ''} onChange={(e) => onChangeNewOpportunityField('stratoSiteCount', e.target.value)} />
+            </div>
+
+            <div>
+              <div style={labelStyle}>Total Square Footage</div>
+              <input style={fieldStyle} value={newOpportunityForm.stratoSqftTotal || ''} onChange={(e) => onChangeNewOpportunityField('stratoSqftTotal', e.target.value)} />
+            </div>
+
+            <div style={metricCardStyle}>
+              <div style={labelStyle}>Auto-Banded Pricing Note</div>
+              <div style={{ fontSize: '14px', color: '#334155', lineHeight: 1.6 }}>
+                Pricing is automatically banded by total square footage. Smaller footprints trend toward the upper end, larger footprints trend toward the lower end.
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
+              <div style={metricCardStyle}>
+                <div style={labelStyle}>Low</div>
+                <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(stratoLow)}</div>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>${stratoBand.low.toFixed(3)}/sqft</div>
+              </div>
+              <div style={metricCardStyle}>
+                <div style={labelStyle}>Selected</div>
+                <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(stratoSelected)}</div>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>${stratoBand.selected.toFixed(3)}/sqft</div>
+              </div>
+              <div style={metricCardStyle}>
+                <div style={labelStyle}>High</div>
+                <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(stratoHigh)}</div>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>${stratoBand.high.toFixed(3)}/sqft</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {serviceLine === 'Other O&M' && (
+        <section style={shellCard}>
+          {smallLabel('Other O&M Intake')}
+          <div style={{ ...formColumnStyle, marginTop: '16px', display: 'grid', gap: '16px' }}>
+            <div>
+              <div style={labelStyle}>Service Description</div>
+              <input style={fieldStyle} value={newOpportunityForm.otherOmDescription || ''} onChange={(e) => onChangeNewOpportunityField('otherOmDescription', e.target.value)} />
+            </div>
+
+            <div>
+              <div style={labelStyle}>Quantity</div>
+              <input style={fieldStyle} value={newOpportunityForm.otherOmQuantity || ''} onChange={(e) => onChangeNewOpportunityField('otherOmQuantity', e.target.value)} />
+            </div>
+
+            <div>
+              <div style={labelStyle}>Low Rate</div>
+              <input style={fieldStyle} value={newOpportunityForm.otherOmLowRate || ''} onChange={(e) => onChangeNewOpportunityField('otherOmLowRate', e.target.value)} />
+            </div>
+
+            <div>
+              <div style={labelStyle}>Selected Rate</div>
+              <input style={fieldStyle} value={newOpportunityForm.otherOmSelectedRate || ''} onChange={(e) => onChangeNewOpportunityField('otherOmSelectedRate', e.target.value)} />
+            </div>
+
+            <div>
+              <div style={labelStyle}>High Rate</div>
+              <input style={fieldStyle} value={newOpportunityForm.otherOmHighRate || ''} onChange={(e) => onChangeNewOpportunityField('otherOmHighRate', e.target.value)} />
+            </div>
+
+            <div>
+              <div style={labelStyle}>Scope Notes</div>
+              <textarea style={{ ...fieldStyle, minHeight: '96px', resize: 'vertical' }} value={newOpportunityForm.otherOmNotes || ''} onChange={(e) => onChangeNewOpportunityField('otherOmNotes', e.target.value)} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
+              <div style={metricCardStyle}>
+                <div style={labelStyle}>Low</div>
+                <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(otherLow)}</div>
+              </div>
+              <div style={metricCardStyle}>
+                <div style={labelStyle}>Selected</div>
+                <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(otherSelected)}</div>
+              </div>
+              <div style={metricCardStyle}>
+                <div style={labelStyle}>High</div>
+                <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(otherHigh)}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section style={shellCard}>
+        {smallLabel('Commercial Math Summary')}
+        <div style={{ ...formColumnStyle, marginTop: '16px', display: 'grid', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
+            <div style={metricCardStyle}>
+              <div style={labelStyle}>Low</div>
+              <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(totalLow)}</div>
+            </div>
+            <div style={metricCardStyle}>
+              <div style={labelStyle}>Selected</div>
+              <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(totalSelected)}</div>
+            </div>
+            <div style={metricCardStyle}>
+              <div style={labelStyle}>High</div>
+              <div style={{ fontSize: '24px', fontWeight: 700 }}>{formatCurrency(totalHigh)}</div>
+            </div>
+          </div>
+
+          <div style={metricCardStyle}>
+            <div style={labelStyle}>How it Calculates</div>
+            <div style={{ fontSize: '14px', color: '#334155', lineHeight: 1.6 }}>{mathNote}</div>
+          </div>
+        </div>
+      </section>
+
+      <section style={shellCard}>
+        {smallLabel('Forecast Setup')}
+        <div style={{ ...formColumnStyle, marginTop: '16px', display: 'grid', gap: '16px' }}>
+          <div>
+            <div style={labelStyle}>Stage</div>
+            <select style={fieldStyle} value={newOpportunityForm.stage || '0 Prospecting'} onChange={(e) => onChangeNewOpportunityField('stage', e.target.value)}>
+              {workflowStages.map((stage) => (
+                <option key={stage} value={stage}>{stage}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div style={labelStyle}>Forecast Category</div>
+            <select style={fieldStyle} value={newOpportunityForm.forecastCategory || 'Pipeline'} onChange={(e) => onChangeNewOpportunityField('forecastCategory', e.target.value)}>
+              <option>Pipeline</option>
+              <option>Best Case</option>
+              <option>Commit</option>
+              <option>Closed</option>
+              <option>Omitted</option>
+            </select>
+          </div>
+
+          <div>
+            <div style={labelStyle}>Probability</div>
+            <input style={fieldStyle} value={newOpportunityForm.probability || ''} onChange={(e) => onChangeNewOpportunityField('probability', e.target.value)} />
+          </div>
+
+          <div>
+            <div style={labelStyle}>Expected Close Date</div>
+            <input type="date" style={fieldStyle} value={newOpportunityForm.expectedCloseDate || ''} onChange={(e) => onChangeNewOpportunityField('expectedCloseDate', e.target.value)} />
+          </div>
+        </div>
+      </section>
+
+      <section style={shellCard}>
+        
+        <div style={{ ...formColumnStyle, marginTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={onCancelNewOpportunity}
+            style={{
+              borderRadius: '999px',
+              border: '1px solid #D8E2D7',
+              background: '#FFFFFF',
+              padding: '10px 16px',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: '#334155',
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSaveNewOpportunity}
+            style={{
+              borderRadius: '18px',
+              border: '1px solid #D8E2D7',
+              background: '#DDE9DF',
+              padding: '10px 16px',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: '#2F7A55',
+              cursor: 'pointer'
+            }}
+          >
+            Save Opportunity
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function OpportunitiesOverviewPage({ onOpenOpportunity, onStartNewOpportunity, opportunities = [] }) {
+  const opportunityCards = Array.isArray(opportunities) ? opportunities : [];
+
+  const openPipelineValue = opportunityCards.reduce((sum, item) => {
+    const value = Number(item?.amount_total ?? item?.calc_year1_total ?? item?.amount_estimated ?? 0);
+    return sum + (Number.isFinite(value) ? value : 0);
+  }, 0);
+
+  const weightedPipelineValue = opportunityCards.reduce((sum, item) => {
+    const value = Number(item?.amount_total ?? item?.calc_year1_total ?? item?.amount_estimated ?? 0);
+    const probability = Number(item?.probability ?? 0) / 100;
+    return sum + ((Number.isFinite(value) ? value : 0) * (Number.isFinite(probability) ? probability : 0));
+  }, 0);
+
+  const commitCount = opportunityCards.filter((item) => String(item?.forecast_category || '') === 'Commit').length;
+  const atRiskCount = opportunityCards.filter((item) => {
+    const flag = String(item?.staleness_flag || '').toLowerCase();
+    return flag.includes('risk') || flag.includes('overdue') || flag.includes('stale');
+  }).length;
+
   const summaryCards = [
-    { label: 'Open Pipeline', value: '$24.8M', sub: '42 active opportunities' },
-    { label: 'Weighted Pipeline', value: '$11.6M', sub: 'forecast-adjusted' },
-    { label: 'Commit This Quarter', value: '$6.4M', sub: '8 opportunities' },
-    { label: 'At-Risk Deals', value: '5', sub: 'stale or overdue follow-up' }
+    { label: 'Open Pipeline', value: formatCurrency(openPipelineValue), sub: `${opportunityCards.length} active opportunities` },
+    { label: 'Weighted Pipeline', value: formatCurrency(weightedPipelineValue), sub: 'forecast-adjusted' },
+    { label: 'Commit Opportunities', value: String(commitCount), sub: 'forecast category commit' },
+    { label: 'At-Risk Deals', value: String(atRiskCount), sub: 'stale or overdue follow-up' }
   ];
 
-  const stageRollup = [
-    ['Prospecting', 4],
-    ['Qualified', 7],
-    ['Discovery', 9],
-    ['Solution Fit', 8],
-    ['Commercials', 6],
-    ['Security Legal', 3],
-    ['Commit', 5]
-  ];
+  const stageRollupMap = new Map([
+    ['0 Prospecting', 0],
+    ['1 Qualified', 0],
+    ['2 Discovery', 0],
+    ['3 Solution Fit', 0],
+    ['4 Commercials', 0],
+    ['5 Security Legal', 0],
+    ['6 Commit', 0]
+  ]);
 
-  const opportunityCards = opportunities;
+  opportunityCards.forEach((item) => {
+    const stage = String(item?.stage || '0 Prospecting');
+    if (!stageRollupMap.has(stage)) stageRollupMap.set(stage, 0);
+    stageRollupMap.set(stage, (stageRollupMap.get(stage) || 0) + 1);
+  });
+
+  const stageRollup = Array.from(stageRollupMap.entries()).map(([stage, count]) => [stage.replace(/^\d+\s*/, ''), count]);
 
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
@@ -2027,6 +2556,22 @@ function OpportunitiesOverviewPage({ onOpenOpportunity, opportunities = [] }) {
           </div>
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={onStartNewOpportunity}
+              style={{
+                borderRadius: '18px',
+                border: '1px solid #D8E2D7',
+                background: '#DDE9DF',
+                padding: '10px 16px',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: '#2F7A55',
+                cursor: 'pointer'
+              }}
+            >
+              Add New Opportunity
+            </button>
             <div style={{ borderRadius: '18px', border: '1px solid #D8E2D7', background: '#FBFCFB', padding: '10px 14px', fontSize: '14px', color: '#475569' }}>
               Search opportunities
             </div>
@@ -2507,7 +3052,7 @@ function AccountsOverviewPage({ accounts = [], onOpenAccount, onStartNewAccount 
         </p>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
+      <section style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
         {summaryCards.map((card) => (
           <div key={card.label} style={{ ...naesCardStyle(false), padding: '20px' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
@@ -2692,7 +3237,7 @@ function AccountDetailPage({ accountId, accounts = accountRecords, contacts = co
         </p>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
+      <section style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
         {statCards.map((card) => (
           <div key={card.label} style={{ ...naesCardStyle(false), padding: '18px' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
@@ -2755,7 +3300,7 @@ function AccountDetailPage({ accountId, accounts = accountRecords, contacts = co
         </div>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px' }}>
+      <section style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
         <div style={detailCard}>
           {smallLabel('Related Contacts')}
           <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
@@ -2817,7 +3362,7 @@ function AccountDetailPage({ accountId, accounts = accountRecords, contacts = co
         </div>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px' }}>
+      <section style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
         <div style={detailCard}>
           {smallLabel('Related Tasks')}
           <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
@@ -3135,13 +3680,19 @@ function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunit
           <div>
             {smallLabel('Opportunity Header')}
             <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>Ashley Furniture MSA</h2>
-              <span style={{ borderRadius: '999px', background: '#E8F2EA', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#2F6B4F' }}>Best Case</span>
-              <span style={{ borderRadius: '999px', background: '#FFF3DE', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#9B6A11' }}>Q2 2026</span>
-              <span style={{ borderRadius: '999px', background: '#FBE8E4', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#B25547' }}>At Risk</span>
+              <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>{opportunity?.name || 'Opportunity'}</h2>
+              <span style={{ borderRadius: '999px', background: '#E8F2EA', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#2F6B4F' }}>
+                {opportunity?.forecast_category || 'Pipeline'}
+              </span>
+              <span style={{ borderRadius: '999px', background: '#FFF3DE', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#9B6A11' }}>
+                {opportunity?.expected_close_date || 'No Close Date'}
+              </span>
+              <span style={{ borderRadius: '999px', background: '#FBE8E4', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#B25547' }}>
+                {opportunity?.staleness_flag || 'Current'}
+              </span>
             </div>
             <p style={{ marginTop: '12px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: '#475569' }}>
-              National opportunity spanning Renewables and StratoSight service lines, intended to tell the deal story quickly while feeding forecast, dashboard, quote, and reporting surfaces.
+              {(opportunity?.name || 'Opportunity') + ' commercial summary tied to the saved opportunity record, forecast, and linked account.'}
             </p>
 
             <div style={{ marginTop: '14px', display: 'flex', flexWrap: 'wrap', gap: '8px', rowGap: '8px', alignItems: 'flex-start', minWidth: 0, maxWidth: '900px' }}>
@@ -3149,12 +3700,12 @@ function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunit
             </div>
           </div>
 
-          <div style={{ display: 'grid', gap: '12px', minWidth: '320px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          <div style={{ display: 'grid', gap: '12px', minWidth: '320px', gridTemplateColumns: '1fr' }}>
             {[
-              ['Estimated Year 1', money(commercial.target)],
-              ['Weighted Revenue', money(commercial.weighted)],
-              ['Expected Close', 'Jun 30, 2026'],
-              ['Forecast', 'Best Case']
+              ['Estimated Year 1', money(opportunity?.calculated_revenue ?? opportunity?.amount_total ?? opportunity?.calc_year1_total ?? opportunity?.amount_estimated ?? commercial.target)],
+              ['Weighted Revenue', money(opportunity?.weighted_revenue ?? commercial.weighted)],
+              ['Expected Close', opportunity?.expected_close_date || 'No Close Date'],
+              ['Forecast', opportunity?.forecast_category || 'Pipeline']
             ].map(([label, value]) => (
               <div key={label} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px' }}>
                 <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>{label}</div>
@@ -3466,7 +4017,7 @@ export default function App() {
   const [accountList, setAccountList] = useState(() => {
     try {
       const raw = window.localStorage.getItem('naes-crm-account-list');
-      return raw ? JSON.parse(raw) : accountRecords;
+      return safeParseStoredJson(raw, accountRecords);
     } catch (error) {
       return accountRecords;
     }
@@ -3476,7 +4027,7 @@ export default function App() {
   const [accountHistoryMap, setAccountHistoryMap] = useState(() => {
     try {
       const raw = window.localStorage.getItem('naes-crm-account-history');
-      return raw ? JSON.parse(raw) : {};
+      return safeParseStoredJson(raw, {});
     } catch (error) {
       return {};
     }
@@ -3484,10 +4035,12 @@ export default function App() {
   const [newAccountForm, setNewAccountForm] = useState(buildAccountFormFromRecord());
 
   const [contactDetailId, setContactDetailId] = useState(null);
+  const [showNewOpportunityForm, setShowNewOpportunityForm] = useState(false);
+  const [newOpportunityForm, setNewOpportunityForm] = useState(buildOpportunityFormFromRecord());
   const [contactList, setContactList] = useState(() => {
     try {
       const raw = window.localStorage.getItem('naes-crm-contact-list');
-      return raw ? JSON.parse(raw) : contactRecords;
+      return safeParseStoredJson(raw, contactRecords);
     } catch (error) {
       return contactRecords;
     }
@@ -3814,7 +4367,183 @@ export default function App() {
     setNewContactForm(buildContactFormFromRecord());
   }
 
-  function openOpportunityDetail(opportunityId) {
+  
+function startNewOpportunity() {
+  setNewOpportunityForm(buildOpportunityFormFromRecord());
+  setShowNewOpportunityForm(true);
+}
+
+function cancelNewOpportunity() {
+  setShowNewOpportunityForm(false);
+  setNewOpportunityForm(buildOpportunityFormFromRecord());
+}
+
+function updateNewOpportunityField(field, value) {
+  setNewOpportunityForm((current) => ({ ...current, [field]: value }));
+}
+
+function saveNewOpportunity() {
+  const newId = `opp-${Date.now()}`;
+
+  const serviceLine = String(newOpportunityForm.serviceLine || 'Renewables').trim();
+  const renewablesSegment = String(newOpportunityForm.renewablesSegment || 'DG').trim();
+  const renewablesSize = Number(newOpportunityForm.renewablesSize || 0);
+  const stratoSqftTotal = Number(newOpportunityForm.stratoSqftTotal || 0);
+  const otherQty = Number(newOpportunityForm.otherOmQuantity || 0);
+  const otherLowRate = Number(newOpportunityForm.otherOmLowRate || 0);
+  const otherSelectedRate = Number(newOpportunityForm.otherOmSelectedRate || 0);
+  const otherHighRate = Number(newOpportunityForm.otherOmHighRate || 0);
+
+  const account = newOpportunityForm.accountId
+    ? getAccountById(newOpportunityForm.accountId, accountList)
+    : null;
+
+  const contact = newOpportunityForm.primaryContactId
+    ? contactList.find((item) => item.id === newOpportunityForm.primaryContactId) || null
+    : null;
+
+  function getStratoSightBand(sqft) {
+    if (sqft <= 25000) return { low: 0.09, selected: 0.11, high: 0.13 };
+    if (sqft <= 100000) return { low: 0.08, selected: 0.095, high: 0.11 };
+    if (sqft <= 500000) return { low: 0.06, selected: 0.075, high: 0.09 };
+    if (sqft <= 2000000) return { low: 0.05, selected: 0.06, high: 0.075 };
+    if (sqft <= 10000000) return { low: 0.04, selected: 0.05, high: 0.06 };
+    if (sqft <= 50000000) return { low: 0.035, selected: 0.04, high: 0.05 };
+    return { low: 0.03, selected: 0.035, high: 0.04 };
+  }
+
+  function getDgBand(mwdc) {
+    if (mwdc <= 1) return { low: 21000, selected: 24000, high: 27000 };
+    if (mwdc <= 3) return { low: 19000, selected: 22000, high: 25000 };
+    if (mwdc <= 5) return { low: 18000, selected: 21000, high: 24000 };
+    if (mwdc <= 10) return { low: 17000, selected: 19500, high: 22000 };
+    if (mwdc <= 15) return { low: 16000, selected: 18000, high: 20000 };
+    return { low: 15000, selected: 16500, high: 18000 };
+  }
+
+  function getUssBand(mwac) {
+    if (mwac <= 50) return { low: 13000, selected: 16000, high: 18000 };
+    if (mwac <= 100) return { low: 11000, selected: 14000, high: 16000 };
+    if (mwac <= 250) return { low: 9500, selected: 12000, high: 14000 };
+    if (mwac <= 500) return { low: 8500, selected: 10500, high: 12500 };
+    if (mwac <= 1000) return { low: 7500, selected: 9000, high: 10500 };
+    if (mwac <= 2000) return { low: 7000, selected: 8000, high: 9000 };
+    return { low: 6500, selected: 7000, high: 8000 };
+  }
+
+  const renewablesBand = renewablesSegment === 'USS'
+    ? getUssBand(renewablesSize)
+    : getDgBand(renewablesSize);
+
+  const renewablesLow = renewablesSize * renewablesBand.low;
+  const renewablesSelected = renewablesSize * renewablesBand.selected;
+  const renewablesHigh = renewablesSize * renewablesBand.high;
+
+  const stratoBand = getStratoSightBand(stratoSqftTotal);
+  const stratoLow = stratoSqftTotal * stratoBand.low;
+  const stratoSelected = stratoSqftTotal * stratoBand.selected;
+  const stratoHigh = stratoSqftTotal * stratoBand.high;
+
+  const otherLow = otherQty * otherLowRate;
+  const otherSelected = otherQty * otherSelectedRate;
+  const otherHigh = otherQty * otherHighRate;
+
+  let lowValue = 0;
+  let selectedValue = 0;
+  let highValue = 0;
+  let commercialBasis = '';
+  let marketSegment = '';
+  let totalMwac = null;
+  let totalMwdc = null;
+  let estimatedSquareFootage = null;
+
+  if (serviceLine === 'Renewables') {
+    lowValue = renewablesLow;
+    selectedValue = renewablesSelected;
+    highValue = renewablesHigh;
+    marketSegment = renewablesSegment;
+    commercialBasis = renewablesSegment === 'USS' ? 'MWAC annual' : 'MWDC annual';
+    totalMwac = renewablesSegment === 'USS' ? renewablesSize : null;
+    totalMwdc = renewablesSegment === 'DG' ? renewablesSize : null;
+  } else if (serviceLine === 'StratoSight') {
+    lowValue = stratoLow;
+    selectedValue = stratoSelected;
+    highValue = stratoHigh;
+    marketSegment = 'StratoSight';
+    commercialBasis = 'Square footage';
+    estimatedSquareFootage = stratoSqftTotal;
+  } else if (serviceLine === 'Both') {
+    lowValue = renewablesLow + stratoLow;
+    selectedValue = renewablesSelected + stratoSelected;
+    highValue = renewablesHigh + stratoHigh;
+    marketSegment = `${renewablesSegment} + StratoSight`;
+    commercialBasis = `${renewablesSegment === 'USS' ? 'MWAC annual' : 'MWDC annual'} + Square footage`;
+    totalMwac = renewablesSegment === 'USS' ? renewablesSize : null;
+    totalMwdc = renewablesSegment === 'DG' ? renewablesSize : null;
+    estimatedSquareFootage = stratoSqftTotal;
+  } else {
+    lowValue = otherLow;
+    selectedValue = otherSelected;
+    highValue = otherHigh;
+    marketSegment = 'Other O&M';
+    commercialBasis = 'Custom';
+  }
+
+  const forecastCategory = String(newOpportunityForm.forecastCategory || 'Pipeline').trim();
+  const weightedPct = forecastCategory === 'Commit'
+    ? 0.9
+    : forecastCategory === 'Best Case'
+    ? 0.6
+    : forecastCategory === 'Pipeline'
+    ? 0.3
+    : 0.5;
+
+  const newOpportunity = {
+    id: newId,
+    name: String(newOpportunityForm.name || 'New Opportunity').trim(),
+    account: account?.name || '',
+    account_id: String(newOpportunityForm.accountId || '').trim(),
+    primary_contact_id: String(newOpportunityForm.primaryContactId || '').trim(),
+    primary_contact_name: String(
+      newOpportunityForm.primaryContactMode === 'freeform'
+        ? (newOpportunityForm.primaryContactName || '')
+        : (contact?.fullName || contact?.name || '')
+    ).trim(),
+    owner_full_name: String(newOpportunityForm.owner || 'Jeff Yarbrough').trim(),
+    owner_team_name: String(newOpportunityForm.team || 'NAES').trim(),
+    stage: String(newOpportunityForm.stage || '0 Prospecting').trim(),
+    forecast_category: forecastCategory,
+    probability: Number(newOpportunityForm.probability || 10),
+    expected_close_date: String(newOpportunityForm.expectedCloseDate || '').trim(),
+    opportunity_type: String(newOpportunityForm.opportunityType || 'New Customer').trim(),
+    service_line: serviceLine,
+    market_segment: marketSegment,
+    commercial_basis: commercialBasis,
+    total_mwdc: totalMwdc,
+    total_mwac: totalMwac,
+    estimated_square_footage: estimatedSquareFootage,
+    amount_estimated: selectedValue,
+    calc_year1_total: selectedValue,
+    calc_arr_total: selectedValue,
+    amount_total: selectedValue,
+    low_estimate: lowValue,
+    high_estimate: highValue,
+    weighted_revenue: selectedValue * weightedPct,
+    calculated_revenue: selectedValue,
+    account_name: account?.name || '',
+    last_activity_date: '',
+    staleness_flag: 'Current',
+    created_at: dtNow(),
+    updated_at: dtNow()
+  };
+
+  setOpportunities((current) => [newOpportunity, ...current]);
+  setShowNewOpportunityForm(false);
+  setNewOpportunityForm(buildOpportunityFormFromRecord());
+  openOpportunityDetail(newId);
+}
+
+function openOpportunityDetail(opportunityId) {
     const nextPath = `/opportunities/${opportunityId}`;
     pushPath(nextPath);
     setRoutePath(nextPath);
@@ -4001,9 +4730,18 @@ export default function App() {
               )
               : safeActivePage === 'Opportunities'
               ? (
-                routeInfo.detailId
+                showNewOpportunityForm
+                  ? <NewOpportunityPage
+                      newOpportunityForm={newOpportunityForm}
+                      accountOptions={accountList}
+                      contactOptions={contactList}
+                      onChangeNewOpportunityField={updateNewOpportunityField}
+                      onSaveNewOpportunity={saveNewOpportunity}
+                      onCancelNewOpportunity={cancelNewOpportunity}
+                    />
+                  : routeInfo.detailId
                   ? <OpportunityDetailPage onBackToOverview={returnToOpportunitiesOverview} opportunity={selectedOpportunity} onSaveOpportunity={saveOpportunityPatch} />
-                  : <OpportunitiesOverviewPage onOpenOpportunity={openOpportunityDetail} opportunities={opportunities} />
+                  : <OpportunitiesOverviewPage onOpenOpportunity={openOpportunityDetail} onStartNewOpportunity={startNewOpportunity} opportunities={opportunities} />
               )
               : (
                 <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
