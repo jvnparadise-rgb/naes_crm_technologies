@@ -102,130 +102,6 @@ function smallLabel(text) {
   );
 }
 
-const sectionCardStyle = shellCard;
-
-function StatCard({ label, value, sub, tone = 'primary' }) {
-  const toneMap = {
-    primary: {
-      bg: '#FFFFFF',
-      border: '#D8E2D7',
-      value: '#123B2F',
-      sub: '#5F7368',
-    },
-    success: {
-      bg: '#F6FBF7',
-      border: '#D8EAD9',
-      value: '#1F6B44',
-      sub: '#5F7368',
-    },
-    warning: {
-      bg: '#FFF9EF',
-      border: '#F2DFC2',
-      value: '#8B5E12',
-      sub: '#77624A',
-    },
-  };
-
-  const colors = toneMap[tone] || toneMap.primary;
-
-  return (
-    <div
-      style={{
-        borderRadius: '24px',
-        background: colors.bg,
-        border: `1px solid ${colors.border}`,
-        boxShadow: '0 10px 24px rgba(31,41,55,0.05)',
-        padding: '18px',
-      }}
-    >
-      <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>
-        {label}
-      </div>
-      <div style={{ marginTop: '10px', fontSize: '28px', fontWeight: 700, color: colors.value }}>
-        {value}
-      </div>
-      <div style={{ marginTop: '6px', fontSize: '13px', color: colors.sub }}>
-        {sub}
-      </div>
-    </div>
-  );
-}
-
-function OpportunitySummaryRow({ opportunity, onOpenOpportunity }) {
-  const revenue = Number(
-    opportunity?.calculated_revenue ??
-    opportunity?.amount_total ??
-    opportunity?.calc_year1_total ??
-    opportunity?.amount_estimated ??
-    0
-  );
-
-  const safeRevenue = Number.isFinite(revenue) ? revenue : 0;
-
-  return (
-    <button
-      type="button"
-      onClick={() => onOpenOpportunity && onOpenOpportunity(opportunity?.id)}
-      style={{
-        width: '100%',
-        textAlign: 'left',
-        borderRadius: '20px',
-        border: '1px solid #E5ECE5',
-        background: '#FFFFFF',
-        boxShadow: '0 8px 20px rgba(31,41,55,0.04)',
-        padding: '16px 18px',
-        cursor: 'pointer',
-      }}
-    >
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) repeat(4, minmax(120px, 1fr))', gap: '12px', alignItems: 'center' }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {opportunity?.name || 'Untitled Opportunity'}
-          </div>
-          <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {opportunity?.account_name || opportunity?.account || opportunity?.owner_full_name || 'No linked account'}
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#94A3B8' }}>Stage</div>
-          <div style={{ marginTop: '4px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            {opportunity?.stage || '0 Prospecting'}
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#94A3B8' }}>Forecast</div>
-          <div style={{ marginTop: '4px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            {opportunity?.forecast_category || 'Pipeline'}
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#94A3B8' }}>Revenue</div>
-          <div style={{ marginTop: '4px', fontSize: '13px', fontWeight: 700, color: '#0B6771' }}>
-            {formatCurrency(safeRevenue)}
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#94A3B8' }}>Close</div>
-          <div style={{ marginTop: '4px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            {opportunity?.expected_close_date || 'No date'}
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#94A3B8' }}>Status</div>
-          <div style={{ marginTop: '4px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-            {opportunity?.staleness_flag || 'Current'}
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-}
-
 function buttonStyle(active = false) {
   return {
     borderRadius: '18px',
@@ -280,122 +156,246 @@ function renderExecutiveDashboard({ accounts = [], contacts = [], opportunities 
   const safeContacts = Array.isArray(contacts) ? contacts : [];
   const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
 
-  function toNumber(value) {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  function normalizeText(value) {
-    return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
-  }
-
   function revenueFor(item) {
-    return toNumber(
+    const value = Number(
       item?.calculated_revenue ??
       item?.amount_total ??
       item?.calc_year1_total ??
       item?.amount_estimated ??
-      item?.calc_arr_total ??
-      item?.arr_total ??
       0
     );
+    return Number.isFinite(value) ? value : 0;
   }
 
   function weightedFor(item) {
-    const explicitWeighted = toNumber(
-      item?.weighted_revenue ??
-      item?.amount_weighted ??
-      item?.weightedRevenue ??
-      item?.weighted_value
-    );
-    if (explicitWeighted > 0) return explicitWeighted;
+    const explicitWeighted = Number(item?.weighted_revenue);
+    if (Number.isFinite(explicitWeighted)) return explicitWeighted;
 
-    const probability = toNumber(
-      item?.probability ??
-      item?.forecast_probability ??
-      item?.forecastProbability
-    );
-
-    return revenueFor(item) * (probability > 0 ? probability / 100 : 0);
+    const probability = Number(item?.probability ?? 0) / 100;
+    return revenueFor(item) * (Number.isFinite(probability) ? probability : 0);
   }
 
-  function forecastCategoryFor(item) {
-    return normalizeText(item?.forecast_category ?? item?.forecastCategory);
-  }
-
-  function stageFor(item) {
-    return normalizeText(item?.stage ?? item?.salesStage ?? item?.stage_name ?? item?.stageName);
-  }
-
-  function isClosedWon(item) {
-    const stage = stageFor(item);
-    const forecast = forecastCategoryFor(item);
-    return stage === 'closedwon' || forecast === 'closedwon';
-  }
-
-  function isClosedLost(item) {
-    const stage = stageFor(item);
-    const forecast = forecastCategoryFor(item);
-    return stage === 'closedlost' || forecast === 'closedlost';
-  }
-
-  function isOpen(item) {
-    return !isClosedWon(item) && !isClosedLost(item);
-  }
-
-  const openOpportunities = safeOpportunities.filter(isOpen);
-
-  const totalPipeline = openOpportunities.reduce((sum, item) => sum + revenueFor(item), 0);
-  const weightedPipeline = openOpportunities.reduce((sum, item) => sum + weightedFor(item), 0);
-  const commitDeals = safeOpportunities.filter((item) => forecastCategoryFor(item) === 'commit');
-  const bestCaseDeals = safeOpportunities.filter((item) => forecastCategoryFor(item) === 'bestcase');
-  const closedWonDeals = safeOpportunities.filter(isClosedWon);
-
-  const commitValue = commitDeals.reduce((sum, item) => sum + revenueFor(item), 0);
-  const bestCaseValue = bestCaseDeals.reduce((sum, item) => sum + revenueFor(item), 0);
-  const closedWonValue = closedWonDeals.reduce((sum, item) => sum + revenueFor(item), 0);
-  const totalPotentialMargin = openOpportunities.reduce((sum, item) => {
-    return sum + (revenueFor(item) * toNumber(item?.estimated_earnings_pct || 0) / 100);
+  const openPipelineValue = safeOpportunities.reduce((sum, item) => sum + revenueFor(item), 0);
+  const weightedPipelineValue = safeOpportunities.reduce((sum, item) => sum + weightedFor(item), 0);
+  const totalPotentialMargin = safeOpportunities.reduce((sum, item) => {
+    return sum + (revenueFor(item) * Number(item?.estimated_earnings_pct || 0) / 100);
   }, 0);
 
+  const totalAccounts = safeAccounts.length;
+  const totalContacts = safeContacts.length;
+  const totalOpportunities = safeOpportunities.length;
+  const avgDealSize = totalOpportunities ? openPipelineValue / totalOpportunities : 0;
+
+  const staleCount = safeOpportunities.filter((item) => {
+    const flag = String(item?.staleness_flag || '').toLowerCase();
+    return flag.includes('risk') || flag.includes('overdue') || flag.includes('stale');
+  }).length;
+
+  const stageDescriptions = {
+    '0 Prospecting': 'Identified',
+    '1 Qualified': 'Fit confirmed',
+    '2 Discovery': 'Needs / scope',
+    '3 Solution Fit': 'Commercial fit',
+    '4 Commercials': 'Pricing / terms',
+    '5 Security Legal': 'Approvals',
+    '6 Commit': 'Close confidence',
+    '7 Closed Won': 'Won',
+    '8 Closed Lost': 'Lost',
+  };
+
+  const stageOrder = [
+    '0 Prospecting',
+    '1 Qualified',
+    '2 Discovery',
+    '3 Solution Fit',
+    '4 Commercials',
+    '5 Security Legal',
+    '6 Commit',
+    '7 Closed Won',
+    '8 Closed Lost'
+  ];
+
+  const stageBuckets = stageOrder.map((stage) => {
+    const items = safeOpportunities.filter((item) => String(item?.stage || '') === stage);
+    return {
+      label: stage,
+      shortLabel: stage.replace(/^\d+\s*/, ''),
+      description: stageDescriptions[stage] || '',
+      count: items.length,
+      revenue: items.reduce((sum, item) => sum + revenueFor(item), 0)
+    };
+  }).filter((item) => item.count > 0 || item.revenue > 0);
+
+  function StatCard({ label, value, sub, tone = 'neutral' }) {
+    const toneMap = {
+      primary: { bg: '#E8F6F5', text: '#2EADA7' },
+      accent: { bg: '#EAF2FB', text: '#4188CB' },
+      success: { bg: '#EAF6EF', text: '#2F8F5B' },
+      warning: { bg: '#FCEEE8', text: '#D7644B' },
+      neutral: { bg: '#EDF2F1', text: '#667582' },
+    };
+    const palette = toneMap[tone] || toneMap.neutral;
+
+    return (
+      <div style={{ ...naesCardStyle(false), padding: '20px 22px' }}>
+        <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: palette.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: palette.text, fontSize: '24px', fontWeight: 800 }}>
+          •
+        </div>
+        <div style={{ marginTop: '14px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6C7A86' }}>
+          {label}
+        </div>
+        <div style={{ marginTop: '8px', fontSize: '18px', fontWeight: 800, color: palette.text }}>
+          {value}
+        </div>
+        <div style={{ marginTop: '4px', fontSize: '13px', color: '#586674' }}>
+          {sub}
+        </div>
+      </div>
+    );
+  }
+
+  const stageMax = Math.max(1, ...stageBuckets.map((row) => Number(row.revenue || 0)));
+  const serviceLineBuckets = ['Renewables', 'StratoSight', 'Both', 'Other O&M'].map((label) => {
+    const items = safeOpportunities.filter((item) => String(item?.service_line || '') === label);
+    return {
+      label,
+      count: items.length,
+      revenue: items.reduce((sum, item) => sum + revenueFor(item), 0)
+    };
+  });
+  const serviceMax = Math.max(1, ...serviceLineBuckets.map((row) => Number(row.revenue || 0)));
+  const activeDeals = [...safeOpportunities]
+    .sort((a, b) => revenueFor(b) - revenueFor(a))
+    .slice(0, 6);
+  const colors = ['#35B7B4', '#4188CB', '#6FA382', '#9DB7A8'];
+
   return (
-    <div style={{ display: 'grid', gap: '18px' }}>
-      <section style={sectionCardStyle}>
+    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+      <section style={{ ...naesCardStyle(true), padding: '26px 28px', background: 'linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <div>
             {smallLabel('Executive Dashboard')}
-            <div style={{ marginTop: '6px', fontSize: '30px', fontWeight: 800, letterSpacing: '-0.03em', color: '#123B2F' }}>
+            <h2 style={{ margin: '8px 0 0 0', fontSize: '38px', fontWeight: 800, color: naesTheme.text, letterSpacing: '-0.03em' }}>
               Executive Dashboard
-            </div>
-            <div style={{ marginTop: '8px', fontSize: '14px', lineHeight: 1.6, color: '#4E6A5E', maxWidth: '760px' }}>
-              Live executive rollup of current opportunity performance and pipeline posture. This pass is intentionally KPI-only for stability.
-            </div>
+            </h2>
+            <p style={{ marginTop: '8px', fontSize: '15px', color: naesTheme.textMuted }}>
+              Pipeline intelligence · Live CRM operating view
+            </p>
           </div>
 
-          <div style={{
-            alignSelf: 'center',
-            background: '#F4F8F5',
-            color: '#234B3D',
-            border: '1px solid #D8E2DC',
-            borderRadius: '999px',
-            padding: '8px 12px',
-            fontSize: '12px',
-            fontWeight: 700,
-            whiteSpace: 'nowrap'
-          }}>
-            Current Pipeline View
+          <div style={{ borderRadius: '18px', border: `1px solid ${naesTheme.border}`, background: '#fff', color: naesTheme.primaryStrong, padding: '12px 18px', fontSize: '14px', fontWeight: 700 }}>
+            Stable KPI Mode
           </div>
         </div>
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        <StatCard label="Total Pipeline" value={formatCurrency(totalPipeline)} sub={`${openOpportunities.length} open deals`} tone="primary" />
-        <StatCard label="Weighted Forecast" value={formatCurrency(weightedPipeline)} sub="probability-adjusted" tone="success" />
-        <StatCard label="Commit" value={formatCurrency(commitValue)} sub={`${commitDeals.length} commit deals`} tone="warning" />
-        <StatCard label="Best Case" value={formatCurrency(bestCaseValue)} sub={`${bestCaseDeals.length} best case deals`} tone="success" />
-        <StatCard label="Closed Won" value={formatCurrency(closedWonValue)} sub={`${closedWonDeals.length} won deals`} tone="primary" />
-        <StatCard label="Potential Margin" value={formatCurrency(totalPotentialMargin)} sub={`${safeAccounts.length} accounts, ${safeContacts.length} contacts`} tone="success" />
-      </div>
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '16px' }}>
+        <StatCard label="Total Pipeline" value={formatCurrency(openPipelineValue)} sub={`${totalOpportunities} active deals`} tone="primary" />
+        <StatCard label="Weighted Forecast" value={formatCurrency(weightedPipelineValue)} sub="forecast-adjusted" tone="success" />
+        <StatCard label="Avg Deal Size" value={formatCurrency(avgDealSize)} sub="across active pipeline" tone="accent" />
+        <StatCard label="Potential Margin" value={formatCurrency(totalPotentialMargin)} sub="estimated gross contribution" tone="success" />
+        <StatCard label="Needs Attention" value={String(staleCount)} sub="stale / overdue" tone="warning" />
+        <StatCard label="Active Accounts" value={String(totalAccounts)} sub={`${totalContacts} linked contacts`} tone="neutral" />
+      </section>
+
+      <section style={{ display: 'grid', gap: '24px', gridTemplateColumns: '1.15fr 0.85fr' }}>
+        <div style={{ ...naesCardStyle(false), padding: '28px' }}>
+          {smallLabel('Pipeline by Stage')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>
+            Pipeline by Stage
+          </h3>
+          <p style={{ marginTop: '6px', fontSize: '14px', color: naesTheme.textMuted }}>
+            ARR value across active pipeline stages
+          </p>
+
+          <div style={{ marginTop: '22px', display: 'grid', gap: '18px' }}>
+            {stageBuckets.length ? stageBuckets.map((row, idx) => (
+              <div key={row.label} style={{ display: 'grid', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '10px 1fr auto auto', gap: '12px', alignItems: 'start' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '999px', marginTop: '8px', background: colors[idx % colors.length] }} />
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#2C353D' }}>
+                      {row.shortLabel}
+                      <span style={{ marginLeft: '8px', fontWeight: 500, color: '#6A7783' }}>— {row.description}</span>
+                    </div>
+                  </div>
+                  <div style={{ borderRadius: '999px', background: '#21263B', color: '#D7DFEA', padding: '4px 12px', fontSize: '12px', fontWeight: 700 }}>
+                    {row.count} deals
+                  </div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#2C353D' }}>
+                    {formatCurrency(row.revenue)}
+                  </div>
+                </div>
+                <div style={{ height: '8px', borderRadius: '999px', background: '#D9E4E2', overflow: 'hidden' }}>
+                  <div style={{ width: `${(row.revenue / stageMax) * 100}%`, height: '100%', borderRadius: '999px', background: colors[idx % colors.length] }} />
+                </div>
+              </div>
+            )) : (
+              <div style={{ fontSize: '13px', color: naesTheme.textMuted }}>No stage data yet.</div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ ...naesCardStyle(false), padding: '28px' }}>
+          {smallLabel('Service Mix')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>
+            Service Mix
+          </h3>
+          <p style={{ marginTop: '6px', fontSize: '14px', color: naesTheme.textMuted }}>
+            Pipeline by primary service line
+          </p>
+
+          <div style={{ marginTop: '24px', display: 'grid', gap: '14px' }}>
+            {serviceLineBuckets.map((row, idx) => (
+              <div key={row.label} style={{ display: 'grid', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '999px', background: colors[idx % colors.length] }} />
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>{row.label}</div>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>{row.count} deals · {formatCurrency(row.revenue)}</div>
+                </div>
+                <div style={{ height: '10px', borderRadius: '999px', background: '#edf3ee', overflow: 'hidden' }}>
+                  <div style={{ width: `${(row.revenue / serviceMax) * 100}%`, height: '100%', borderRadius: '999px', background: colors[idx % colors.length] }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div>
+            {smallLabel('Top Active Deals')}
+            <h3 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>
+              Top Active Deals
+            </h3>
+            <p style={{ marginTop: '6px', fontSize: '14px', color: naesTheme.textMuted }}>
+              Highest value opportunities in pipeline
+            </p>
+          </div>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: '#2EADA7' }}>View all</div>
+        </div>
+
+        <div style={{ marginTop: '22px', display: 'grid', gap: '10px' }}>
+          {activeDeals.length ? activeDeals.map((deal, idx) => (
+            <div key={deal.id || idx} style={{ borderRadius: '18px', border: '1px solid #D7E3E0', background: '#F7FBF8', padding: '16px 18px', display: 'grid', gridTemplateColumns: '60px 1fr auto auto', gap: '16px', alignItems: 'center' }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#65707B' }}>#{idx + 1}</div>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#2C353D' }}>{deal.name || 'Opportunity'}</div>
+                <div style={{ marginTop: '4px', fontSize: '13px', color: '#65707B' }}>{deal.account_name || deal.account || '—'}</div>
+              </div>
+              <div style={{ fontSize: '14px', color: '#65707B' }}>
+                {deal.stage || '—'}<br />{Number(deal.probability || 0)}% prob.
+              </div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#2C353D', textAlign: 'right' }}>{formatCurrency(revenueFor(deal))}</div>
+            </div>
+          )) : (
+            <div style={{ fontSize: '13px', color: naesTheme.textMuted }}>No active deals yet.</div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
