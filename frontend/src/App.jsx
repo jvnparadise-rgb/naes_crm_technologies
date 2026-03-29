@@ -400,100 +400,170 @@ function renderExecutiveDashboard({ accounts = [], contacts = [], opportunities 
   );
 }
 
-function renderWelcomePage() {
-  return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '20px' }}>
-      <section style={shellCard}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <div>
-            {smallLabel('Welcome Surface')}
-            <h2 style={{ margin: '8px 0 0 0', fontSize: '24px', fontWeight: 600 }}>Start Here</h2>
-            <p style={{ marginTop: '12px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: '#475569' }}>
-              This landing page should orient new and returning users quickly, highlight the tutorial video, and explain where to go for pipeline, reporting, business reviews, client reports, and admin functions.
-            </p>
-          </div>
+function renderWelcomePage({ onStartNewContact, onStartNewAccount }) {
+  const quickStartSteps = [
+    {
+      number: '1',
+      title: 'Create a New Contact',
+      body: 'Start with the person first so communication, title, and ownership are established before tying them to a customer record.',
+      bg: '#EAF4EC',
+      border: '#CFE3D4',
+      numberBg: '#6D8F72',
+      numberText: '#FFFFFF',
+    },
+    {
+      number: '2',
+      title: 'Create a New Account',
+      body: 'Set up the company or customer record next so contacts, opportunities, and future work all point to the same account structure.',
+      bg: '#EEF7F8',
+      border: '#CFE3E8',
+      numberBg: '#0B6771',
+      numberText: '#FFFFFF',
+    },
+    {
+      number: '3',
+      title: 'Create a New Opportunity',
+      body: 'After the account and contact exist, open the commercial opportunity and begin pricing, forecasting, and pipeline tracking.',
+      bg: '#EEF5FB',
+      border: '#D4E3F2',
+      numberBg: '#2A83C5',
+      numberText: '#FFFFFF',
+    },
+  ];
 
-          <div style={{ display: 'grid', gap: '12px', minWidth: '320px', gridTemplateColumns: '1fr' }}>
-            {welcomeKpis.map(([label, value]) => (
-              <div key={label} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px' }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>{label}</div>
-                <div style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600 }}>{value}</div>
+  return (
+    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+      <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(360px, 0.8fr)', gap: '22px', alignItems: 'start' }}>
+        <div style={{ ...shellCard, padding: '22px 22px 20px 22px' }}>
+          {smallLabel('Tutorial Video')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
+            Tutorial Video
+          </h3>
+          <p style={{ marginTop: '10px', fontSize: '14px', lineHeight: 1.6, color: '#475569', maxWidth: '760px' }}>
+            Use this walkthrough to get oriented quickly and understand how to work through the CRM.
+          </p>
+
+          <div style={{ marginTop: '16px' }}>
+            <div style={{
+              borderRadius: '22px',
+              overflow: 'hidden',
+              border: '1px solid #CFE3E8',
+              boxShadow: '0 10px 28px rgba(15, 23, 42, 0.10)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '14px 16px',
+                background: 'linear-gradient(90deg, #07555E 0%, #2093B1 100%)',
+                color: '#fff'
+              }}>
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.20em', textTransform: 'uppercase', opacity: 0.9 }}>
+                    Tutorial Video
+                  </div>
+                  <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 700 }}>
+                    NAES CRM Walkthrough
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: '#071E22', aspectRatio: '16 / 9' }}>
+                <iframe
+                  src="https://player.vimeo.com/video/1173012324?title=0&byline=0&portrait=0"
+                  title="Tutorial Video"
+                  style={{ display: 'block', width: '100%', height: '100%', border: '0' }}
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ ...shellCard, padding: '22px 22px 20px 22px' }}>
+          {smallLabel('Quick Start')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
+            Recommended setup sequence
+          </h3>
+          <p style={{ marginTop: '10px', fontSize: '14px', lineHeight: 1.6, color: '#475569' }}>
+            Follow this order to keep CRM records clean and tied together correctly.
+          </p>
+
+          <div style={{ marginTop: '16px', display: 'grid', gap: '14px' }}>
+            {quickStartSteps.map((step) => (
+              <div
+                key={step.number}
+                role={step.number === '3' ? undefined : 'button'}
+                tabIndex={step.number === '3' ? undefined : 0}
+                onClick={() => {
+                  if (step.number === '1') onStartNewContact?.();
+                  if (step.number === '2') onStartNewAccount?.();
+                }}
+                onKeyDown={(event) => {
+                  if (step.number === '3') return;
+                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                  event.preventDefault();
+                  if (step.number === '1') onStartNewContact?.();
+                  if (step.number === '2') onStartNewAccount?.();
+                }}
+                style={{
+                  borderRadius: '22px',
+                  border: `1px solid ${step.border}`,
+                  background: step.bg,
+                  padding: '16px',
+                  boxShadow: '0 6px 18px rgba(15, 23, 42, 0.04)',
+                  cursor: step.number === '3' ? 'default' : 'pointer',
+                  opacity: step.number === '3' ? 0.78 : 1,
+                }}
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '42px 1fr', gap: '14px', alignItems: 'start' }}>
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '999px',
+                    background: step.numberBg,
+                    color: step.numberText,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '18px',
+                    fontWeight: 800,
+                    boxShadow: '0 8px 18px rgba(15,23,42,0.12)',
+                  }}>
+                    {step.number}
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                      {step.title}
+                    </div>
+                    <div style={{ marginTop: '8px', fontSize: '14px', lineHeight: 1.6, color: '#475569' }}>
+                      {step.body}
+                    </div>
+                    {step.number === '3' ? (
+                      <div style={{ marginTop: '10px', fontSize: '12px', fontWeight: 700, color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                        Opportunity flow coming next
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section style={{ display: 'grid', gap: '24px', gridTemplateColumns: '1.15fr 0.85fr' }}>
-        <div style={shellCard}>
-          {smallLabel('Tutorial Video')}
-          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Embedded Walkthrough Area</h3>
-          <p style={{ marginTop: '8px', fontSize: '14px', lineHeight: 1.6, color: '#475569' }}>
-            Reserved area for Vimeo or training embed. This should be the first thing users see when they need orientation on how to use the CRM.
-          </p>
-
-          <div style={{ marginTop: '20px', borderRadius: '24px', border: '1px solid #CFE0D2', background: '#0A3D44', overflow: 'hidden', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'linear-gradient(90deg,#063F47 0%, #0F6771 55%, #239EE2 100%)', color: '#fff' }}>
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', opacity: 0.82 }}>
-                  Embedded Tutorial Video
-                </div>
-                <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: 600 }}>
-                  NAES CRM Walkthrough
-                </div>
-              </div>
-              <div style={{ borderRadius: '999px', border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.10)', padding: '6px 10px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-                Vimeo
-              </div>
-            </div>
-
-            <div style={{ position: 'relative', paddingTop: '56.25%', background: '#081F24' }}>
-              <iframe
-                src="https://player.vimeo.com/video/1173012324"
-                title="NAES CRM Welcome Tutorial"
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowFullScreen
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: '0' }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gap: '24px' }}>
-          <div style={shellCard}>
-            {smallLabel('Quick Start')}
-            <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Where leaders should go first</h3>
-            <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
-              {[
-                ['Dashboard', 'Overall operating picture and top-level command view'],
-                ['My Pipeline', 'Personal pipeline and action focus'],
-                ['Business Reviews', 'WBR, MBR, QBR, and ABR generation'],
-                ['Client Reports', 'Customer-facing monthly, quarterly, and annual reports'],
-                ['User Accounts', 'Admin management of users, roles, and access']
-              ].map(([title, desc]) => (
-                <div key={title} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>{title}</div>
-                  <div style={{ marginTop: '4px', fontSize: '13px', color: '#64748b', lineHeight: 1.45 }}>{desc}</div>
-                </div>
-              ))}
-            </div>
+      <section style={{ padding: '2px 6px 6px 6px' }}>
+        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#334155', fontSize: '13px', fontWeight: 700 }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#B11226', boxShadow: '0 0 0 4px rgba(177,18,38,0.10)' }} />
+            Powered by NAES
           </div>
 
-          <div style={shellCard}>
-            {smallLabel('Admin Notes')}
-            <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Landing page expectations</h3>
-            <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
-              {[
-                'Welcome should sit above Dashboard in the sidebar.',
-                'Tutorial video should be embedded directly on-page.',
-                'Landing content should explain core workflows quickly.',
-                'This page should help new users orient without needing a separate manual.'
-              ].map((item) => (
-                <div key={item} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '12px 14px', fontSize: '14px', color: '#334155' }}>
-                  {item}
-                </div>
-              ))}
-            </div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#334155', fontSize: '13px', fontWeight: 700 }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#E17A24', boxShadow: '0 0 0 4px rgba(225,122,36,0.10)' }} />
+            Native infrastructure provided by AWS
           </div>
         </div>
       </section>
@@ -4045,8 +4115,8 @@ function renderHeaderBand(activePage, onBack, canGoBack, options = {}) {
 
   const pageConfig = {
     Welcome: {
-      title: 'Welcome to NAES CRM',
-      subtitle: 'Landing page direction with tutorial video surface, orientation guidance, and executive quick-start context.'
+      title: 'Welcome to NAES Technologies CRM',
+      subtitle: ''
     },
     Dashboard: {
       title: 'Dashboard',
@@ -4113,33 +4183,31 @@ function renderHeaderBand(activePage, onBack, canGoBack, options = {}) {
 
   return (
     <div style={{ background: 'linear-gradient(90deg,#063F47 0%,#0A7983 40%,#21C8D3 70%,#239EE2 100%)', padding: '24px 32px 32px 32px', color: '#fff', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.08)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <div style={{ flex: '1 1 560px', minWidth: '320px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: '1 1 560px', minWidth: '320px', paddingTop: isWelcome ? '18px' : '0' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)' }}>
-            {isWelcome ? 'CRM Landing Page' : 'Opportunity Workspace'}
+            {isWelcome ? '' : 'Opportunity Workspace'}
           </div>
-          <h1 style={{ margin: '4px 0 0 0', fontSize: '34px', fontWeight: 600, letterSpacing: '-0.03em', color: '#fff' }}>
+          <h1 style={{ margin: '4px 0 0 0', fontSize: '46px', fontWeight: 700, letterSpacing: '-0.03em', color: '#fff' }}>
             {config.title}
           </h1>
-          <p style={{ marginTop: '8px', maxWidth: '760px', fontSize: '14px', color: 'rgba(255,255,255,0.78)' }}>
-            {config.subtitle}
-          </p>
+          {config.subtitle ? (
+            <p style={{ marginTop: '8px', maxWidth: '760px', fontSize: '14px', color: 'rgba(255,255,255,0.78)' }}>
+              {config.subtitle}
+            </p>
+          ) : null}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', gap: '12px', flex: '0 0 auto', minWidth: isWelcome ? '280px' : 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', gap: '12px', flex: '0 0 auto', minWidth: isWelcome ? '520px' : 'auto' }}>
           {isWelcome ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '96px', minWidth: '280px', padding: '8px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '120px', minWidth: '420px', padding: '0' }}>
               <img
                 src="/assets/naes-technologies-logo.png"
                 alt="NAES Technologies"
-                style={{ maxWidth: '300px', width: '100%', height: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.16))' }}
+                style={{ maxWidth: '560px', width: '100%', height: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 10px 28px rgba(0,0,0,0.18))' }}
               />
             </div>
           ) : null}
-
-          <div style={{ borderRadius: '999px', border: '1px solid rgba(255,255,255,0.30)', background: 'rgba(255,255,255,0.10)', padding: '8px 16px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#fff' }}>
-            App Preview
-          </div>
         </div>
       </div>
     </div>
@@ -4213,6 +4281,24 @@ export default function App() {
   });
   const [showNewContactForm, setShowNewContactForm] = useState(false);
   const [newContactForm, setNewContactForm] = useState(buildContactFormFromRecord());
+
+  function openWelcomeNewContact() {
+    setActivePage('Contacts');
+    setContactDetailId(null);
+    setShowNewContactForm(true);
+    setNewContactForm(buildContactFormFromRecord());
+    setShowNewAccountForm(false);
+    setShowNewOpportunityForm(false);
+  }
+
+  function openWelcomeNewAccount() {
+    setActivePage('Accounts');
+    setAccountDetailId(null);
+    setShowNewAccountForm(true);
+    setNewAccountForm(buildAccountFormFromRecord());
+    setShowNewContactForm(false);
+    setShowNewOpportunityForm(false);
+  }
 
   const [routePath, setRoutePath] = useState(getInitialPath());
   const [opportunities, setOpportunities] = useState(() => {
@@ -5062,7 +5148,7 @@ function openOpportunityDetail(opportunityId) {
             {safeActivePage === 'Dashboard'
               ? renderExecutiveDashboard({ accounts: accountList, contacts: contactList, opportunities })
               : safeActivePage === 'Welcome'
-              ? renderWelcomePage()
+              ? renderWelcomePage({ onStartNewContact: openWelcomeNewContact, onStartNewAccount: openWelcomeNewAccount })
               : safeActivePage === 'Accounts'
               ? (
                 showNewAccountForm
