@@ -2502,12 +2502,29 @@ function OpportunitiesOverviewPage({ onOpenOpportunity, onStartNewOpportunity, o
   const opportunityCards = Array.isArray(opportunities) ? opportunities : [];
 
   const openPipelineValue = opportunityCards.reduce((sum, item) => {
-    const value = Number(item?.amount_total ?? item?.calc_year1_total ?? item?.amount_estimated ?? 0);
+    const value = Number(
+      item?.calculated_revenue ??
+      item?.amount_total ??
+      item?.calc_year1_total ??
+      item?.amount_estimated ??
+      0
+    );
     return sum + (Number.isFinite(value) ? value : 0);
   }, 0);
 
   const weightedPipelineValue = opportunityCards.reduce((sum, item) => {
-    const value = Number(item?.amount_total ?? item?.calc_year1_total ?? item?.amount_estimated ?? 0);
+    const explicitWeighted = Number(item?.weighted_revenue);
+    if (Number.isFinite(explicitWeighted)) {
+      return sum + explicitWeighted;
+    }
+
+    const value = Number(
+      item?.calculated_revenue ??
+      item?.amount_total ??
+      item?.calc_year1_total ??
+      item?.amount_estimated ??
+      0
+    );
     const probability = Number(item?.probability ?? 0) / 100;
     return sum + ((Number.isFinite(value) ? value : 0) * (Number.isFinite(probability) ? probability : 0));
   }, 0);
@@ -4049,7 +4066,14 @@ export default function App() {
   const [newContactForm, setNewContactForm] = useState(buildContactFormFromRecord());
 
   const [routePath, setRoutePath] = useState(getInitialPath());
-  const [opportunities, setOpportunities] = useState(initialOpportunities);
+  const [opportunities, setOpportunities] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem('naes-crm-opportunity-list');
+      return safeParseStoredJson(raw, initialOpportunities);
+    } catch {
+      return initialOpportunities;
+    }
+  });
 
   const flatItems = useMemo(() => sidebarSections.flatMap((section) => section.items), []);
   const routeInfo = parseOpportunityRoute(routePath);
@@ -4098,6 +4122,14 @@ export default function App() {
       console.warn('Could not persist contact list', error);
     }
   }, [contactList]);
+
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem('naes-crm-opportunity-list', JSON.stringify(opportunities));
+    } catch (error) {
+      console.warn('Could not persist opportunity list', error);
+    }
+  }, [opportunities]);
 
   function navigate(nextPage) {
     setActivePage(nextPage);
@@ -4498,6 +4530,9 @@ function saveNewOpportunity() {
     ? 0.3
     : 0.5;
 
+  const estimatedEarningsPct = serviceLine === 'Other O&M' ? 30 : 37;
+  const estimatedCtsPct = 100 - estimatedEarningsPct;
+
   const newOpportunity = {
     id: newId,
     name: String(newOpportunityForm.name || 'New Opportunity').trim(),
@@ -4530,6 +4565,8 @@ function saveNewOpportunity() {
     high_estimate: highValue,
     weighted_revenue: selectedValue * weightedPct,
     calculated_revenue: selectedValue,
+    estimated_earnings_pct: estimatedEarningsPct,
+    estimated_cts_pct: estimatedCtsPct,
     account_name: account?.name || '',
     last_activity_date: '',
     staleness_flag: 'Current',
