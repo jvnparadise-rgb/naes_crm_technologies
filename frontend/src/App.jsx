@@ -7,7 +7,7 @@ const sidebarSections = [
   },
   {
     title: 'Forecasting',
-    items: ['Forecast Dashboard', 'Forecast Integrity', 'Period Control']
+    items: ['Forecast Dashboard', 'Forecast Integrity', 'Period Control', 'Client Reports']
   },
   {
     title: 'CRM',
@@ -3276,6 +3276,557 @@ function renderPeriodControlPage({ opportunities = [], onOpenOpportunity } = {})
   );
 }
 
+function ClientReportsPage({ opportunities = [], accounts = [], contacts = [] }) {
+  const derivedClientReports = deriveClientReportsFromOpportunities(opportunities, accounts, contacts);
+
+  const [selectedReportId, setSelectedReportId] = useState(derivedClientReports[0]?.reportId || '');
+  const [reportPeriodMode, setReportPeriodMode] = useState('Reporting Period');
+  const [customStartDate, setCustomStartDate] = useState('2026-03-01');
+  const [customEndDate, setCustomEndDate] = useState('2026-03-31');
+  const [recipientInput, setRecipientInput] = useState(derivedClientReports[0]?.deliveryRecipient || '');
+  const [actionMessage, setActionMessage] = useState('');
+  const [lastActionType, setLastActionType] = useState('');
+  const [rowActionSelections, setRowActionSelections] = useState({});
+
+  const clientReports = loadClientReports({}, derivedClientReports);
+  const summary = loadClientReportSummary(clientReports);
+  const selectedReport =
+    clientReports.find((report) => report.reportId === selectedReportId) ||
+    clientReports[0] ||
+    null;
+
+  const clientOptions = ['All Clients', ...Array.from(new Set(clientReports.map((item) => item.clientName))).sort()];
+  const typeOptions = ['All Types', ...Array.from(new Set(clientReports.map((item) => item.reportType))).sort()];
+  const statusOptions = ['All Statuses', ...Array.from(new Set(clientReports.map((item) => item.status))).sort()];
+  const ownerOptions = ['All Owners', ...Array.from(new Set(clientReports.map((item) => item.ownerName).filter(Boolean))).sort()];
+  const sourceOptions = ['All Sources', ...Array.from(new Set(clientReports.map((item) => item.sourceSystem))).sort()];
+  const periodOptions = ['All Periods', ...Array.from(new Set(clientReports.map((item) => item.reportingPeriod))).sort()];
+
+  const pageStyle = { maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' };
+  const heroStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '24px',
+    padding: '28px 30px',
+    boxShadow: '0 18px 40px rgba(5, 47, 53, 0.08)'
+  };
+  const cardStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '22px',
+    padding: '24px',
+    boxShadow: '0 14px 34px rgba(5, 47, 53, 0.06)'
+  };
+  const titleStyle = { margin: 0, fontSize: '22px', lineHeight: 1.2, fontWeight: 800, color: '#123B42' };
+  const introStyle = { margin: '6px 0 0', fontSize: '14px', lineHeight: 1.6, color: '#5F6F72' };
+  const kpiGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' };
+  const kpiCardStyle = {
+    background: '#F7FBF8',
+    border: '1px solid #D9E4DA',
+    borderRadius: '18px',
+    padding: '18px 18px 16px'
+  };
+  const actionSelectStyle = {
+    width: '100%',
+    height: '32px',
+    borderRadius: '9px',
+    border: '1px solid #C9D8CE',
+    background: '#F7FBF8',
+    color: '#123B42',
+    padding: '0 10px',
+    fontSize: '11px',
+    fontWeight: 700,
+    outline: 'none'
+  };
+  const primaryButtonStyle = {
+    height: '40px',
+    borderRadius: '12px',
+    border: '1px solid #0B6771',
+    background: '#0B6771',
+    color: '#FFFFFF',
+    padding: '0 14px',
+    fontSize: '13px',
+    fontWeight: 700,
+    cursor: 'pointer'
+  };
+
+  const workflowCards = [
+    {
+      label: 'Ready for Review',
+      value: summary.readyForReview,
+      detail: 'Awaiting internal review before delivery.'
+    },
+    {
+      label: 'In Progress',
+      value: summary.inProgress,
+      detail: 'Currently assembling or reconciling inputs.'
+    },
+    {
+      label: 'Delivered',
+      value: summary.delivered,
+      detail: 'Completed and sent to client recipients.'
+    },
+    {
+      label: 'Failed / Exceptions',
+      value: summary.failed,
+      detail: 'Need intervention due to sync or generation issues.'
+    }
+  ];
+
+  function selectReport(report) {
+    setSelectedReportId(report.reportId);
+    setRecipientInput(report.deliveryRecipient || '');
+    setActionMessage('');
+    setLastActionType('');
+  }
+
+  function runRowAction(report, action) {
+    if (!report || !action) return;
+    selectReport(report);
+
+    if (action === 'Open') {
+      setLastActionType('Open');
+      setActionMessage('Report selected in the action panel.');
+      return;
+    }
+
+    if (action === 'Generate') {
+      const result = generateClientReport(report.reportId, {
+        mode: reportPeriodMode,
+        reportingPeriod: report.reportingPeriod,
+        startDate: customStartDate,
+        endDate: customEndDate
+      });
+      setLastActionType('Generate');
+      setActionMessage(result.message || 'Client report generated.');
+      return;
+    }
+
+    if (action === 'Preview') {
+      const result = previewClientReport(report.reportId);
+      setLastActionType('Preview');
+      setActionMessage(result.message || 'Client report preview ready.');
+      return;
+    }
+
+    if (action === 'Send') {
+      const result = sendClientReport(report.reportId, {
+        recipients: report.deliveryRecipient || recipientInput,
+        mode: reportPeriodMode,
+        reportingPeriod: report.reportingPeriod,
+        startDate: customStartDate,
+        endDate: customEndDate
+      });
+      setLastActionType('Send');
+      setActionMessage(result.message || 'Client report sent.');
+      return;
+    }
+  }
+
+  function handleGenerate() {
+    if (!selectedReport) return;
+    const result = generateClientReport(selectedReport.reportId, {
+      mode: reportPeriodMode,
+      reportingPeriod: selectedReport.reportingPeriod,
+      startDate: customStartDate,
+      endDate: customEndDate
+    });
+    setLastActionType('Generate');
+    setActionMessage(result.message || 'Client report generated.');
+  }
+
+  function handlePreview() {
+    if (!selectedReport) return;
+    const result = previewClientReport(selectedReport.reportId);
+    setLastActionType('Preview');
+    setActionMessage(result.message || 'Client report preview ready.');
+  }
+
+  function handleSend() {
+    if (!selectedReport) return;
+    const result = sendClientReport(selectedReport.reportId, {
+      recipients: recipientInput,
+      mode: reportPeriodMode,
+      reportingPeriod: selectedReport.reportingPeriod,
+      startDate: customStartDate,
+      endDate: customEndDate
+    });
+    setLastActionType('Send');
+    setActionMessage(result.message || 'Client report sent.');
+  }
+
+  return (
+    <div style={pageStyle}>
+      <div style={heroStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#0B6771' }}>
+              Reporting Operations
+            </div>
+            <h2 style={{ margin: '10px 0 0', fontSize: '34px', lineHeight: 1.08, fontWeight: 850, letterSpacing: '-0.03em', color: '#123B42' }}>
+              Client Reports
+            </h2>
+            <p style={{ margin: '10px 0 0', maxWidth: '840px', fontSize: '15px', lineHeight: 1.7, color: '#5F6F72' }}>
+              API-ready operational view for client-facing reporting, review workflow, delivery status, source-system sync visibility, and outbound delivery execution.
+            </p>
+          </div>
+
+          <div
+            style={{
+              minWidth: '250px',
+              background: '#F7FBF8',
+              border: '1px solid #D9E4DA',
+              borderRadius: '18px',
+              padding: '18px 18px 16px'
+            }}
+          >
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5F6F72' }}>
+              Last Sync
+            </div>
+            <div style={{ marginTop: '8px', fontSize: '20px', fontWeight: 800, color: '#123B42' }}>
+              {formatClientReportDateTime(summary.lastSyncAt)}
+            </div>
+            <div style={{ marginTop: '8px', fontSize: '13px', color: '#5F6F72', lineHeight: 1.5 }}>
+              Normalized from upstream source records and ready for backend/API replacement later.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={kpiGridStyle}>
+        {[
+          ['Reports Due', summary.reportsDue],
+          ['Ready for Review', summary.readyForReview],
+          ['Delivered', summary.delivered],
+          ['Overdue / Failed', summary.overdue + summary.failed]
+        ].map(([label, value]) => (
+          <div key={label} style={kpiCardStyle}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5F6F72' }}>{label}</div>
+            <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#123B42' }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={cardStyle}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '12px' }}>
+          {[
+            ['Client', clientOptions],
+            ['Type', typeOptions],
+            ['Status', statusOptions],
+            ['Owner', ownerOptions],
+            ['Source', sourceOptions],
+            ['Period', periodOptions]
+          ].map(([label, options]) => (
+            <div key={label}>
+              <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72', marginBottom: '8px' }}>
+                {label}
+              </div>
+              <select
+                defaultValue={options[0]}
+                style={{
+                  width: '100%',
+                  height: '42px',
+                  borderRadius: '12px',
+                  border: '1px solid #D7E1DB',
+                  background: '#FAFCFB',
+                  padding: '0 12px',
+                  color: '#22372C',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              >
+                {options.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '24px' }}>
+        {workflowCards.map((card) => (
+          <div key={card.label} style={cardStyle}>
+            <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#0B6771' }}>
+              {card.label}
+            </div>
+            <div style={{ marginTop: '10px', fontSize: '30px', fontWeight: 800, color: '#123B42' }}>{card.value}</div>
+            <div style={{ marginTop: '8px', fontSize: '13px', color: '#5F6F72', lineHeight: 1.5 }}>{card.detail}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gap: '24px' }}>
+        <div style={cardStyle}>
+          <div style={{ marginBottom: '16px' }}>
+            <h3 style={titleStyle}>Report Action Panel</h3>
+            <p style={introStyle}>Select a report, adjust period inputs, review recipient, and trigger generation or outbound send.</p>
+          </div>
+
+          {selectedReport ? (
+            <div style={{ display: 'grid', gap: '18px' }}>
+              <div style={{ padding: '14px 14px 12px', background: '#F7FBF8', border: '1px solid #D9E4DA', borderRadius: '16px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72' }}>Selected Report</div>
+                <div style={{ marginTop: '8px', fontSize: '18px', fontWeight: 800, color: '#123B42' }}>{selectedReport.reportName}</div>
+                <div style={{ marginTop: '6px', fontSize: '13px', color: '#5F6F72' }}>{selectedReport.clientName} • {selectedReport.reportType} • {selectedReport.reportingPeriod || '—'}</div>
+              </div>
+
+              <div style={{ display: 'grid', gap: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 1.2fr) minmax(180px, 1fr) minmax(180px, 1fr)', gap: '14px', alignItems: 'end' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72', marginBottom: '8px' }}>
+                      Period Mode
+                    </div>
+                    <select
+                      value={reportPeriodMode}
+                      onChange={(event) => setReportPeriodMode(event.target.value)}
+                      style={{
+                        width: '100%',
+                        minWidth: 0,
+                        height: '42px',
+                        borderRadius: '12px',
+                        border: '1px solid #D7E1DB',
+                        background: '#FAFCFB',
+                        padding: '0 12px',
+                        color: '#22372C',
+                        fontSize: '14px',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      {['Reporting Period', 'Custom Date Range'].map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72', marginBottom: '8px' }}>
+                      Start Date
+                    </div>
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(event) => setCustomStartDate(event.target.value)}
+                      style={{
+                        width: '100%',
+                        minWidth: 0,
+                        height: '42px',
+                        borderRadius: '12px',
+                        border: '1px solid #D7E1DB',
+                        background: '#FAFCFB',
+                        padding: '0 12px',
+                        color: '#22372C',
+                        fontSize: '14px',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72', marginBottom: '8px' }}>
+                      End Date
+                    </div>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(event) => setCustomEndDate(event.target.value)}
+                      style={{
+                        width: '100%',
+                        minWidth: 0,
+                        height: '42px',
+                        borderRadius: '12px',
+                        border: '1px solid #D7E1DB',
+                        background: '#FAFCFB',
+                        padding: '0 12px',
+                        color: '#22372C',
+                        fontSize: '14px',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ maxWidth: '540px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72', marginBottom: '8px' }}>
+                    Recipient Email(s)
+                  </div>
+                  <input
+                    type="text"
+                    value={recipientInput}
+                    onChange={(event) => setRecipientInput(event.target.value)}
+                    placeholder="client@example.com"
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      borderRadius: '12px',
+                      border: '1px solid #D7E1DB',
+                      background: '#FAFCFB',
+                      padding: '0 12px',
+                      color: '#22372C',
+                      fontSize: '14px',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button type="button" style={primaryButtonStyle} onClick={handleGenerate}>Generate</button>
+                <button type="button" style={primaryButtonStyle} onClick={handlePreview}>Preview</button>
+                <button type="button" style={primaryButtonStyle} onClick={handleSend}>Send</button>
+              </div>
+
+              <div style={{ padding: '14px 14px 12px', background: '#F7FBF8', border: '1px solid #D9E4DA', borderRadius: '16px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72' }}>Execution Status</div>
+                <div style={{ marginTop: '8px', fontSize: '14px', fontWeight: 700, color: '#123B42' }}>
+                  {lastActionType ? `${lastActionType} completed` : 'No action executed yet'}
+                </div>
+                <div style={{ marginTop: '6px', fontSize: '13px', color: '#5F6F72', lineHeight: 1.5 }}>
+                  {actionMessage || 'This panel is wired to service stubs now and is ready for backend/API replacement later.'}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: '14px', color: '#5F6F72' }}>No report selected.</div>
+          )}
+        </div>
+
+        <div style={cardStyle}>
+          <div style={{ marginBottom: '18px' }}>
+            <h3 style={titleStyle}>Report Queue</h3>
+            <p style={introStyle}>Stable normalized queue for generation, review, sync, delivery workflows, and outbound actions.</p>
+          </div>
+
+          <div style={{ display: 'grid', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 0.9fr 0.95fr 0.85fr 1fr 0.95fr 0.85fr 0.85fr 0.9fr', gap: '10px', padding: '0 8px 8px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72' }}>
+              <div>Client</div>
+              <div>Report</div>
+              <div>Type / Period</div>
+              <div>Status</div>
+              <div>Delivery</div>
+              <div>Source</div>
+              <div>Sync</div>
+              <div>Due</div>
+              <div>Delivered</div>
+              <div>Actions</div>
+            </div>
+
+            {clientReports.map((report) => {
+              const statusTone = getClientReportStatusTone(report.status);
+              const syncTone = getClientReportSyncTone(report.syncStatus);
+              const isSelected = selectedReportId === report.reportId;
+
+              return (
+                <div
+                  key={report.reportId}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1.2fr 1.6fr 0.9fr 0.95fr 0.85fr 1fr 0.95fr 0.85fr 0.85fr 0.9fr',
+                    gap: '10px',
+                    alignItems: 'center',
+                    padding: '14px 12px',
+                    border: isSelected ? '1px solid #0B6771' : '1px solid #E3ECE4',
+                    borderRadius: '16px',
+                    background: isSelected ? '#F7FBF8' : '#FFFFFF'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#123B42' }}>{report.clientName}</div>
+                    <div style={{ fontSize: '12px', color: '#5F6F72', marginTop: '4px' }}>{report.clientId}</div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#123B42' }}>{report.reportName}</div>
+                    <div style={{ fontSize: '12px', color: '#5F6F72', marginTop: '4px' }}>{report.reportId}</div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#123B42' }}>{report.reportType}</div>
+                    <div style={{ fontSize: '12px', color: '#5F6F72', marginTop: '4px' }}>{report.reportingPeriod || '—'}</div>
+                  </div>
+
+                  <div>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '6px 10px',
+                        borderRadius: '999px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        background: statusTone.background,
+                        color: statusTone.color,
+                        border: `1px solid ${statusTone.border}`,
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {report.status}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '13px', color: '#5F6F72' }}>{report.deliveryStatus}</div>
+
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#123B42' }}>{report.sourceSystem}</div>
+                    <div style={{ fontSize: '12px', color: '#5F6F72', marginTop: '4px' }}>{report.sourceRecordId || '—'}</div>
+                  </div>
+
+                  <div>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '6px 10px',
+                        borderRadius: '999px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        background: syncTone.background,
+                        color: syncTone.color,
+                        border: `1px solid ${syncTone.border}`,
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {report.syncStatus}
+                    </span>
+                    <div style={{ fontSize: '12px', color: '#5F6F72', marginTop: '6px' }}>{formatClientReportDateTime(report.lastSyncedAt)}</div>
+                  </div>
+
+                  <div style={{ fontSize: '13px', color: '#5F6F72' }}>{formatClientReportDate(report.dueDate)}</div>
+                  <div style={{ fontSize: '13px', color: '#5F6F72' }}>{formatClientReportDate(report.deliveredAt)}</div>
+
+                  <select
+                    value={rowActionSelections[report.reportId] || ''}
+                    style={actionSelectStyle}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setRowActionSelections((current) => ({
+                        ...current,
+                        [report.reportId]: value
+                      }));
+                      if (!value) return;
+                      runRowAction(report, value);
+                    }}
+                  >
+                    <option value="">Actions</option>
+                    <option value="Open">Open</option>
+                    <option value="Generate">Generate</option>
+                    <option value="Preview">Preview</option>
+                    <option value="Send">Send</option>
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function formatCurrency(value) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -3409,6 +3960,421 @@ function buildTaskFormFromRecord(record = {}) {
     priority: record.priority || 'Medium',
     status: record.status || 'Not Started',
     notes: record.notes || ''
+  };
+}
+
+const CLIENT_REPORT_STATUS = {
+  NOT_STARTED: 'Not Started',
+  IN_PROGRESS: 'In Progress',
+  READY_FOR_REVIEW: 'Ready for Review',
+  DELIVERED: 'Delivered',
+  FAILED: 'Failed',
+};
+
+const CLIENT_REPORT_TYPE = {
+  MONTHLY: 'Monthly',
+  QUARTERLY: 'Quarterly',
+  ANNUAL: 'Annual',
+  AD_HOC: 'Ad Hoc',
+};
+
+const CLIENT_REPORT_DELIVERY_STATUS = {
+  PENDING: 'Pending',
+  DELIVERED: 'Delivered',
+  FAILED: 'Failed',
+  NOT_APPLICABLE: 'Not Applicable',
+};
+
+const CLIENT_REPORT_SYNC_STATUS = {
+  SYNCED: 'Synced',
+  PENDING: 'Pending',
+  PARTIAL: 'Partial',
+  FAILED: 'Failed',
+};
+
+const initialClientReports = [
+  {
+    reportId: 'CR-1001',
+    sourceSystem: 'Reporting Hub',
+    sourceRecordId: 'rh-44711',
+    clientId: 'client-onyx',
+    clientName: 'Onyx Renewables',
+    reportName: 'Onyx Renewables Monthly Operations Report',
+    reportType: CLIENT_REPORT_TYPE.MONTHLY,
+    reportingPeriod: '2026-03',
+    ownerName: 'Ashley Moreno',
+    portfolioName: 'Commercial DG Portfolio',
+    siteCount: 33,
+    status: CLIENT_REPORT_STATUS.READY_FOR_REVIEW,
+    deliveryStatus: CLIENT_REPORT_DELIVERY_STATUS.PENDING,
+    syncStatus: CLIENT_REPORT_SYNC_STATUS.SYNCED,
+    dueDate: '2026-04-05',
+    generatedAt: '2026-03-29T14:20:00',
+    deliveredAt: '',
+    lastUpdatedAt: '2026-03-29T14:20:00',
+    lastSyncedAt: '2026-03-30T08:15:00',
+    ingestedAt: '2026-03-30T08:15:00',
+    version: 'v1.0',
+    outputUrl: '',
+    draftUrl: '',
+    reviewOwner: 'Jeff Yarbrough',
+    deliveryRecipient: 'assetreports@onyxrenewables.com',
+    failureReason: '',
+    notes: 'Monthly package generated and awaiting internal review.',
+  },
+  {
+    reportId: 'CR-1002',
+    sourceSystem: 'Reporting Hub',
+    sourceRecordId: 'rh-44712',
+    clientId: 'client-smg',
+    clientName: 'Scale Microgrid Solutions',
+    reportName: 'Scale Microgrid Solutions Quarterly Business Review',
+    reportType: CLIENT_REPORT_TYPE.QUARTERLY,
+    reportingPeriod: '2026-Q1',
+    ownerName: 'Ashley Moreno',
+    portfolioName: 'Multi-Site PV and Storage',
+    siteCount: 18,
+    status: CLIENT_REPORT_STATUS.IN_PROGRESS,
+    deliveryStatus: CLIENT_REPORT_DELIVERY_STATUS.PENDING,
+    syncStatus: CLIENT_REPORT_SYNC_STATUS.PARTIAL,
+    dueDate: '2026-04-12',
+    generatedAt: '',
+    deliveredAt: '',
+    lastUpdatedAt: '2026-03-30T06:40:00',
+    lastSyncedAt: '2026-03-30T08:15:00',
+    ingestedAt: '2026-03-30T08:15:00',
+    version: 'v0.8',
+    outputUrl: '',
+    draftUrl: '',
+    reviewOwner: 'Jeff Yarbrough',
+    deliveryRecipient: 'operations@scalemicrogrids.com',
+    failureReason: '',
+    notes: 'Awaiting final KPI reconciliation from external reporting source.',
+  },
+  {
+    reportId: 'CR-1003',
+    sourceSystem: 'External API Gateway',
+    sourceRecordId: 'ext-99102',
+    clientId: 'client-federal',
+    clientName: 'Federal Portfolio Group',
+    reportName: 'Federal Portfolio Annual Report',
+    reportType: CLIENT_REPORT_TYPE.ANNUAL,
+    reportingPeriod: '2025',
+    ownerName: 'Paul Baltadonis',
+    portfolioName: 'National Solar Portfolio',
+    siteCount: 52,
+    status: CLIENT_REPORT_STATUS.DELIVERED,
+    deliveryStatus: CLIENT_REPORT_DELIVERY_STATUS.DELIVERED,
+    syncStatus: CLIENT_REPORT_SYNC_STATUS.SYNCED,
+    dueDate: '2026-03-15',
+    generatedAt: '2026-03-10T09:30:00',
+    deliveredAt: '2026-03-12T11:05:00',
+    lastUpdatedAt: '2026-03-12T11:05:00',
+    lastSyncedAt: '2026-03-30T08:15:00',
+    ingestedAt: '2026-03-30T08:15:00',
+    version: 'v1.0',
+    outputUrl: '#',
+    draftUrl: '',
+    reviewOwner: 'Jeff Yarbrough',
+    deliveryRecipient: 'leadership@federalportfolio.com',
+    failureReason: '',
+    notes: 'Delivered successfully.',
+  },
+  {
+    reportId: 'CR-1004',
+    sourceSystem: 'External API Gateway',
+    sourceRecordId: 'ext-99103',
+    clientId: 'client-clean-cap',
+    clientName: 'CleanCapital',
+    reportName: 'CleanCapital Monthly Site Performance Report',
+    reportType: CLIENT_REPORT_TYPE.MONTHLY,
+    reportingPeriod: '2026-03',
+    ownerName: 'Clint Chadwick',
+    portfolioName: 'Distributed Generation Fleet',
+    siteCount: 27,
+    status: CLIENT_REPORT_STATUS.FAILED,
+    deliveryStatus: CLIENT_REPORT_DELIVERY_STATUS.FAILED,
+    syncStatus: CLIENT_REPORT_SYNC_STATUS.FAILED,
+    dueDate: '2026-04-03',
+    generatedAt: '',
+    deliveredAt: '',
+    lastUpdatedAt: '2026-03-30T07:10:00',
+    lastSyncedAt: '2026-03-30T08:15:00',
+    ingestedAt: '2026-03-30T08:15:00',
+    version: 'v0.3',
+    outputUrl: '',
+    draftUrl: '',
+    reviewOwner: 'Jeff Yarbrough',
+    deliveryRecipient: 'reports@cleancapital.com',
+    failureReason: 'Source data package incomplete from upstream system.',
+    notes: 'Retry required after source reconciliation.',
+  },
+  {
+    reportId: 'CR-1005',
+    sourceSystem: 'Manual Upload Metadata',
+    sourceRecordId: 'manual-2201',
+    clientId: 'client-westlands',
+    clientName: 'Westlands Almond',
+    reportName: 'Westlands Almond Ad Hoc Reliability Review',
+    reportType: CLIENT_REPORT_TYPE.AD_HOC,
+    reportingPeriod: '2026-03',
+    ownerName: 'Ashley Moreno',
+    portfolioName: 'Single Client Review',
+    siteCount: 4,
+    status: CLIENT_REPORT_STATUS.NOT_STARTED,
+    deliveryStatus: CLIENT_REPORT_DELIVERY_STATUS.NOT_APPLICABLE,
+    syncStatus: CLIENT_REPORT_SYNC_STATUS.PENDING,
+    dueDate: '2026-04-18',
+    generatedAt: '',
+    deliveredAt: '',
+    lastUpdatedAt: '2026-03-29T16:00:00',
+    lastSyncedAt: '2026-03-30T08:15:00',
+    ingestedAt: '2026-03-30T08:15:00',
+    version: 'v0.1',
+    outputUrl: '',
+    draftUrl: '',
+    reviewOwner: 'Jeff Yarbrough',
+    deliveryRecipient: '',
+    failureReason: '',
+    notes: 'Ad hoc review requested, scope not yet started.',
+  },
+];
+
+function formatClientReportDate(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatClientReportDateTime(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function getClientReportStatusTone(status) {
+  if (status === CLIENT_REPORT_STATUS.DELIVERED) {
+    return { background: '#E8F4EC', color: '#256A3E', border: '#B8D7C2' };
+  }
+  if (status === CLIENT_REPORT_STATUS.READY_FOR_REVIEW) {
+    return { background: '#EEF4FF', color: '#285EA8', border: '#C9D9F2' };
+  }
+  if (status === CLIENT_REPORT_STATUS.IN_PROGRESS) {
+    return { background: '#FFF6E8', color: '#9C6218', border: '#F0D3A6' };
+  }
+  if (status === CLIENT_REPORT_STATUS.FAILED) {
+    return { background: '#FCECEC', color: '#A63E3E', border: '#E7C0C0' };
+  }
+  return { background: '#F4F6F8', color: '#566370', border: '#D7DEE5' };
+}
+
+function getClientReportSyncTone(syncStatus) {
+  if (syncStatus === CLIENT_REPORT_SYNC_STATUS.SYNCED) {
+    return { background: '#E8F4EC', color: '#256A3E', border: '#B8D7C2' };
+  }
+  if (syncStatus === CLIENT_REPORT_SYNC_STATUS.PARTIAL) {
+    return { background: '#FFF6E8', color: '#9C6218', border: '#F0D3A6' };
+  }
+  if (syncStatus === CLIENT_REPORT_SYNC_STATUS.FAILED) {
+    return { background: '#FCECEC', color: '#A63E3E', border: '#E7C0C0' };
+  }
+  return { background: '#F4F6F8', color: '#566370', border: '#D7DEE5' };
+}
+
+function normalizeClientReportRecord(record = {}) {
+  return {
+    reportId: String(record.reportId || ''),
+    sourceSystem: String(record.sourceSystem || 'Unknown Source'),
+    sourceRecordId: String(record.sourceRecordId || ''),
+    clientId: String(record.clientId || ''),
+    clientName: String(record.clientName || 'Unknown Client'),
+    reportName: String(record.reportName || 'Untitled Report'),
+    reportType: String(record.reportType || CLIENT_REPORT_TYPE.MONTHLY),
+    reportingPeriod: String(record.reportingPeriod || ''),
+    ownerName: String(record.ownerName || ''),
+    portfolioName: String(record.portfolioName || ''),
+    siteCount: Number(record.siteCount || 0),
+    status: String(record.status || CLIENT_REPORT_STATUS.NOT_STARTED),
+    deliveryStatus: String(record.deliveryStatus || CLIENT_REPORT_DELIVERY_STATUS.PENDING),
+    syncStatus: String(record.syncStatus || CLIENT_REPORT_SYNC_STATUS.PENDING),
+    dueDate: String(record.dueDate || ''),
+    generatedAt: String(record.generatedAt || ''),
+    deliveredAt: String(record.deliveredAt || ''),
+    lastUpdatedAt: String(record.lastUpdatedAt || ''),
+    lastSyncedAt: String(record.lastSyncedAt || ''),
+    ingestedAt: String(record.ingestedAt || ''),
+    version: String(record.version || ''),
+    outputUrl: String(record.outputUrl || ''),
+    draftUrl: String(record.draftUrl || ''),
+    reviewOwner: String(record.reviewOwner || ''),
+    deliveryRecipient: String(record.deliveryRecipient || ''),
+    failureReason: String(record.failureReason || ''),
+    notes: String(record.notes || ''),
+  };
+}
+
+function loadClientReports(filters = {}, records = initialClientReports) {
+  const normalized = (Array.isArray(records) ? records : initialClientReports).map(normalizeClientReportRecord);
+
+  return normalized.filter((report) => {
+    if (filters.clientName && filters.clientName !== 'All Clients' && report.clientName !== filters.clientName) return false;
+    if (filters.reportType && filters.reportType !== 'All Types' && report.reportType !== filters.reportType) return false;
+    if (filters.status && filters.status !== 'All Statuses' && report.status !== filters.status) return false;
+    if (filters.ownerName && filters.ownerName !== 'All Owners' && report.ownerName !== filters.ownerName) return false;
+    if (filters.sourceSystem && filters.sourceSystem !== 'All Sources' && report.sourceSystem !== filters.sourceSystem) return false;
+    if (filters.reportingPeriod && filters.reportingPeriod !== 'All Periods' && report.reportingPeriod !== filters.reportingPeriod) return false;
+    return true;
+  });
+}
+
+function loadClientReportSummary(records = initialClientReports) {
+  const normalized = (Array.isArray(records) ? records : initialClientReports).map(normalizeClientReportRecord);
+  const uniqueClients = new Set(normalized.map((item) => item.clientName).filter(Boolean));
+  const lastSyncAt = normalized.reduce((latest, item) => {
+    if (!item.lastSyncedAt) return latest;
+    if (!latest) return item.lastSyncedAt;
+    return new Date(item.lastSyncedAt) > new Date(latest) ? item.lastSyncedAt : latest;
+  }, '');
+
+  const overdueCount = normalized.filter((item) => {
+    if (!item.dueDate) return false;
+    if (item.status === CLIENT_REPORT_STATUS.DELIVERED) return false;
+    const due = new Date(item.dueDate);
+    const now = new Date('2026-03-30T09:00:00');
+    return !Number.isNaN(due.getTime()) && due < now;
+  }).length;
+
+  return {
+    reportsDue: normalized.filter((item) => !!item.dueDate).length,
+    inProgress: normalized.filter((item) => item.status === CLIENT_REPORT_STATUS.IN_PROGRESS).length,
+    readyForReview: normalized.filter((item) => item.status === CLIENT_REPORT_STATUS.READY_FOR_REVIEW).length,
+    delivered: normalized.filter((item) => item.status === CLIENT_REPORT_STATUS.DELIVERED).length,
+    overdue: overdueCount,
+    failed: normalized.filter((item) => item.status === CLIENT_REPORT_STATUS.FAILED).length,
+    clientsCovered: uniqueClients.size,
+    lastSyncAt,
+  };
+}
+
+function loadClientReportHistory(clientId) {
+  return initialClientReports
+    .map(normalizeClientReportRecord)
+    .filter((report) => report.clientId === clientId)
+    .sort((a, b) => {
+      const aDate = new Date(a.lastUpdatedAt || a.generatedAt || 0).getTime();
+      const bDate = new Date(b.lastUpdatedAt || b.generatedAt || 0).getTime();
+      return bDate - aDate;
+    });
+}
+
+function deriveClientReportsFromOpportunities(opportunities = [], accounts = [], contacts = []) {
+  const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
+  const safeAccounts = Array.isArray(accounts) ? accounts : [];
+  const safeContacts = Array.isArray(contacts) ? contacts : [];
+
+  const accountById = new Map(safeAccounts.map((account) => [String(account?.id || ''), account]));
+  const contactById = new Map(safeContacts.map((contact) => [String(contact?.id || ''), contact]));
+
+  return safeOpportunities
+    .filter((opportunity) => {
+      const serviceLine = String(opportunity?.service_line || opportunity?.serviceLine || '').trim();
+      const marketSegment = String(opportunity?.market_segment || opportunity?.marketSegment || '').trim();
+      return serviceLine === 'Renewables' && (marketSegment === 'DG' || marketSegment === 'USS');
+    })
+    .map((opportunity) => {
+      const opportunityId = String(opportunity?.id || '').trim();
+      const accountId = String(opportunity?.account_id || opportunity?.accountId || '').trim();
+      const contactId = String(opportunity?.primary_contact_id || opportunity?.primaryContactId || '').trim();
+
+      const account = accountById.get(accountId) || null;
+      const contact = contactById.get(contactId) || null;
+
+      const marketSegment = String(opportunity?.market_segment || opportunity?.marketSegment || '').trim();
+      const clientName =
+        String(account?.name || opportunity?.account_name || opportunity?.account || '').trim() || 'Unknown Client';
+      const ownerName =
+        String(opportunity?.owner_full_name || opportunity?.owner || '').trim() || 'Jeff Yarbrough';
+      const deliveryRecipient =
+        String(contact?.email || account?.generalEmail || '').trim();
+      const derivedStatus = deliveryRecipient
+        ? CLIENT_REPORT_STATUS.READY_FOR_REVIEW
+        : CLIENT_REPORT_STATUS.NOT_STARTED;
+      const derivedDueDate = '2026-04-05';
+
+      return normalizeClientReportRecord({
+        reportId: `CR-${opportunityId || Date.now()}`,
+        sourceSystem: 'CRM Opportunities',
+        sourceRecordId: opportunityId,
+        clientId: accountId || opportunityId,
+        clientName,
+        reportName: `${clientName} Monthly Operations Report`,
+        reportType: CLIENT_REPORT_TYPE.MONTHLY,
+        reportingPeriod: '2026-03',
+        ownerName,
+        portfolioName: `${marketSegment} Renewables`,
+        siteCount: Number(opportunity?.renewablesSiteCount || 0),
+        status: derivedStatus,
+        deliveryStatus: CLIENT_REPORT_DELIVERY_STATUS.PENDING,
+        syncStatus: CLIENT_REPORT_SYNC_STATUS.SYNCED,
+        dueDate: derivedDueDate,
+        generatedAt: '',
+        deliveredAt: '',
+        lastUpdatedAt: String(opportunity?.updated_at || opportunity?.created_at || '').trim(),
+        lastSyncedAt: String(opportunity?.updated_at || opportunity?.created_at || '').trim(),
+        ingestedAt: String(opportunity?.created_at || '').trim(),
+        version: 'v0.1',
+        outputUrl: '',
+        draftUrl: '',
+        reviewOwner: ownerName,
+        deliveryRecipient,
+        failureReason: '',
+        notes: `Derived from live opportunity ${String(opportunity?.name || '').trim() || 'Opportunity'}.`
+      });
+    })
+    .sort((a, b) => String(a.clientName || '').localeCompare(String(b.clientName || '')));
+}
+
+function generateClientReport(reportId, params = {}) {
+  return {
+    ok: true,
+    reportId,
+    generationStatus: 'Generated',
+    generatedAt: new Date().toISOString(),
+    artifactUrl: '#',
+    params,
+    message: 'Client report generation stub completed successfully.'
+  };
+}
+
+function previewClientReport(reportId) {
+  return {
+    ok: true,
+    reportId,
+    previewUrl: '#',
+    message: 'Client report preview stub ready.'
+  };
+}
+
+function sendClientReport(reportId, payload = {}) {
+  return {
+    ok: true,
+    reportId,
+    sendStatus: 'Sent',
+    sentAt: new Date().toISOString(),
+    payload,
+    message: 'Client report send stub completed successfully.'
   };
 }
 
@@ -8338,6 +9304,8 @@ function openOpportunityDetail(opportunityId) {
               ? renderForecastIntegrityPage({ opportunities, onOpenOpportunity: openOpportunityDetail })
               : safeActivePage === 'Period Control'
               ? renderPeriodControlPage({ opportunities, onOpenOpportunity: openOpportunityDetail })
+              : safeActivePage === 'Client Reports'
+              ? <ClientReportsPage opportunities={opportunities} accounts={accountList} contacts={contactList} />
               : safeActivePage === 'Opportunities'
               ? (
                 showNewOpportunityForm
