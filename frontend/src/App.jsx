@@ -275,7 +275,7 @@ function renderUserPlacard() {
   );
 }
 
-function renderExecutiveDashboard({ accounts = [], contacts = [], opportunities = [] } = {}) {
+function renderExecutiveDashboard({ accounts = [], contacts = [], opportunities = [], onOpenOpportunity } = {}) {
   const safeAccounts = Array.isArray(accounts) ? accounts : [];
   const safeContacts = Array.isArray(contacts) ? contacts : [];
   const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
@@ -320,22 +320,57 @@ function renderExecutiveDashboard({ accounts = [], contacts = [], opportunities 
   }
 
   function forecastCategoryFor(item) {
-    return normalizeText(item?.forecast_category ?? item?.forecastCategory);
+    const raw = normalizeText(item?.forecast_category ?? item?.forecastCategory);
+    if (raw === 'bestcase' || raw === 'best case') return 'Best Case';
+    if (raw === 'commit') return 'Commit';
+    if (raw === 'closedwon' || raw === 'closed won' || raw === 'closed') return 'Closed Won';
+    if (raw === 'closedlost' || raw === 'closed lost') return 'Closed Lost';
+    return 'Pipeline';
   }
 
   function stageFor(item) {
-    return normalizeText(item?.stage ?? item?.salesStage ?? item?.stage_name ?? item?.stageName);
+    return String(item?.stage ?? item?.salesStage ?? item?.stage_name ?? item?.stageName ?? '0 Prospecting').trim();
+  }
+
+  function expectedCloseFor(item) {
+    return String(item?.expected_close_date || '').trim();
+  }
+
+  function ownerFor(item) {
+    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+  }
+
+  function monthKey(dateText) {
+    const d = new Date(dateText);
+    if (Number.isNaN(d.getTime())) return null;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function monthLabel(key) {
+    const [year, month] = String(key).split('-').map(Number);
+    const d = new Date(year, (month || 1) - 1, 1);
+    return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  }
+
+  function recentMonthKeys(count = 6) {
+    const keys = [];
+    const now = new Date();
+    for (let i = count - 1; i >= 0; i -= 1) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    return keys;
   }
 
   function isClosedWon(item) {
-    const stage = stageFor(item);
-    const forecast = forecastCategoryFor(item);
+    const stage = normalizeText(stageFor(item));
+    const forecast = normalizeText(forecastCategoryFor(item));
     return stage === 'closedwon' || forecast === 'closedwon';
   }
 
   function isClosedLost(item) {
-    const stage = stageFor(item);
-    const forecast = forecastCategoryFor(item);
+    const stage = normalizeText(stageFor(item));
+    const forecast = normalizeText(forecastCategoryFor(item));
     return stage === 'closedlost' || forecast === 'closedlost';
   }
 
@@ -343,20 +378,168 @@ function renderExecutiveDashboard({ accounts = [], contacts = [], opportunities 
     return !isClosedWon(item) && !isClosedLost(item);
   }
 
+  function riskReasonFor(item) {
+    const reasons = [];
+    const stale = String(item?.staleness_flag || '').trim();
+    if (stale) reasons.push(stale);
+    if (!expectedCloseFor(item)) reasons.push('Missing close date');
+    if (!toNumber(item?.probability) && forecastCategoryFor(item) !== 'Pipeline') reasons.push('No probability');
+    return reasons.join(', ') || 'Monitor';
+  }
+
   const openOpportunities = safeOpportunities.filter(isOpen);
+  const commitDeals = openOpportunities.filter((item) => forecastCategoryFor(item) === 'Commit');
+  const atRiskDeals = openOpportunities.filter((item) => {
+    const flag = String(item?.staleness_flag || '').toLowerCase();
+    return flag.includes('risk') || flag.includes('overdue') || flag.includes('stale');
+  });
 
   const totalPipeline = openOpportunities.reduce((sum, item) => sum + revenueFor(item), 0);
   const weightedPipeline = openOpportunities.reduce((sum, item) => sum + weightedFor(item), 0);
-  const commitDeals = safeOpportunities.filter((item) => forecastCategoryFor(item) === 'commit');
-  const bestCaseDeals = safeOpportunities.filter((item) => forecastCategoryFor(item) === 'bestcase');
-  const closedWonDeals = safeOpportunities.filter(isClosedWon);
-
   const commitValue = commitDeals.reduce((sum, item) => sum + revenueFor(item), 0);
-  const bestCaseValue = bestCaseDeals.reduce((sum, item) => sum + revenueFor(item), 0);
-  const closedWonValue = closedWonDeals.reduce((sum, item) => sum + revenueFor(item), 0);
-  const totalPotentialMargin = openOpportunities.reduce((sum, item) => {
-    return sum + (revenueFor(item) * toNumber(item?.estimated_earnings_pct || 0) / 100);
-  }, 0);
+
+  const kpis = [
+    { label: 'Open Pipeline', value: formatCurrency(totalPipeline), sub: `${openOpportunities.length} open opportunities` },
+    { label: 'Weighted Pipeline', value: formatCurrency(weightedPipeline), sub: 'forecast-adjusted value' },
+    { label: 'Commit', value: formatCurrency(commitValue), sub: `${commitDeals.length} commit deals` },
+    { label: 'At-Risk Deals', value: String(atRiskDeals.length), sub: 'stale or overdue follow-up' }
+  ];
+
+  const forecastCategories = ['Pipeline', 'Best Case', 'Commit', 'Closed Won', 'Closed Lost'];
+  const forecastRows = forecastCategories.map((label) => ({
+    label,
+    value: safeOpportunities
+      .filter((item) => forecastCategoryFor(item) === label)
+      .reduce((sum, item) => sum + revenueFor(item), 0)
+  }));
+  const maxForecastValue = Math.max(1, ...forecastRows.map((row) => row.value));
+
+  const stageOrder = [
+    '0 Prospecting',
+    '1 Qualified',
+    '2 Discovery',
+    '3 Solution Fit',
+    '4 Commercials',
+    '5 Security Legal',
+    '6 Commit',
+    '7 Closed Won',
+    '8 Closed Lost'
+  ];
+  const stageRows = stageOrder.map((stage) => {
+    const matches = safeOpportunities.filter((item) => stageFor(item) === stage);
+    return {
+      label: stage,
+      value: matches.reduce((sum, item) => sum + revenueFor(item), 0),
+      count: matches.length
+    };
+  });
+  const maxStageValue = Math.max(1, ...stageRows.map((row) => row.value));
+
+  const monthKeys = recentMonthKeys(6);
+
+  const periodRows = monthKeys.map((key) => {
+    const matchingOpen = openOpportunities.filter((item) => monthKey(expectedCloseFor(item)) === key);
+    const matchingCommit = commitDeals.filter((item) => monthKey(expectedCloseFor(item)) === key);
+    return {
+      key,
+      label: monthLabel(key),
+      open: matchingOpen.reduce((sum, item) => sum + revenueFor(item), 0),
+      weighted: matchingOpen.reduce((sum, item) => sum + weightedFor(item), 0),
+      commit: matchingCommit.reduce((sum, item) => sum + revenueFor(item), 0)
+    };
+  });
+  const maxPeriodBar = Math.max(1, ...periodRows.flatMap((row) => [row.open, row.weighted, row.commit]));
+
+  const trendRows = monthKeys.map((key) => {
+    const matchingOpen = openOpportunities.filter((item) => monthKey(expectedCloseFor(item)) === key);
+    const matchingWon = safeOpportunities.filter((item) => isClosedWon(item) && monthKey(expectedCloseFor(item)) === key);
+    return {
+      key,
+      label: monthLabel(key),
+      pipeline: matchingOpen.reduce((sum, item) => sum + revenueFor(item), 0),
+      weighted: matchingOpen.reduce((sum, item) => sum + weightedFor(item), 0),
+      won: matchingWon.reduce((sum, item) => sum + revenueFor(item), 0)
+    };
+  });
+  const maxTrendValue = Math.max(1, ...trendRows.flatMap((row) => [row.pipeline, row.weighted, row.won]));
+
+  function trendPoints(rows, accessor) {
+    return rows.map((row, index) => {
+      const x = rows.length === 1 ? 0 : (index / (rows.length - 1)) * 100;
+      const y = 100 - ((accessor(row) / maxTrendValue) * 100);
+      return `${x},${y}`;
+    }).join(' ');
+  }
+
+  const topOpenDeals = [...openOpportunities]
+    .sort((a, b) => revenueFor(b) - revenueFor(a))
+    .slice(0, 10);
+  const maxTopDealValue = Math.max(1, ...topOpenDeals.map((item) => revenueFor(item)));
+
+  const ownerRows = Object.entries(
+    openOpportunities.reduce((acc, item) => {
+      const owner = ownerFor(item);
+      if (!acc[owner]) acc[owner] = 0;
+      acc[owner] += revenueFor(item);
+      return acc;
+    }, {})
+  )
+    .map(([owner, value]) => ({ owner, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
+  const maxOwnerValue = Math.max(1, ...ownerRows.map((row) => row.value));
+
+  const closePeriods = [
+    { label: 'This Month', total: 0 },
+    { label: 'Next Month', total: 0 },
+    { label: 'This Quarter', total: 0 },
+    { label: 'Next Quarter', total: 0 }
+  ];
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const currentQuarter = Math.floor(currentMonth / 3);
+
+  openOpportunities.forEach((item) => {
+    const closeText = expectedCloseFor(item);
+    if (!closeText) return;
+    const closeDate = new Date(closeText);
+    if (Number.isNaN(closeDate.getTime())) return;
+
+    const closeMonth = closeDate.getMonth();
+    const closeYear = closeDate.getFullYear();
+    const closeQuarter = Math.floor(closeMonth / 3);
+    const weighted = weightedFor(item);
+
+    if (closeYear === currentYear && closeMonth === currentMonth) closePeriods[0].total += weighted;
+
+    const nextMonthDate = new Date(currentYear, currentMonth + 1, 1);
+    if (closeYear === nextMonthDate.getFullYear() && closeMonth === nextMonthDate.getMonth()) closePeriods[1].total += weighted;
+
+    if (closeYear === currentYear && closeQuarter === currentQuarter) closePeriods[2].total += weighted;
+
+    const nextQuarter = (currentQuarter + 1) % 4;
+    const nextQuarterYear = currentQuarter === 3 ? currentYear + 1 : currentYear;
+    if (closeYear === nextQuarterYear && closeQuarter === nextQuarter) closePeriods[3].total += weighted;
+  });
+
+  const maxClosePeriod = Math.max(1, ...closePeriods.map((row) => row.total));
+
+  const sectionTitle = {
+    margin: '8px 0 0 0',
+    fontSize: '20px',
+    fontWeight: 700,
+    color: '#123B2F'
+  };
+
+  const barTrack = {
+    width: '100%',
+    height: '14px',
+    borderRadius: '999px',
+    background: '#EDF2EE',
+    overflow: 'hidden'
+  };
 
   return (
     <div style={{ display: 'grid', gap: '18px' }}>
@@ -368,7 +551,7 @@ function renderExecutiveDashboard({ accounts = [], contacts = [], opportunities 
               Executive Dashboard
             </div>
             <div style={{ marginTop: '8px', fontSize: '14px', lineHeight: 1.6, color: '#4E6A5E', maxWidth: '760px' }}>
-              Live executive rollup of current opportunity performance and pipeline posture. This pass is intentionally KPI-only for stability.
+              Executive rollup driven by live CRM inputs, focused on forecast quality, stage distribution, timing, concentration, and risk.
             </div>
           </div>
 
@@ -383,18 +566,195 @@ function renderExecutiveDashboard({ accounts = [], contacts = [], opportunities 
             fontWeight: 700,
             whiteSpace: 'nowrap'
           }}>
-            Current Pipeline View
+            Leadership Pipeline View
           </div>
         </div>
       </section>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        <StatCard label="Total Pipeline" value={formatCurrency(totalPipeline)} sub={`${openOpportunities.length} open deals`} tone="primary" />
-        <StatCard label="Weighted Forecast" value={formatCurrency(weightedPipeline)} sub="probability-adjusted" tone="success" />
-        <StatCard label="Commit" value={formatCurrency(commitValue)} sub={`${commitDeals.length} commit deals`} tone="warning" />
-        <StatCard label="Best Case" value={formatCurrency(bestCaseValue)} sub={`${bestCaseDeals.length} best case deals`} tone="success" />
-        <StatCard label="Closed Won" value={formatCurrency(closedWonValue)} sub={`${closedWonDeals.length} won deals`} tone="primary" />
-        <StatCard label="Potential Margin" value={formatCurrency(totalPotentialMargin)} sub={`${safeAccounts.length} accounts, ${safeContacts.length} contacts`} tone="success" />
+        {kpis.map((card) => (
+          <StatCard key={card.label} label={card.label} value={card.value} sub={card.sub} tone="primary" />
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.05fr) minmax(0, 0.95fr)', gap: '18px' }}>
+        <section style={sectionCardStyle}>
+          {smallLabel('Forecast Category')}
+          <h3 style={sectionTitle}>Total Pipeline by Forecast Category</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '14px' }}>
+            {forecastRows.map((row) => (
+              <div key={row.label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>{row.label}</div>
+                  <div style={{ fontSize: '13px', color: '#475569' }}>{formatCurrency(row.value)}</div>
+                </div>
+                <div style={barTrack}>
+                  <div style={{ width: `${(row.value / maxForecastValue) * 100}%`, height: '100%', background: '#0B6771' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section style={sectionCardStyle}>
+          {smallLabel('Sales Stage')}
+          <h3 style={sectionTitle}>Pipeline by Sales Stage</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '14px' }}>
+            {stageRows.map((row) => (
+              <div key={row.label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>{row.label}</div>
+                  <div style={{ fontSize: '13px', color: '#475569' }}>{formatCurrency(row.value)} • {row.count}</div>
+                </div>
+                <div style={barTrack}>
+                  <div style={{ width: `${(row.value / maxStageValue) * 100}%`, height: '100%', background: '#2A83C5' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '18px' }}>
+        <section style={sectionCardStyle}>
+          {smallLabel('Period Comparison')}
+          <h3 style={sectionTitle}>Open vs Weighted vs Commit Trend</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, periodRows.length)}, minmax(0, 1fr))`, gap: '12px', alignItems: 'end', minHeight: '260px' }}>
+            {periodRows.map((row) => (
+              <div key={row.key} style={{ display: 'grid', gap: '8px', alignItems: 'end' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', alignItems: 'end', minHeight: '180px' }}>
+                  <div style={{ width: '18px', height: `${Math.max(8, (row.open / maxPeriodBar) * 100)}%`, background: '#C7D9D0', borderRadius: '10px 10px 0 0' }} />
+                  <div style={{ width: '18px', height: `${Math.max(8, (row.weighted / maxPeriodBar) * 100)}%`, background: '#0B6771', borderRadius: '10px 10px 0 0' }} />
+                  <div style={{ width: '18px', height: `${Math.max(8, (row.commit / maxPeriodBar) * 100)}%`, background: '#2A83C5', borderRadius: '10px 10px 0 0' }} />
+                </div>
+                <div style={{ fontSize: '12px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>{row.label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section style={sectionCardStyle}>
+          {smallLabel('Pipeline Trend')}
+          <h3 style={sectionTitle}>Pipeline Trend Over Time</h3>
+          <div style={{ marginTop: '18px', borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px' }}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '240px', display: 'block' }}>
+              <polyline fill="none" stroke="#0B6771" strokeWidth="2.5" points={trendPoints(trendRows, (row) => row.pipeline)} />
+              <polyline fill="none" stroke="#2A83C5" strokeWidth="2.5" points={trendPoints(trendRows, (row) => row.weighted)} />
+              <polyline fill="none" stroke="#6D8F72" strokeWidth="2.5" points={trendPoints(trendRows, (row) => row.won)} />
+            </svg>
+            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569' }}><span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#0B6771' }} /> Open Pipeline</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569' }}><span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#2A83C5' }} /> Weighted Pipeline</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569' }}><span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#6D8F72' }} /> Closed Won</div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '18px' }}>
+        <section style={sectionCardStyle}>
+          {smallLabel('Top Opportunities')}
+          <h3 style={sectionTitle}>Ranked by value</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
+            {topOpenDeals.length ? topOpenDeals.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onOpenOpportunity?.(item.id)}
+                style={{
+                  borderRadius: '18px',
+                  border: '1px solid #E5ECE5',
+                  background: '#FBFCFB',
+                  padding: '14px 16px',
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'grid', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>{item.name || 'Opportunity'}</div>
+                    <div style={{ fontSize: '13px', color: '#475569' }}>{formatCurrency(revenueFor(item))}</div>
+                  </div>
+                  <div style={barTrack}>
+                    <div style={{ width: `${(revenueFor(item) / maxTopDealValue) * 100}%`, height: '100%', background: '#6D8F72' }} />
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>
+                    {(item.account_name || item.accountName || 'No Account')} • {(item.forecast_category || 'Pipeline')}
+                  </div>
+                </div>
+              </button>
+            )) : (
+              <div style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px', fontSize: '14px', color: '#64748b' }}>
+                No open opportunities available yet.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section style={sectionCardStyle}>
+          {smallLabel('Close Timing')}
+          <h3 style={sectionTitle}>Weighted Revenue by Expected Close Period</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px', alignItems: 'end', minHeight: '260px' }}>
+            {closePeriods.map((bucket) => (
+              <div key={bucket.label} style={{ display: 'grid', gap: '8px', alignItems: 'end' }}>
+                <div style={{ fontSize: '12px', textAlign: 'center', color: '#475569' }}>{formatCurrency(bucket.total)}</div>
+                <div style={{ height: '180px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                  <div style={{ width: '56px', height: `${Math.max(8, (bucket.total / maxClosePeriod) * 100)}%`, borderRadius: '16px 16px 0 0', background: '#0B6771' }} />
+                </div>
+                <div style={{ fontSize: '12px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>{bucket.label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(0, 1.05fr)', gap: '18px' }}>
+        <section style={sectionCardStyle}>
+          {smallLabel('Pipeline by Owner')}
+          <h3 style={sectionTitle}>Owner concentration</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '14px' }}>
+            {ownerRows.length ? ownerRows.map((row) => (
+              <div key={row.owner}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>{row.owner}</div>
+                  <div style={{ fontSize: '13px', color: '#475569' }}>{formatCurrency(row.value)}</div>
+                </div>
+                <div style={barTrack}>
+                  <div style={{ width: `${(row.value / maxOwnerValue) * 100}%`, height: '100%', background: '#2A83C5' }} />
+                </div>
+              </div>
+            )) : (
+              <div style={{ fontSize: '14px', color: '#64748b' }}>No owner pipeline data available.</div>
+            )}
+          </div>
+        </section>
+
+        <section style={sectionCardStyle}>
+          {smallLabel('At-Risk Deals')}
+          <h3 style={sectionTitle}>Ranked exception table</h3>
+          <div style={{ marginTop: '16px', display: 'grid', gap: '10px' }}>
+            {atRiskDeals.length ? atRiskDeals.slice(0, 10).map((item) => (
+              <div key={item.id} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px' }}>
+                <div style={{ display: 'grid', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>{item.name || 'Opportunity'}</div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#B25547' }}>{String(item?.staleness_flag || 'At Risk')}</div>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#475569' }}>
+                    {ownerFor(item)} • {item.stage || 'No Stage'} • {item.forecast_category || 'Pipeline'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>
+                    {riskReasonFor(item)}
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px', fontSize: '14px', color: '#64748b' }}>
+                No at-risk deals currently flagged.
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -5551,7 +5911,7 @@ function openOpportunityDetail(opportunityId) {
 
           <div style={{ padding: '32px' }}>
             {safeActivePage === 'Dashboard'
-              ? renderExecutiveDashboard({ accounts: accountList, contacts: contactList, opportunities })
+              ? renderExecutiveDashboard({ accounts: accountList, contacts: contactList, opportunities, onStartNewContact: openWelcomeNewContact, onStartNewAccount: openWelcomeNewAccount, onStartNewOpportunity: openWelcomeNewOpportunity, onOpenOpportunity: openOpportunityDetail })
               : safeActivePage === 'Welcome'
               ? renderWelcomePage({ onStartNewContact: openWelcomeNewContact, onStartNewAccount: openWelcomeNewAccount, onStartNewOpportunity: openWelcomeNewOpportunity })
               : safeActivePage === 'Accounts'
