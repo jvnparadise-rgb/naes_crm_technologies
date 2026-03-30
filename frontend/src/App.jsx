@@ -400,7 +400,7 @@ function renderExecutiveDashboard({ accounts = [], contacts = [], opportunities 
   );
 }
 
-function renderWelcomePage({ onStartNewContact, onStartNewAccount }) {
+function renderWelcomePage({ onStartNewContact, onStartNewAccount, onStartNewOpportunity }) {
   const quickStartSteps = [
     {
       number: '1',
@@ -494,18 +494,19 @@ function renderWelcomePage({ onStartNewContact, onStartNewAccount }) {
             {quickStartSteps.map((step) => (
               <div
                 key={step.number}
-                role={step.number === '3' ? undefined : 'button'}
-                tabIndex={step.number === '3' ? undefined : 0}
+                role="button"
+                tabIndex={0}
                 onClick={() => {
                   if (step.number === '1') onStartNewContact?.();
                   if (step.number === '2') onStartNewAccount?.();
+                  if (step.number === '3') onStartNewOpportunity?.();
                 }}
                 onKeyDown={(event) => {
-                  if (step.number === '3') return;
                   if (event.key !== 'Enter' && event.key !== ' ') return;
                   event.preventDefault();
                   if (step.number === '1') onStartNewContact?.();
                   if (step.number === '2') onStartNewAccount?.();
+                  if (step.number === '3') onStartNewOpportunity?.();
                 }}
                 style={{
                   borderRadius: '22px',
@@ -513,8 +514,8 @@ function renderWelcomePage({ onStartNewContact, onStartNewAccount }) {
                   background: step.bg,
                   padding: '16px',
                   boxShadow: '0 6px 18px rgba(15, 23, 42, 0.04)',
-                  cursor: step.number === '3' ? 'default' : 'pointer',
-                  opacity: step.number === '3' ? 0.78 : 1,
+                  cursor: 'pointer',
+                  opacity: 1,
                 }}
               >
                 <div style={{ display: 'grid', gridTemplateColumns: '42px 1fr', gap: '14px', alignItems: 'start' }}>
@@ -541,11 +542,7 @@ function renderWelcomePage({ onStartNewContact, onStartNewAccount }) {
                     <div style={{ marginTop: '8px', fontSize: '14px', lineHeight: 1.6, color: '#475569' }}>
                       {step.body}
                     </div>
-                    {step.number === '3' ? (
-                      <div style={{ marginTop: '10px', fontSize: '12px', fontWeight: 700, color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                        Opportunity flow coming next
-                      </div>
-                    ) : null}
+
                   </div>
                 </div>
               </div>
@@ -2554,9 +2551,58 @@ function NewOpportunityPage({
 }
 
 function OpportunitiesOverviewPage({ onOpenOpportunity, onStartNewOpportunity, opportunities = [] }) {
-  const opportunityCards = Array.isArray(opportunities) ? opportunities : [];
+  const [searchTerm, setSearchTerm] = useState('');
+  const [forecastFilter, setForecastFilter] = useState('All');
+  const [sortOption, setSortOption] = useState('Close Date');
 
-  const openPipelineValue = opportunityCards.reduce((sum, item) => {
+  const allOpportunityCards = Array.isArray(opportunities) ? opportunities : [];
+
+  const filteredOpportunityCards = allOpportunityCards
+    .filter((item) => {
+      const q = String(searchTerm || '').trim().toLowerCase();
+      if (!q) return true;
+
+      const haystack = [
+        item?.name,
+        item?.account_name,
+        item?.accountName,
+        item?.owner_full_name,
+        item?.owner,
+        item?.service_line,
+        item?.market_segment,
+        item?.stage,
+        item?.forecast_category
+      ]
+        .map((value) => String(value || '').toLowerCase())
+        .join(' ');
+
+      return haystack.includes(q);
+    })
+    .filter((item) => {
+      if (forecastFilter === 'All') return true;
+      return String(item?.forecast_category || '').trim() === forecastFilter;
+    })
+    .sort((a, b) => {
+      if (sortOption === 'Close Date') {
+        const aTime = new Date(a?.expected_close_date || '9999-12-31').getTime();
+        const bTime = new Date(b?.expected_close_date || '9999-12-31').getTime();
+        return aTime - bTime;
+      }
+
+      if (sortOption === 'Opportunity Name') {
+        return String(a?.name || '').localeCompare(String(b?.name || ''));
+      }
+
+      if (sortOption === 'Revenue') {
+        const aValue = Number(a?.calculated_revenue ?? a?.amount_total ?? a?.calc_year1_total ?? a?.amount_estimated ?? 0);
+        const bValue = Number(b?.calculated_revenue ?? b?.amount_total ?? b?.calc_year1_total ?? b?.amount_estimated ?? 0);
+        return bValue - aValue;
+      }
+
+      return 0;
+    });
+
+  const openPipelineValue = filteredOpportunityCards.reduce((sum, item) => {
     const value = Number(
       item?.calculated_revenue ??
       item?.amount_total ??
@@ -2567,7 +2613,7 @@ function OpportunitiesOverviewPage({ onOpenOpportunity, onStartNewOpportunity, o
     return sum + (Number.isFinite(value) ? value : 0);
   }, 0);
 
-  const weightedPipelineValue = opportunityCards.reduce((sum, item) => {
+  const weightedPipelineValue = filteredOpportunityCards.reduce((sum, item) => {
     const explicitWeighted = Number(item?.weighted_revenue);
     if (Number.isFinite(explicitWeighted)) {
       return sum + explicitWeighted;
@@ -2584,14 +2630,14 @@ function OpportunitiesOverviewPage({ onOpenOpportunity, onStartNewOpportunity, o
     return sum + ((Number.isFinite(value) ? value : 0) * (Number.isFinite(probability) ? probability : 0));
   }, 0);
 
-  const commitCount = opportunityCards.filter((item) => String(item?.forecast_category || '') === 'Commit').length;
-  const atRiskCount = opportunityCards.filter((item) => {
+  const commitCount = filteredOpportunityCards.filter((item) => String(item?.forecast_category || '') === 'Commit').length;
+  const atRiskCount = filteredOpportunityCards.filter((item) => {
     const flag = String(item?.staleness_flag || '').toLowerCase();
     return flag.includes('risk') || flag.includes('overdue') || flag.includes('stale');
   }).length;
 
   const summaryCards = [
-    { label: 'Open Pipeline', value: formatCurrency(openPipelineValue), sub: `${opportunityCards.length} active opportunities` },
+    { label: 'Open Pipeline', value: formatCurrency(openPipelineValue), sub: `${filteredOpportunityCards.length} visible opportunities` },
     { label: 'Weighted Pipeline', value: formatCurrency(weightedPipelineValue), sub: 'forecast-adjusted' },
     { label: 'Commit Opportunities', value: String(commitCount), sub: 'forecast category commit' },
     { label: 'At-Risk Deals', value: String(atRiskCount), sub: 'stale or overdue follow-up' }
@@ -2607,13 +2653,24 @@ function OpportunitiesOverviewPage({ onOpenOpportunity, onStartNewOpportunity, o
     ['6 Commit', 0]
   ]);
 
-  opportunityCards.forEach((item) => {
+  filteredOpportunityCards.forEach((item) => {
     const stage = String(item?.stage || '0 Prospecting');
     if (!stageRollupMap.has(stage)) stageRollupMap.set(stage, 0);
     stageRollupMap.set(stage, (stageRollupMap.get(stage) || 0) + 1);
   });
 
   const stageRollup = Array.from(stageRollupMap.entries()).map(([stage, count]) => [stage.replace(/^\d+\s*/, ''), count]);
+
+  const controlStyle = {
+    borderRadius: '18px',
+    border: '1px solid #D8E2D7',
+    background: '#FBFCFB',
+    padding: '10px 14px',
+    fontSize: '14px',
+    color: '#475569',
+    minHeight: '44px',
+    boxSizing: 'border-box'
+  };
 
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
@@ -2627,7 +2684,7 @@ function OpportunitiesOverviewPage({ onOpenOpportunity, onStartNewOpportunity, o
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               type="button"
               onClick={onStartNewOpportunity}
@@ -2644,15 +2701,34 @@ function OpportunitiesOverviewPage({ onOpenOpportunity, onStartNewOpportunity, o
             >
               Add New Opportunity
             </button>
-            <div style={{ borderRadius: '18px', border: '1px solid #D8E2D7', background: '#FBFCFB', padding: '10px 14px', fontSize: '14px', color: '#475569' }}>
-              Search opportunities
-            </div>
-            <div style={{ borderRadius: '18px', border: '1px solid #D8E2D7', background: '#FBFCFB', padding: '10px 14px', fontSize: '14px', color: '#475569' }}>
-              Filter: Forecast
-            </div>
-            <div style={{ borderRadius: '18px', border: '1px solid #D8E2D7', background: '#FBFCFB', padding: '10px 14px', fontSize: '14px', color: '#475569' }}>
-              Sort: Close Date
-            </div>
+
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search opportunities"
+              style={{ ...controlStyle, width: '220px' }}
+            />
+
+            <select
+              value={forecastFilter}
+              onChange={(e) => setForecastFilter(e.target.value)}
+              style={controlStyle}
+            >
+              {['All', 'Pipeline', 'Best Case', 'BestCase', 'Commit', 'Closed', 'Closed Won', 'Closed Lost'].map((option) => (
+                <option key={option} value={option}>{`Filter: ${option}`}</option>
+              ))}
+            </select>
+
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              style={controlStyle}
+            >
+              {['Close Date', 'Opportunity Name', 'Revenue'].map((option) => (
+                <option key={option} value={option}>{`Sort: ${option}`}</option>
+              ))}
+            </select>
           </div>
         </div>
       </section>
@@ -2698,13 +2774,17 @@ function OpportunitiesOverviewPage({ onOpenOpportunity, onStartNewOpportunity, o
         <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 600 }}>Compact, scannable opportunities</h3>
 
         <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
-          {opportunityCards.map((opportunity) => (
+          {filteredOpportunityCards.length ? filteredOpportunityCards.map((opportunity) => (
             <OpportunitySummaryRow
               key={opportunity.id}
               opportunity={opportunity}
               onOpenOpportunity={onOpenOpportunity}
             />
-          ))}
+          )) : (
+            <div style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px', fontSize: '14px', color: '#64748b' }}>
+              No opportunities match the current search, filter, and sort settings.
+            </div>
+          )}
         </div>
       </section>
     </div>
@@ -4548,6 +4628,16 @@ export default function App() {
     setShowNewOpportunityForm(false);
   }
 
+  function openWelcomeNewOpportunity() {
+    setActivePage('Opportunities');
+    setShowNewOpportunityForm(true);
+    setNewOpportunityForm(buildOpportunityFormFromRecord());
+    setShowNewAccountForm(false);
+    setShowNewContactForm(false);
+    replacePath('/opportunities');
+    setRoutePath('/opportunities');
+  }
+
   const [routePath, setRoutePath] = useState(getInitialPath());
   const [opportunities, setOpportunities] = useState(() => {
     try {
@@ -5463,7 +5553,7 @@ function openOpportunityDetail(opportunityId) {
             {safeActivePage === 'Dashboard'
               ? renderExecutiveDashboard({ accounts: accountList, contacts: contactList, opportunities })
               : safeActivePage === 'Welcome'
-              ? renderWelcomePage({ onStartNewContact: openWelcomeNewContact, onStartNewAccount: openWelcomeNewAccount })
+              ? renderWelcomePage({ onStartNewContact: openWelcomeNewContact, onStartNewAccount: openWelcomeNewAccount, onStartNewOpportunity: openWelcomeNewOpportunity })
               : safeActivePage === 'Accounts'
               ? (
                 showNewAccountForm
