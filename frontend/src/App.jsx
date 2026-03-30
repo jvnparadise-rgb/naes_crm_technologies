@@ -928,10 +928,2353 @@ function renderWelcomePage({ onStartNewContact, onStartNewAccount, onStartNewOpp
   );
 }
 
+function renderMyPipelinePage({ opportunities = [], taskList = [], onOpenOpportunity } = {}) {
+  function normalizeText(value) {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+  }
+
+  function toNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function revenueFor(item) {
+    return toNumber(
+      item?.calculated_revenue ??
+      item?.amount_total ??
+      item?.calc_year1_total ??
+      item?.amount_estimated ??
+      item?.calc_arr_total ??
+      item?.arr_total ??
+      0
+    );
+  }
+
+  function forecastCategoryFor(item) {
+    const raw = normalizeText(item?.forecast_category ?? item?.forecastCategory);
+    if (raw === 'bestcase' || raw === 'best case') return 'Best Case';
+    if (raw === 'commit') return 'Commit';
+    if (raw === 'closedwon' || raw === 'closed won' || raw === 'closed') return 'Closed Won';
+    if (raw === 'closedlost' || raw === 'closed lost') return 'Closed Lost';
+    return 'Pipeline';
+  }
+
+  function stageFor(item) {
+    return String(item?.stage ?? item?.salesStage ?? item?.stage_name ?? item?.stageName ?? '0 Prospecting').trim();
+  }
+
+  function expectedCloseFor(item) {
+    return String(item?.expected_close_date || '').trim();
+  }
+
+  function ownerFor(item) {
+    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+  }
+
+  function isClosedWon(item) {
+    const stage = normalizeText(stageFor(item));
+    const forecast = normalizeText(forecastCategoryFor(item));
+    return stage === 'closedwon' || forecast === 'closedwon';
+  }
+
+  function isClosedLost(item) {
+    const stage = normalizeText(stageFor(item));
+    const forecast = normalizeText(forecastCategoryFor(item));
+    return stage === 'closedlost' || forecast === 'closedlost';
+  }
+
+  function isOpen(item) {
+    return !isClosedWon(item) && !isClosedLost(item);
+  }
+
+  const currentOwner = 'Jeff Yarbrough';
+
+  const myOpportunities = (Array.isArray(opportunities) ? opportunities : [])
+    .filter((item) => ownerFor(item) === currentOwner)
+    .filter((item) => isOpen(item));
+
+  const stageCounts = myOpportunities.reduce((acc, item) => {
+    const key = stageFor(item);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const stageMix = Object.entries(stageCounts)
+    .map(([stage, count]) => ({ stage, count }))
+    .sort((a, b) => a.stage.localeCompare(b.stage, undefined, { numeric: true }));
+
+  const attentionItems = myOpportunities
+    .filter((item) => {
+      const followUp = String(item?.follow_up_status || item?.staleness_flag || '').trim();
+      const hygiene = String(item?.forecast_hygiene_status || '').trim();
+      return followUp === 'Overdue' || followUp === 'DueSoon' || followUp === 'AtRisk' || hygiene === 'Warning' || hygiene === 'AtRisk';
+    })
+    .slice(0, 6);
+
+  const myOpportunityIds = new Set(myOpportunities.map((item) => String(item?.id || '').trim()).filter(Boolean));
+
+  const upcomingTasks = (Array.isArray(taskList) ? taskList : [])
+    .filter((task) => String(task?.owner || '').trim() === currentOwner)
+    .filter((task) => String(task?.status || 'Not Started').trim() !== 'Completed')
+    .filter((task) => {
+      const opportunityId = String(task?.opportunityId || '').trim();
+      return opportunityId && myOpportunityIds.has(opportunityId);
+    })
+    .sort((a, b) => {
+      const aDate = String(a?.dueDate || '').trim();
+      const bDate = String(b?.dueDate || '').trim();
+      if (!aDate && !bDate) return 0;
+      if (!aDate) return 1;
+      if (!bDate) return -1;
+      return aDate.localeCompare(bDate);
+    })
+    .slice(0, 6)
+    .map((task) => {
+      const linkedOpportunity = myOpportunities.find((item) => String(item?.id || '').trim() === String(task?.opportunityId || '').trim());
+      const dueText = String(task?.dueDate || '').trim() || 'No due date';
+      return {
+        id: task?.id || `task-${Math.random().toString(36).slice(2)}`,
+        title: task?.title || 'Task',
+        account: linkedOpportunity?.account_name || linkedOpportunity?.account || 'No linked account',
+        dueLabel: `${task?.priority || 'Medium'} • ${dueText}`,
+        opportunityId: task?.opportunityId || ''
+      };
+    });
+
+  const currency = (value) =>
+    Number(value || 0).toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    });
+
+  const pageStyle = {
+    maxWidth: '1280px',
+    margin: '0 auto',
+    display: 'grid',
+    gap: '24px'
+  };
+
+  const heroCardStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '24px',
+    padding: '28px 30px',
+    boxShadow: '0 18px 40px rgba(5, 47, 53, 0.08)'
+  };
+
+  const sectionCardStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '22px',
+    padding: '24px 24px 22px',
+    boxShadow: '0 14px 34px rgba(5, 47, 53, 0.06)'
+  };
+
+  const sectionTitleStyle = {
+    margin: 0,
+    fontSize: '22px',
+    lineHeight: 1.2,
+    fontWeight: 800,
+    color: '#123B42'
+  };
+
+  const sectionIntroStyle = {
+    margin: '6px 0 0',
+    fontSize: '14px',
+    lineHeight: 1.6,
+    color: '#5F6F72'
+  };
+
+  const statGridStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+    gap: '16px'
+  };
+
+  const statCardStyle = {
+    background: '#F7FBF8',
+    border: '1px solid #D9E4DA',
+    borderRadius: '18px',
+    padding: '18px 18px 16px'
+  };
+
+  const statLabelStyle = {
+    fontSize: '12px',
+    fontWeight: 700,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: '#5F6F72'
+  };
+
+  const statValueStyle = {
+    marginTop: '8px',
+    fontSize: '28px',
+    fontWeight: 800,
+    letterSpacing: '-0.02em',
+    color: '#123B42'
+  };
+
+  const listRowStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 2.1fr) minmax(140px, 0.8fr) minmax(140px, 0.8fr) minmax(140px, 0.8fr) minmax(150px, 0.9fr)',
+    gap: '14px',
+    alignItems: 'center',
+    padding: '14px 16px',
+    border: '1px solid #E3ECE4',
+    borderRadius: '16px',
+    background: '#FFFFFF',
+    cursor: 'pointer'
+  };
+
+  const mutedStyle = {
+    fontSize: '13px',
+    color: '#5F6F72'
+  };
+
+  return (
+    <div style={pageStyle}>
+      <div style={heroCardStyle}>
+        <div style={{ display: 'grid', gap: '18px' }}>
+          <div>
+            <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#3F8F66' }}>
+              Seller Working View
+            </div>
+            <h2 style={{ margin: '10px 0 0', fontSize: '34px', lineHeight: 1.08, fontWeight: 850, letterSpacing: '-0.03em', color: '#123B42' }}>
+              My Pipeline
+            </h2>
+            <p style={{ margin: '10px 0 0', maxWidth: '760px', fontSize: '15px', lineHeight: 1.7, color: '#5F6F72' }}>
+              Rep-owned working page for active opportunities, stage progress, near-term attention, and execution follow-through. This is not the executive roll-up.
+            </p>
+          </div>
+
+          <div style={statGridStyle}>
+            <div style={statCardStyle}>
+              <div style={statLabelStyle}>Open Deals</div>
+              <div style={statValueStyle}>{myOpportunities.length}</div>
+            </div>
+            <div style={statCardStyle}>
+              <div style={statLabelStyle}>Pipeline Revenue</div>
+              <div style={statValueStyle}>{currency(myOpportunities.reduce((sum, item) => sum + revenueFor(item), 0))}</div>
+            </div>
+            <div style={statCardStyle}>
+              <div style={statLabelStyle}>Attention Items</div>
+              <div style={statValueStyle}>{attentionItems.length}</div>
+            </div>
+            <div style={statCardStyle}>
+              <div style={statLabelStyle}>Upcoming Tasks</div>
+              <div style={statValueStyle}>{upcomingTasks.length}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={sectionCardStyle}>
+        <div style={{ marginBottom: '18px' }}>
+          <h3 style={sectionTitleStyle}>My Open Deals</h3>
+          <p style={sectionIntroStyle}>
+            Primary owned-deal working list. Click any row to open the opportunity detail page.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gap: '12px' }}>
+          {myOpportunities.length === 0 ? (
+            <div style={{ padding: '18px', border: '1px dashed #D9E4DA', borderRadius: '16px', color: '#5F6F72', background: '#F7FBF8' }}>
+              No owned open opportunities are currently available.
+            </div>
+          ) : myOpportunities.map((item) => (
+            <div
+              key={item.id}
+              style={listRowStyle}
+              onClick={() => onOpenOpportunity && onOpenOpportunity(item.id)}
+            >
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#123B42' }}>
+                  {item?.name || 'Untitled opportunity'}
+                </div>
+                <div style={{ marginTop: '4px', fontSize: '13px', color: '#5F6F72' }}>
+                  {item?.account_name || item?.account || 'No linked account'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: '#7A8B8E' }}>Stage</div>
+                <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: 700, color: '#123B42' }}>{stageFor(item)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: '#7A8B8E' }}>Forecast</div>
+                <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: 700, color: '#123B42' }}>{forecastCategoryFor(item)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: '#7A8B8E' }}>Close</div>
+                <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: 700, color: '#123B42' }}>{expectedCloseFor(item) || '—'}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: '#7A8B8E' }}>Revenue</div>
+                <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: 800, color: '#123B42' }}>{currency(revenueFor(item))}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '24px' }}>
+        <div style={sectionCardStyle}>
+          <div style={{ marginBottom: '18px' }}>
+            <h3 style={sectionTitleStyle}>Stage Mix</h3>
+            <p style={sectionIntroStyle}>
+              Quick view of where owned active deals currently sit in the pipeline.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {stageMix.length === 0 ? (
+              <div style={mutedStyle}>No stage data available.</div>
+            ) : stageMix.map((item) => (
+              <div key={item.stage} style={{ display: 'grid', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#123B42' }}>{item.stage}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#3F8F66' }}>{item.count}</div>
+                </div>
+                <div style={{ height: '10px', borderRadius: '999px', background: '#E8F1EA', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: `${Math.max(12, (item.count / Math.max(...stageMix.map((row) => row.count), 1)) * 100)}%`,
+                      height: '100%',
+                      borderRadius: '999px',
+                      background: 'linear-gradient(90deg, #3F8F66, #76B58B)'
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={sectionCardStyle}>
+          <div style={{ marginBottom: '18px' }}>
+            <h3 style={sectionTitleStyle}>Attention Items</h3>
+            <p style={sectionIntroStyle}>
+              Stale follow-ups, weak hygiene, and deals that need near-term action.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {attentionItems.length === 0 ? (
+              <div style={mutedStyle}>No immediate attention items.</div>
+            ) : attentionItems.map((item) => (
+              <div key={item.id} style={{ border: '1px solid #E3ECE4', borderRadius: '16px', padding: '14px 16px', background: '#FFFFFF' }}>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#123B42' }}>{item?.name || 'Untitled opportunity'}</div>
+                <div style={{ marginTop: '4px', fontSize: '13px', color: '#5F6F72' }}>
+                  {item?.account_name || item?.account || 'No linked account'}
+                </div>
+                <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <span style={{ padding: '6px 10px', borderRadius: '999px', background: '#F6E8C8', color: '#7A5A00', fontSize: '12px', fontWeight: 700 }}>
+                    {item?.follow_up_status || item?.staleness_flag || 'Current'}
+                  </span>
+                  <span style={{ padding: '6px 10px', borderRadius: '999px', background: '#F4E0DD', color: '#9D4B42', fontSize: '12px', fontWeight: 700 }}>
+                    {item?.forecast_hygiene_status || 'Healthy'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={sectionCardStyle}>
+        <div style={{ marginBottom: '18px' }}>
+          <h3 style={sectionTitleStyle}>Upcoming Tasks</h3>
+          <p style={sectionIntroStyle}>
+            Execution-oriented follow-through tied back to owned opportunities.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gap: '12px' }}>
+          {upcomingTasks.length === 0 ? (
+            <div style={mutedStyle}>No upcoming tasks generated from current attention items.</div>
+          ) : upcomingTasks.map((item) => (
+            <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', border: '1px solid #E3ECE4', borderRadius: '16px', padding: '14px 16px', background: '#FFFFFF' }}>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#123B42' }}>{item.title}</div>
+                <div style={{ marginTop: '4px', fontSize: '13px', color: '#5F6F72' }}>{item.account}</div>
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#3F8F66' }}>{item.dueLabel}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 
 const accountRecords = [];
 
 const contactRecords = [];
+
+function renderPipelineRollupPage({ opportunities = [], onOpenOpportunity } = {}) {
+  function normalizeText(value) {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+  }
+
+  function toNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function revenueFor(item) {
+    return toNumber(
+      item?.calculated_revenue ??
+      item?.amount_total ??
+      item?.calc_year1_total ??
+      item?.amount_estimated ??
+      item?.calc_arr_total ??
+      item?.arr_total ??
+      0
+    );
+  }
+
+  function weightedFor(item) {
+    const explicitWeighted = toNumber(
+      item?.weighted_revenue ??
+      item?.amount_weighted ??
+      item?.weightedRevenue ??
+      item?.weighted_value
+    );
+    if (explicitWeighted > 0) return explicitWeighted;
+
+    const probability = toNumber(
+      item?.probability ??
+      item?.forecast_probability ??
+      item?.forecastProbability
+    );
+
+    return revenueFor(item) * (probability > 0 ? probability / 100 : 0);
+  }
+
+  function forecastCategoryFor(item) {
+    const raw = normalizeText(item?.forecast_category ?? item?.forecastCategory);
+    if (raw == 'bestcase' || raw == 'best case') return 'Best Case';
+    if (raw == 'commit') return 'Commit';
+    if (raw == 'closedwon' || raw == 'closed won' || raw == 'closed') return 'Closed Won';
+    if (raw == 'closedlost' || raw == 'closed lost') return 'Closed Lost';
+    return 'Pipeline';
+  }
+
+  function stageFor(item) {
+    return String(item?.stage ?? item?.salesStage ?? item?.stage_name ?? item?.stageName ?? '0 Prospecting').trim();
+  }
+
+  function expectedCloseFor(item) {
+    return String(item?.expected_close_date || '').trim();
+  }
+
+  function ownerFor(item) {
+    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+  }
+
+  function isClosedWon(item) {
+    const stage = normalizeText(stageFor(item));
+    const forecast = normalizeText(forecastCategoryFor(item));
+    return stage === 'closedwon' || forecast === 'closedwon';
+  }
+
+  function isClosedLost(item) {
+    const stage = normalizeText(stageFor(item));
+    const forecast = normalizeText(forecastCategoryFor(item));
+    return stage === 'closedlost' || forecast === 'closedlost';
+  }
+
+  function isOpen(item) {
+    return !isClosedWon(item) && !isClosedLost(item);
+  }
+
+  function riskReasonFor(item) {
+    const reasons = [];
+    const stale = String(item?.staleness_flag || '').trim();
+    if (stale) reasons.push(stale);
+    if (!expectedCloseFor(item)) reasons.push('Missing close date');
+    if (!toNumber(item?.probability) && forecastCategoryFor(item) !== 'Pipeline') reasons.push('No probability');
+    const hygiene = String(item?.forecast_hygiene_status || '').trim();
+    if (hygiene && hygiene !== 'Healthy') reasons.push(hygiene);
+    return reasons.join(', ') || 'Monitor';
+  }
+
+  const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
+  const openOpportunities = safeOpportunities.filter(isOpen);
+  const commitDeals = openOpportunities.filter((item) => forecastCategoryFor(item) === 'Commit');
+
+  const totalPipeline = openOpportunities.reduce((sum, item) => sum + revenueFor(item), 0);
+  const weightedPipeline = openOpportunities.reduce((sum, item) => sum + weightedFor(item), 0);
+  const arrTotal = openOpportunities.reduce((sum, item) => sum + toNumber(item?.calc_arr_total ?? item?.arr_total ?? 0), 0);
+  const year1Total = openOpportunities.reduce((sum, item) => sum + toNumber(item?.calc_year1_total ?? item?.amount_estimated ?? item?.amount_total ?? 0), 0);
+  const oneTimeTotal = openOpportunities.reduce((sum, item) => {
+    const total = toNumber(item?.amount_total ?? item?.calculated_revenue ?? item?.amount_estimated ?? 0);
+    const arr = toNumber(item?.calc_arr_total ?? item?.arr_total ?? 0);
+    return sum + Math.max(0, total - arr);
+  }, 0);
+
+  const stageRows = Object.entries(
+    openOpportunities.reduce((acc, item) => {
+      const key = stageFor(item);
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {})
+  )
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+
+  const forecastRows = ['Pipeline', 'Best Case', 'Commit', 'Closed Won', 'Closed Lost']
+    .map((label) => ({
+      label,
+      count: safeOpportunities.filter((item) => forecastCategoryFor(item) === label).length
+    }))
+    .filter((row) => row.count > 0);
+
+  const ownerRows = Object.entries(
+    openOpportunities.reduce((acc, item) => {
+      const owner = ownerFor(item);
+      acc[owner] = (acc[owner] || 0) + revenueFor(item);
+      return acc;
+    }, {})
+  )
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const riskRows = [
+    {
+      label: 'Stale Deals',
+      count: openOpportunities.filter((item) => String(item?.staleness_flag || '').toLowerCase().includes('stale')).length
+    },
+    {
+      label: 'Commit Risk',
+      count: commitDeals.filter((item) => !expectedCloseFor(item) || String(item?.forecast_hygiene_status || '').trim() === 'AtRisk').length
+    },
+    {
+      label: 'Missing Dates',
+      count: openOpportunities.filter((item) => !expectedCloseFor(item)).length
+    },
+    {
+      label: 'Low Confidence',
+      count: openOpportunities.filter((item) => {
+        const hygiene = String(item?.forecast_hygiene_status || '').trim();
+        return hygiene === 'Warning' || hygiene === 'AtRisk';
+      }).length
+    }
+  ];
+
+  const exceptionRows = openOpportunities
+    .filter((item) => {
+      const stale = String(item?.staleness_flag || '').trim();
+      const hygiene = String(item?.forecast_hygiene_status || '').trim();
+      return stale || !expectedCloseFor(item) || hygiene === 'Warning' || hygiene === 'AtRisk' || forecastCategoryFor(item) === 'Commit';
+    })
+    .slice(0, 8);
+
+  const currency = (value) =>
+    Number(value || 0).toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    });
+
+  const pageStyle = { maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' };
+  const cardStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '22px',
+    padding: '24px',
+    boxShadow: '0 14px 34px rgba(5, 47, 53, 0.06)'
+  };
+  const heroStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '24px',
+    padding: '28px 30px',
+    boxShadow: '0 18px 40px rgba(5, 47, 53, 0.08)'
+  };
+  const titleStyle = { margin: 0, fontSize: '22px', lineHeight: 1.2, fontWeight: 800, color: '#123B42' };
+  const introStyle = { margin: '6px 0 0', fontSize: '14px', lineHeight: 1.6, color: '#5F6F72' };
+  const kpiGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '16px' };
+  const kpiCardStyle = {
+    background: '#F7FBF8',
+    border: '1px solid #D9E4DA',
+    borderRadius: '18px',
+    padding: '18px 18px 16px'
+  };
+
+  return (
+    <div style={pageStyle}>
+      <div style={heroStyle}>
+        <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#3F8F66' }}>
+          Management Rollup View
+        </div>
+        <h2 style={{ margin: '10px 0 0', fontSize: '34px', lineHeight: 1.08, fontWeight: 850, letterSpacing: '-0.03em', color: '#123B42' }}>
+          Pipeline Rollup
+        </h2>
+        <p style={{ margin: '10px 0 0', maxWidth: '820px', fontSize: '15px', lineHeight: 1.7, color: '#5F6F72' }}>
+          Broader pipeline visibility across owners, forecast groupings, revenue posture, and exception review.
+        </p>
+      </div>
+
+      <div style={kpiGridStyle}>
+        {[
+          ['Total Pipeline', currency(totalPipeline)],
+          ['Weighted Pipeline', currency(weightedPipeline)],
+          ['ARR', currency(arrTotal)],
+          ['Year 1 Revenue', currency(year1Total)],
+          ['One-Time / Job Revenue', currency(oneTimeTotal)],
+          ['Open Deal Count', String(openOpportunities.length)]
+        ].map(([label, value]) => (
+          <div key={label} style={kpiCardStyle}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5F6F72' }}>{label}</div>
+            <div style={{ marginTop: '8px', fontSize: '26px', fontWeight: 800, letterSpacing: '-0.02em', color: '#123B42' }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '24px' }}>
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Stage Mix</h3>
+          <p style={introStyle}>Distribution of open deals by sales stage.</p>
+          <div style={{ marginTop: '16px', display: 'grid', gap: '12px' }}>
+            {stageRows.map((row) => (
+              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#123B42' }}>{row.label}</div>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#3F8F66' }}>{row.count}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Forecast Mix</h3>
+          <p style={introStyle}>Forecast category concentration across the broader pipeline.</p>
+          {renderDonutChart(
+            forecastRows.map((row) => ({ label: row.label, value: row.count })),
+            (value) => String(value)
+          )}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>By Owner / Team</h3>
+          <p style={introStyle}>Open pipeline value by owner.</p>
+          <div style={{ marginTop: '16px', display: 'grid', gap: '12px' }}>
+            {ownerRows.slice(0, 6).map((row) => (
+              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#123B42' }}>{row.label}</div>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#3F8F66' }}>{currency(row.value)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Aging / Risk</h3>
+          <p style={introStyle}>Concentration of risk and exception indicators.</p>
+          <div style={{ marginTop: '16px', display: 'grid', gap: '12px' }}>
+            {riskRows.map((row) => (
+              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#123B42' }}>{row.label}</div>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#B25547' }}>{row.count}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={cardStyle}>
+        <div style={{ marginBottom: '18px' }}>
+          <h3 style={titleStyle}>Main Pipeline Rollup Table</h3>
+          <p style={introStyle}>Cross-owner commercial inspection view for open opportunities.</p>
+        </div>
+
+        <div style={{ display: 'grid', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr 1.1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1.2fr', gap: '12px', padding: '0 8px 8px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72' }}>
+            <div>Opportunity</div>
+            <div>Account</div>
+            <div>Owner</div>
+            <div>Stage</div>
+            <div>Forecast</div>
+            <div>Expected Close</div>
+            <div>ARR</div>
+            <div>Year 1</div>
+            <div>Total</div>
+            <div>Weighted</div>
+            <div>Health / Risk</div>
+          </div>
+
+          {openOpportunities.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onOpenOpportunity && onOpenOpportunity(item.id)}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1.4fr 1.1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1.2fr',
+                gap: '12px',
+                alignItems: 'center',
+                padding: '14px 12px',
+                border: '1px solid #E3ECE4',
+                borderRadius: '16px',
+                background: '#FFFFFF',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#123B42' }}>{item?.name || 'Untitled opportunity'}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{item?.account_name || item?.account || 'No linked account'}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{ownerFor(item)}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{stageFor(item)}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{forecastCategoryFor(item)}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{expectedCloseFor(item) || '—'}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(toNumber(item?.calc_arr_total ?? item?.arr_total ?? 0))}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(toNumber(item?.calc_year1_total ?? item?.amount_estimated ?? item?.amount_total ?? 0))}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(revenueFor(item))}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(weightedFor(item))}</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#B25547' }}>{riskReasonFor(item)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={cardStyle}>
+        <div style={{ marginBottom: '18px' }}>
+          <h3 style={titleStyle}>Risk / Exception Section</h3>
+          <p style={introStyle}>Inspection queue for stale deals, commit risk, missing dates, and low-confidence opportunities.</p>
+        </div>
+
+        <div style={{ display: 'grid', gap: '12px' }}>
+          {exceptionRows.length === 0 ? (
+            <div style={{ fontSize: '14px', color: '#5F6F72' }}>No current exceptions detected.</div>
+          ) : exceptionRows.map((item) => (
+            <div key={item.id} style={{ border: '1px solid #E3ECE4', borderRadius: '16px', padding: '14px 16px', background: '#FFFFFF' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#123B42' }}>{item?.name || 'Untitled opportunity'}</div>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: '#B25547' }}>{riskReasonFor(item)}</div>
+              </div>
+              <div style={{ marginTop: '4px', fontSize: '13px', color: '#5F6F72' }}>
+                {(item?.account_name || item?.account || 'No linked account')} • {ownerFor(item)} • {stageFor(item)} • {forecastCategoryFor(item)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderVerticalBarChart(rows = [], valueFormatter = (value) => String(value)) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const maxValue = Math.max(1, ...safeRows.map((row) => Number(row?.value || 0)));
+
+  return (
+    <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: `repeat(${Math.max(safeRows.length, 1)}, minmax(0, 1fr))`, gap: '14px', alignItems: 'end', minHeight: '220px' }}>
+      {safeRows.map((row) => {
+        const value = Number(row?.value || 0);
+        const heightPct = Math.max(10, (value / maxValue) * 100);
+
+        return (
+          <div key={row.label} style={{ display: 'grid', gap: '10px', alignItems: 'end' }}>
+            <div style={{ fontSize: '12px', fontWeight: 800, color: '#3F8F66', textAlign: 'center' }}>
+              {valueFormatter(value)}
+            </div>
+            <div style={{ height: '160px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: '68px',
+                  height: `${heightPct}%`,
+                  minHeight: '18px',
+                  borderRadius: '14px 14px 6px 6px',
+                  background: 'linear-gradient(180deg, #76B58B 0%, #3F8F66 100%)',
+                  boxShadow: '0 12px 28px rgba(63, 143, 102, 0.22)'
+                }}
+              />
+            </div>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#123B42', textAlign: 'center', lineHeight: 1.4 }}>
+              {row.label}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function renderDonutChart(rows = [], valueFormatter = (value) => String(value)) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const total = safeRows.reduce((sum, row) => sum + Number(row?.value || 0), 0);
+
+  if (!safeRows.length || total <= 0) {
+    return <div style={{ marginTop: '16px', fontSize: '14px', color: '#5F6F72' }}>No chart data available.</div>;
+  }
+
+  const colors = ['#3F8F66', '#76B58B', '#0B6771', '#E1A93A', '#B25547', '#8AA6A3'];
+  const labelColorMap = {
+    Pipeline: '#7C8B95',
+    'Best Case': '#E1A93A',
+    Commit: '#3F8F66',
+    'Closed Won': '#0B6771',
+    'Closed Lost': '#B25547'
+  };
+
+  let running = 0;
+  const segments = safeRows.map((row, index) => {
+    const value = Number(row?.value || 0);
+    const pct = value / total;
+    const start = running * 360;
+    const end = (running + pct) * 360;
+    running += pct;
+    return {
+      ...row,
+      value,
+      color: labelColorMap[String(row?.label || '').trim()] || colors[index % colors.length],
+      start,
+      end
+    };
+  });
+
+  const gradient = `conic-gradient(${segments.map((segment) => `${segment.color} ${segment.start}deg ${segment.end}deg`).join(', ')})`;
+
+  return (
+    <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '180px 1fr', gap: '20px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            width: '160px',
+            height: '160px',
+            borderRadius: '50%',
+            background: gradient,
+            position: 'relative',
+            boxShadow: '0 16px 30px rgba(5, 47, 53, 0.12)'
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              inset: '24px',
+              borderRadius: '50%',
+              background: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'column',
+              textAlign: 'center'
+            }}
+          >
+            <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5F6F72' }}>
+              Total
+            </div>
+            <div style={{ marginTop: '6px', fontSize: '16px', fontWeight: 800, color: '#123B42' }}>
+              {valueFormatter(total)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gap: '10px' }}>
+        {segments.map((segment) => (
+          <div key={segment.label} style={{ display: 'grid', gridTemplateColumns: '14px 1fr auto', gap: '10px', alignItems: 'center' }}>
+            <div style={{ width: '14px', height: '14px', borderRadius: '999px', background: segment.color }} />
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#123B42' }}>{segment.label}</div>
+            <div style={{ fontSize: '13px', fontWeight: 800, color: '#3F8F66' }}>{valueFormatter(segment.value)}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function renderHorizontalBarChart(rows = [], valueFormatter = (value) => String(value)) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const maxValue = Math.max(1, ...safeRows.map((row) => Number(row?.value || 0)));
+
+  if (!safeRows.length) {
+    return <div style={{ marginTop: '16px', fontSize: '14px', color: '#5F6F72' }}>No chart data available.</div>;
+  }
+
+  return (
+    <div style={{ marginTop: '16px', display: 'grid', gap: '12px' }}>
+      {safeRows.map((row) => {
+        const value = Number(row?.value || 0);
+        const widthPct = Math.max(10, (value / maxValue) * 100);
+
+        return (
+          <div key={row.label} style={{ display: 'grid', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#123B42' }}>{row.label}</div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#0B6771' }}>{valueFormatter(value)}</div>
+            </div>
+            <div style={{ height: '14px', borderRadius: '999px', background: '#E7EFF0', overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${widthPct}%`,
+                  height: '100%',
+                  borderRadius: '999px',
+                  background: 'linear-gradient(90deg, #0B6771 0%, #21A7B2 100%)',
+                  boxShadow: '0 8px 18px rgba(11, 103, 113, 0.18)'
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function renderRevenueCommandCenterPage({ opportunities = [], onOpenOpportunity } = {}) {
+  function normalizeText(value) {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+  }
+
+  function toNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function revenueFor(item) {
+    return toNumber(
+      item?.calculated_revenue ??
+      item?.amount_total ??
+      item?.calc_year1_total ??
+      item?.amount_estimated ??
+      item?.calc_arr_total ??
+      item?.arr_total ??
+      0
+    );
+  }
+
+  function weightedFor(item) {
+    const explicitWeighted = toNumber(
+      item?.weighted_revenue ??
+      item?.amount_weighted ??
+      item?.weightedRevenue ??
+      item?.weighted_value
+    );
+    if (explicitWeighted > 0) return explicitWeighted;
+
+    const probability = toNumber(
+      item?.probability ??
+      item?.forecast_probability ??
+      item?.forecastProbability
+    );
+
+    return revenueFor(item) * (probability > 0 ? probability / 100 : 0);
+  }
+
+  function forecastCategoryFor(item) {
+    const raw = normalizeText(item?.forecast_category ?? item?.forecastCategory);
+    if (raw === 'bestcase' || raw === 'best case') return 'Best Case';
+    if (raw === 'commit') return 'Commit';
+    if (raw === 'closedwon' || raw === 'closed won' || raw === 'closed') return 'Closed Won';
+    if (raw === 'closedlost' || raw === 'closed lost') return 'Closed Lost';
+    return 'Pipeline';
+  }
+
+  function stageFor(item) {
+    return String(item?.stage ?? item?.salesStage ?? item?.stage_name ?? item?.stageName ?? '0 Prospecting').trim();
+  }
+
+  function expectedCloseFor(item) {
+    return String(item?.expected_close_date || '').trim();
+  }
+
+  function ownerFor(item) {
+    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+  }
+
+  function serviceLineFor(item) {
+    return String(item?.service_line ?? item?.serviceLine ?? 'Unassigned').trim() || 'Unassigned';
+  }
+
+  function isClosedWon(item) {
+    const stage = normalizeText(stageFor(item));
+    const forecast = normalizeText(forecastCategoryFor(item));
+    return stage === 'closedwon' || forecast === 'closedwon';
+  }
+
+  function isClosedLost(item) {
+    const stage = normalizeText(stageFor(item));
+    const forecast = normalizeText(forecastCategoryFor(item));
+    return stage === 'closedlost' || forecast === 'closedlost';
+  }
+
+  function isOpen(item) {
+    return !isClosedWon(item) && !isClosedLost(item);
+  }
+
+  function riskReasonFor(item) {
+    const reasons = [];
+    const stale = String(item?.staleness_flag || '').trim();
+    if (stale) reasons.push(stale);
+    if (!expectedCloseFor(item)) reasons.push('Missing close date');
+    const hygiene = String(item?.forecast_hygiene_status || '').trim();
+    if (hygiene && hygiene !== 'Healthy') reasons.push(hygiene);
+    if (forecastCategoryFor(item) === 'Commit' && !expectedCloseFor(item)) reasons.push('Commit at risk');
+    return reasons.join(', ') || 'Monitor';
+  }
+
+  const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
+  const openOpportunities = safeOpportunities.filter(isOpen);
+  const commitDeals = openOpportunities.filter((item) => forecastCategoryFor(item) === 'Commit');
+
+  const totalPipelineRevenue = openOpportunities.reduce((sum, item) => sum + revenueFor(item), 0);
+  const weightedRevenue = openOpportunities.reduce((sum, item) => sum + weightedFor(item), 0);
+  const arrTotal = openOpportunities.reduce((sum, item) => sum + toNumber(item?.calc_arr_total ?? item?.arr_total ?? 0), 0);
+  const year1Total = openOpportunities.reduce((sum, item) => sum + toNumber(item?.calc_year1_total ?? item?.amount_estimated ?? item?.amount_total ?? 0), 0);
+  const oneTimeRevenue = openOpportunities.reduce((sum, item) => {
+    const total = revenueFor(item);
+    const arr = toNumber(item?.calc_arr_total ?? item?.arr_total ?? 0);
+    return sum + Math.max(0, total - arr);
+  }, 0);
+  const avgDealSize = openOpportunities.length ? totalPipelineRevenue / openOpportunities.length : 0;
+
+  const stageRevenueRows = Object.entries(
+    openOpportunities.reduce((acc, item) => {
+      const key = stageFor(item);
+      acc[key] = (acc[key] || 0) + revenueFor(item);
+      return acc;
+    }, {})
+  )
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const forecastRevenueRows = ['Pipeline', 'Best Case', 'Commit', 'Closed Won', 'Closed Lost']
+    .map((label) => ({
+      label,
+      value: safeOpportunities
+        .filter((item) => forecastCategoryFor(item) === label)
+        .reduce((sum, item) => sum + revenueFor(item), 0)
+    }))
+    .filter((row) => row.value > 0);
+
+  const ownerRevenueRows = Object.entries(
+    openOpportunities.reduce((acc, item) => {
+      const owner = ownerFor(item);
+      acc[owner] = (acc[owner] || 0) + weightedFor(item);
+      return acc;
+    }, {})
+  )
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const serviceLineRows = Object.entries(
+    openOpportunities.reduce((acc, item) => {
+      const serviceLine = serviceLineFor(item);
+      acc[serviceLine] = (acc[serviceLine] || 0) + revenueFor(item);
+      return acc;
+    }, {})
+  )
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const closeTimingRows = [
+    {
+      label: 'Current Quarter',
+      count: openOpportunities.filter((item) => {
+        const close = expectedCloseFor(item);
+        if (!close) return false;
+        return close.startsWith('2026-04') || close.startsWith('2026-05') || close.startsWith('2026-06');
+      }).length
+    },
+    {
+      label: 'Next Quarter',
+      count: openOpportunities.filter((item) => {
+        const close = expectedCloseFor(item);
+        if (!close) return false;
+        return close.startsWith('2026-07') || close.startsWith('2026-08') || close.startsWith('2026-09');
+      }).length
+    },
+    {
+      label: 'Later',
+      count: openOpportunities.filter((item) => {
+        const close = expectedCloseFor(item);
+        if (!close) return false;
+        return close >= '2026-10-01';
+      }).length
+    }
+  ];
+
+  const qualityRows = [
+    {
+      label: 'Commit Revenue at Risk',
+      value: commitDeals
+        .filter((item) => !expectedCloseFor(item) || String(item?.forecast_hygiene_status || '').trim() === 'AtRisk')
+        .reduce((sum, item) => sum + weightedFor(item), 0)
+    },
+    {
+      label: 'Stale Weighted Revenue',
+      value: openOpportunities
+        .filter((item) => String(item?.staleness_flag || '').trim())
+        .reduce((sum, item) => sum + weightedFor(item), 0)
+    },
+    {
+      label: 'Missing Close Dates',
+      value: openOpportunities.filter((item) => !expectedCloseFor(item)).length
+    },
+    {
+      label: 'Large Deals, Weak Hygiene',
+      value: openOpportunities.filter((item) => revenueFor(item) >= 250000 && ['Warning', 'AtRisk'].includes(String(item?.forecast_hygiene_status || '').trim())).length
+    }
+  ];
+
+  const revenueRows = openOpportunities
+    .slice()
+    .sort((a, b) => weightedFor(b) - weightedFor(a));
+
+  const currency = (value) =>
+    Number(value || 0).toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    });
+
+  const pageStyle = { maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' };
+  const heroStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '24px',
+    padding: '28px 30px',
+    boxShadow: '0 18px 40px rgba(5, 47, 53, 0.08)'
+  };
+  const cardStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '22px',
+    padding: '24px',
+    boxShadow: '0 14px 34px rgba(5, 47, 53, 0.06)'
+  };
+  const titleStyle = { margin: 0, fontSize: '22px', lineHeight: 1.2, fontWeight: 800, color: '#123B42' };
+  const introStyle = { margin: '6px 0 0', fontSize: '14px', lineHeight: 1.6, color: '#5F6F72' };
+  const kpiGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '16px' };
+  const kpiCardStyle = {
+    background: '#F7FBF8',
+    border: '1px solid #D9E4DA',
+    borderRadius: '18px',
+    padding: '18px 18px 16px'
+  };
+
+  return (
+    <div style={pageStyle}>
+      <div style={heroStyle}>
+        <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#3F8F66' }}>
+          Commercial Leadership View
+        </div>
+        <h2 style={{ margin: '10px 0 0', fontSize: '34px', lineHeight: 1.08, fontWeight: 850, letterSpacing: '-0.03em', color: '#123B42' }}>
+          Revenue Command Center
+        </h2>
+        <p style={{ margin: '10px 0 0', maxWidth: '820px', fontSize: '15px', lineHeight: 1.7, color: '#5F6F72' }}>
+          Commercial revenue visibility across pipeline, forecast, ownership, concentration, and revenue quality.
+        </p>
+      </div>
+
+      <div style={kpiGridStyle}>
+        {[
+          ['Total Pipeline Revenue', currency(totalPipelineRevenue)],
+          ['Weighted Revenue', currency(weightedRevenue)],
+          ['ARR', currency(arrTotal)],
+          ['Year 1 Revenue', currency(year1Total)],
+          ['One-Time / Project Revenue', currency(oneTimeRevenue)],
+          ['Open Opportunities', String(openOpportunities.length)],
+          ['Average Deal Size', currency(avgDealSize)]
+        ].map(([label, value]) => (
+          <div key={label} style={kpiCardStyle}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5F6F72' }}>{label}</div>
+            <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#123B42' }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '24px' }}>
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Revenue by Stage</h3>
+          <p style={introStyle}>Where total revenue currently sits in the stage model.</p>
+          {renderVerticalBarChart(stageRevenueRows, currency)}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Revenue by Forecast Category</h3>
+          <p style={introStyle}>Pipeline, Best Case, Commit, and closed-category revenue mix.</p>
+          {renderDonutChart(forecastRevenueRows, currency)}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Revenue by Owner</h3>
+          <p style={introStyle}>Weighted revenue concentration by owner.</p>
+          {renderHorizontalBarChart(ownerRevenueRows.slice(0, 8), currency)}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Revenue by Service Line / Product Mix</h3>
+          <p style={introStyle}>Commercial volume concentration by service line.</p>
+          {renderDonutChart(serviceLineRows, currency)}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Revenue Aging / Close Timing</h3>
+          <p style={introStyle}>Near-term versus later close concentration.</p>
+          {renderVerticalBarChart(
+            closeTimingRows.map((row) => ({ label: row.label, value: row.count })),
+            (value) => String(value)
+          )}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Revenue Quality / Risk</h3>
+          <p style={introStyle}>Believability and concentration signals for forecast discussion.</p>
+          <div style={{ marginTop: '16px', display: 'grid', gap: '12px' }}>
+            {qualityRows.map((row) => (
+              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#123B42' }}>{row.label}</div>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#B25547' }}>
+                  {typeof row.value === 'number' && row.label.includes('Revenue') ? currency(row.value) : row.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={cardStyle}>
+        <div style={{ marginBottom: '18px' }}>
+          <h3 style={titleStyle}>Main Revenue Table</h3>
+          <p style={introStyle}>Revenue inspection view for leadership and forecast reviews.</p>
+        </div>
+
+        <div style={{ display: 'grid', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1.2fr', gap: '12px', padding: '0 8px 8px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72' }}>
+            <div>Opportunity</div>
+            <div>Account</div>
+            <div>Owner</div>
+            <div>Stage</div>
+            <div>Forecast</div>
+            <div>Expected Close</div>
+            <div>ARR</div>
+            <div>Year 1</div>
+            <div>One-Time</div>
+            <div>Total</div>
+            <div>Weighted</div>
+            <div>Status / Risk</div>
+          </div>
+
+          {revenueRows.map((item) => {
+            const total = revenueFor(item);
+            const arr = toNumber(item?.calc_arr_total ?? item?.arr_total ?? 0);
+            const oneTime = Math.max(0, total - arr);
+
+            return (
+              <div
+                key={item.id}
+                onClick={() => onOpenOpportunity && onOpenOpportunity(item.id)}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 1.3fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1.2fr',
+                  gap: '12px',
+                  alignItems: 'center',
+                  padding: '14px 12px',
+                  border: '1px solid #E3ECE4',
+                  borderRadius: '16px',
+                  background: '#FFFFFF',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ fontSize: '14px', fontWeight: 800, color: '#123B42' }}>{item?.name || 'Untitled opportunity'}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{item?.account_name || item?.account || 'No linked account'}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{ownerFor(item)}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{stageFor(item)}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{forecastCategoryFor(item)}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{expectedCloseFor(item) || '—'}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(arr)}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(toNumber(item?.calc_year1_total ?? item?.amount_estimated ?? item?.amount_total ?? 0))}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(oneTime)}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(total)}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(weightedFor(item))}</div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#B25547' }}>{riskReasonFor(item)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderForecastDashboardPage({ opportunities = [], onOpenOpportunity } = {}) {
+  function normalizeText(value) {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+  }
+
+  function toNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function revenueFor(item) {
+    return toNumber(
+      item?.calculated_revenue ??
+      item?.amount_total ??
+      item?.calc_year1_total ??
+      item?.amount_estimated ??
+      item?.calc_arr_total ??
+      item?.arr_total ??
+      0
+    );
+  }
+
+  function weightedFor(item) {
+    const explicitWeighted = toNumber(
+      item?.weighted_revenue ??
+      item?.amount_weighted ??
+      item?.weightedRevenue ??
+      item?.weighted_value
+    );
+    if (explicitWeighted > 0) return explicitWeighted;
+
+    const probability = forecastProbabilityFor(item);
+    return revenueFor(item) * (probability > 0 ? probability / 100 : 0);
+  }
+
+  function forecastProbabilityFor(item) {
+    const explicit = toNumber(item?.forecast_probability ?? item?.forecastProbability ?? item?.probability);
+    if (explicit > 0) return explicit;
+
+    const category = forecastCategoryFor(item);
+    if (category === 'Commit') return 90;
+    if (category === 'Best Case') return 70;
+    if (category === 'Pipeline') return 30;
+    if (category === 'Closed Won') return 100;
+    if (category === 'Closed Lost') return 0;
+    return 0;
+  }
+
+  function forecastCategoryFor(item) {
+    const raw = normalizeText(item?.forecast_category ?? item?.forecastCategory);
+    if (raw === 'bestcase' || raw === 'best case') return 'Best Case';
+    if (raw === 'commit') return 'Commit';
+    if (raw === 'closedwon' || raw === 'closed won' || raw === 'closed') return 'Closed Won';
+    if (raw === 'closedlost' || raw === 'closed lost') return 'Closed Lost';
+    return 'Pipeline';
+  }
+
+  function stageFor(item) {
+    return String(item?.stage ?? item?.salesStage ?? item?.stage_name ?? item?.stageName ?? '0 Prospecting').trim();
+  }
+
+  function expectedCloseFor(item) {
+    return String(item?.expected_close_date || '').trim();
+  }
+
+  function ownerFor(item) {
+    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+  }
+
+  function isClosedWon(item) {
+    return forecastCategoryFor(item) === 'Closed Won';
+  }
+
+  function isClosedLost(item) {
+    return forecastCategoryFor(item) === 'Closed Lost';
+  }
+
+  function isOpen(item) {
+    return !isClosedWon(item) && !isClosedLost(item);
+  }
+
+  function confidenceFor(item) {
+    const hygiene = String(item?.forecast_hygiene_status || '').trim();
+    const probability = forecastProbabilityFor(item);
+    if (hygiene === 'AtRisk') return Math.max(0, probability - 35);
+    if (hygiene === 'Warning') return Math.max(0, probability - 15);
+    return probability;
+  }
+
+  const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
+  const openOpportunities = safeOpportunities.filter(isOpen);
+  const commitDeals = openOpportunities.filter((item) => forecastCategoryFor(item) === 'Commit');
+  const bestCaseDeals = openOpportunities.filter((item) => forecastCategoryFor(item) === 'Best Case');
+  const pipelineDeals = openOpportunities.filter((item) => forecastCategoryFor(item) === 'Pipeline');
+
+  const commitRevenue = commitDeals.reduce((sum, item) => sum + revenueFor(item), 0);
+  const bestCaseRevenue = bestCaseDeals.reduce((sum, item) => sum + revenueFor(item), 0);
+  const pipelineRevenue = pipelineDeals.reduce((sum, item) => sum + revenueFor(item), 0);
+  const closedWonCurrentPeriod = safeOpportunities
+    .filter((item) => forecastCategoryFor(item) === 'Closed Won')
+    .reduce((sum, item) => sum + revenueFor(item), 0);
+
+  const forecastThisPeriod = openOpportunities
+    .filter((item) => {
+      const close = expectedCloseFor(item);
+      return close.startsWith('2026-04') || close.startsWith('2026-05') || close.startsWith('2026-06');
+    })
+    .reduce((sum, item) => sum + revenueFor(item), 0);
+
+  const forecastCategoryRows = ['Pipeline', 'Best Case', 'Commit', 'Closed Won', 'Closed Lost']
+    .map((label) => ({
+      label,
+      value: safeOpportunities
+        .filter((item) => forecastCategoryFor(item) === label)
+        .reduce((sum, item) => sum + revenueFor(item), 0)
+    }))
+    .filter((row) => row.value > 0);
+
+  const closePeriodRows = [
+    {
+      label: 'Current Quarter',
+      value: openOpportunities
+        .filter((item) => {
+          const close = expectedCloseFor(item);
+          return close.startsWith('2026-04') || close.startsWith('2026-05') || close.startsWith('2026-06');
+        })
+        .reduce((sum, item) => sum + revenueFor(item), 0)
+    },
+    {
+      label: 'Next Quarter',
+      value: openOpportunities
+        .filter((item) => {
+          const close = expectedCloseFor(item);
+          return close.startsWith('2026-07') || close.startsWith('2026-08') || close.startsWith('2026-09');
+        })
+        .reduce((sum, item) => sum + revenueFor(item), 0)
+    },
+    {
+      label: 'Later',
+      value: openOpportunities
+        .filter((item) => {
+          const close = expectedCloseFor(item);
+          return close >= '2026-10-01';
+        })
+        .reduce((sum, item) => sum + revenueFor(item), 0)
+    }
+  ];
+
+  const ownerForecastRows = Object.entries(
+    openOpportunities.reduce((acc, item) => {
+      const owner = ownerFor(item);
+      if (!acc[owner]) acc[owner] = { commit: 0, bestCase: 0 };
+      if (forecastCategoryFor(item) === 'Commit') acc[owner].commit += revenueFor(item);
+      if (forecastCategoryFor(item) === 'Best Case') acc[owner].bestCase += revenueFor(item);
+      return acc;
+    }, {})
+  )
+    .map(([label, values]) => ({
+      label,
+      commit: values.commit,
+      bestCase: values.bestCase,
+      value: values.commit + values.bestCase
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  const stageAlignmentRows = Object.entries(
+    openOpportunities.reduce((acc, item) => {
+      const stage = stageFor(item);
+      acc[stage] = (acc[stage] || 0) + 1;
+      return acc;
+    }, {})
+  )
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+
+  const riskRows = [
+    {
+      label: 'Commit Missing Close Dates',
+      value: commitDeals.filter((item) => !expectedCloseFor(item)).length
+    },
+    {
+      label: 'Slipping Deals',
+      value: openOpportunities.filter((item) => String(item?.staleness_flag || '').trim()).length
+    },
+    {
+      label: 'Low Confidence',
+      value: openOpportunities.filter((item) => confidenceFor(item) < 60).length
+    },
+    {
+      label: 'Commit Risk',
+      value: commitDeals.filter((item) => String(item?.forecast_hygiene_status || '').trim() === 'AtRisk').length
+    }
+  ];
+
+  const inspectionRows = openOpportunities
+    .slice()
+    .sort((a, b) => weightedFor(b) - weightedFor(a));
+
+  const currency = (value) =>
+    Number(value || 0).toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    });
+
+  const pageStyle = { maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' };
+  const heroStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '24px',
+    padding: '28px 30px',
+    boxShadow: '0 18px 40px rgba(5, 47, 53, 0.08)'
+  };
+  const cardStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '22px',
+    padding: '24px',
+    boxShadow: '0 14px 34px rgba(5, 47, 53, 0.06)'
+  };
+  const titleStyle = { margin: 0, fontSize: '22px', lineHeight: 1.2, fontWeight: 800, color: '#123B42' };
+  const introStyle = { margin: '6px 0 0', fontSize: '14px', lineHeight: 1.6, color: '#5F6F72' };
+  const kpiGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '16px' };
+  const kpiCardStyle = {
+    background: '#F7FBF8',
+    border: '1px solid #D9E4DA',
+    borderRadius: '18px',
+    padding: '18px 18px 16px'
+  };
+
+  return (
+    <div style={pageStyle}>
+      <div style={heroStyle}>
+        <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#3F8F66' }}>
+          Forecast Leadership View
+        </div>
+        <h2 style={{ margin: '10px 0 0', fontSize: '34px', lineHeight: 1.08, fontWeight: 850, letterSpacing: '-0.03em', color: '#123B42' }}>
+          Forecast Dashboard
+        </h2>
+        <p style={{ margin: '10px 0 0', maxWidth: '820px', fontSize: '15px', lineHeight: 1.7, color: '#5F6F72' }}>
+          Leadership view of forecast category mix, close timing, confidence, and quarter-call risk.
+        </p>
+      </div>
+
+      <div style={kpiGridStyle}>
+        {[
+          ['Commit Revenue', currency(commitRevenue)],
+          ['Best Case Revenue', currency(bestCaseRevenue)],
+          ['Pipeline Revenue', currency(pipelineRevenue)],
+          ['Closed Won', currency(closedWonCurrentPeriod)],
+          ['Forecast This Period', currency(forecastThisPeriod)],
+          ['Commit Deal Count', String(commitDeals.length)]
+        ].map(([label, value]) => (
+          <div key={label} style={kpiCardStyle}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5F6F72' }}>{label}</div>
+            <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#123B42' }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '24px' }}>
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Forecast Category Mix</h3>
+          <p style={introStyle}>Distribution of forecasted revenue by confidence bucket.</p>
+          {renderDonutChart(forecastCategoryRows, currency)}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Forecast by Close Period</h3>
+          <p style={introStyle}>Timing of expected closes across forecasted revenue.</p>
+          {renderVerticalBarChart(closePeriodRows, currency)}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Commit vs Best Case by Owner</h3>
+          <p style={introStyle}>Owner-level view of believable forecast versus soft forecast.</p>
+          {renderHorizontalBarChart(ownerForecastRows.slice(0, 8), currency)}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Stage vs Forecast Alignment</h3>
+          <p style={introStyle}>Simple stage-distribution proxy for forecast alignment.</p>
+          {renderVerticalBarChart(stageAlignmentRows, (value) => String(value))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '24px' }}>
+        {riskRows.map((row) => (
+          <div key={row.label} style={cardStyle}>
+            <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#B25547' }}>
+              Forecast Risk
+            </div>
+            <div style={{ marginTop: '10px', fontSize: '15px', fontWeight: 700, color: '#123B42' }}>{row.label}</div>
+            <div style={{ marginTop: '12px', fontSize: '30px', fontWeight: 800, color: '#B25547' }}>{row.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={cardStyle}>
+        <div style={{ marginBottom: '18px' }}>
+          <h3 style={titleStyle}>Forecast Inspection Table</h3>
+          <p style={introStyle}>Management inspection view for forecast credibility and timing.</p>
+        </div>
+
+        <div style={{ display: 'grid', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.3fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr', gap: '12px', padding: '0 8px 8px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72' }}>
+            <div>Opportunity</div>
+            <div>Account</div>
+            <div>Owner</div>
+            <div>Stage</div>
+            <div>Forecast</div>
+            <div>Probability</div>
+            <div>Expected Close</div>
+            <div>Year 1</div>
+            <div>Weighted</div>
+            <div>Confidence</div>
+            <div>Risk / Hygiene</div>
+          </div>
+
+          {inspectionRows.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onOpenOpportunity && onOpenOpportunity(item.id)}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1.3fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr',
+                gap: '12px',
+                alignItems: 'center',
+                padding: '14px 12px',
+                border: '1px solid #E3ECE4',
+                borderRadius: '16px',
+                background: '#FFFFFF',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#123B42' }}>{item?.name || 'Untitled opportunity'}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{item?.account_name || item?.account || 'No linked account'}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{ownerFor(item)}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{stageFor(item)}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{forecastCategoryFor(item)}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{forecastProbabilityFor(item)}%</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{expectedCloseFor(item) || '—'}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(toNumber(item?.calc_year1_total ?? item?.amount_estimated ?? item?.amount_total ?? 0))}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(weightedFor(item))}</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: confidenceFor(item) < 60 ? '#B25547' : '#3F8F66' }}>{confidenceFor(item)}</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#B25547' }}>{String(item?.forecast_hygiene_status || item?.staleness_flag || 'Monitor')}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderForecastIntegrityPage({ opportunities = [], onOpenOpportunity } = {}) {
+  function normalizeText(value) {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+  }
+
+  function toNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function revenueFor(item) {
+    return toNumber(
+      item?.calculated_revenue ??
+      item?.amount_total ??
+      item?.calc_year1_total ??
+      item?.amount_estimated ??
+      item?.calc_arr_total ??
+      item?.arr_total ??
+      0
+    );
+  }
+
+  function forecastProbabilityFor(item) {
+    const explicit = toNumber(item?.forecast_probability ?? item?.forecastProbability ?? item?.probability);
+    if (explicit > 0) return explicit;
+
+    const category = forecastCategoryFor(item);
+    if (category === 'Commit') return 90;
+    if (category === 'Best Case') return 70;
+    if (category === 'Pipeline') return 30;
+    if (category === 'Closed Won') return 100;
+    if (category === 'Closed Lost') return 0;
+    return 0;
+  }
+
+  function weightedFor(item) {
+    const explicitWeighted = toNumber(
+      item?.weighted_revenue ??
+      item?.amount_weighted ??
+      item?.weightedRevenue ??
+      item?.weighted_value
+    );
+    if (explicitWeighted > 0) return explicitWeighted;
+    return revenueFor(item) * (forecastProbabilityFor(item) / 100);
+  }
+
+  function forecastCategoryFor(item) {
+    const raw = normalizeText(item?.forecast_category ?? item?.forecastCategory);
+    if (raw === 'bestcase' || raw === 'best case') return 'Best Case';
+    if (raw === 'commit') return 'Commit';
+    if (raw === 'closedwon' || raw === 'closed won' || raw === 'closed') return 'Closed Won';
+    if (raw === 'closedlost' || raw === 'closed lost') return 'Closed Lost';
+    return 'Pipeline';
+  }
+
+  function stageFor(item) {
+    return String(item?.stage ?? item?.salesStage ?? item?.stage_name ?? item?.stageName ?? '0 Prospecting').trim();
+  }
+
+  function expectedCloseFor(item) {
+    return String(item?.expected_close_date || '').trim();
+  }
+
+  function ownerFor(item) {
+    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+  }
+
+  function hygieneStatusFor(item) {
+    return String(item?.forecast_hygiene_status || 'Healthy').trim() || 'Healthy';
+  }
+
+  function stalenessFor(item) {
+    return String(item?.staleness_flag || '').trim();
+  }
+
+  function followUpFor(item) {
+    return String(item?.follow_up_status || '').trim();
+  }
+
+  function isClosedWon(item) {
+    return forecastCategoryFor(item) === 'Closed Won';
+  }
+
+  function isClosedLost(item) {
+    return forecastCategoryFor(item) === 'Closed Lost';
+  }
+
+  function isOpen(item) {
+    return !isClosedWon(item) && !isClosedLost(item);
+  }
+
+  function confidenceFor(item) {
+    const hygiene = hygieneStatusFor(item);
+    const probability = forecastProbabilityFor(item);
+    if (hygiene === 'AtRisk') return Math.max(0, probability - 35);
+    if (hygiene === 'Warning') return Math.max(0, probability - 15);
+    return probability;
+  }
+
+  function riskReasonFor(item) {
+    const reasons = [];
+    if (!expectedCloseFor(item)) reasons.push('Missing close date');
+    if (stalenessFor(item)) reasons.push(stalenessFor(item));
+    if (followUpFor(item) === 'Overdue') reasons.push('Overdue follow-up');
+    if (confidenceFor(item) < 60) reasons.push('Low confidence');
+    if (hygieneStatusFor(item) !== 'Healthy') reasons.push(hygieneStatusFor(item));
+    return reasons.join(', ') || 'Monitor';
+  }
+
+  const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
+  const openOpportunities = safeOpportunities.filter(isOpen);
+  const commitDeals = openOpportunities.filter((item) => forecastCategoryFor(item) === 'Commit');
+  const bestCaseDeals = openOpportunities.filter((item) => forecastCategoryFor(item) === 'Best Case');
+
+  const atRiskCommitRevenue = commitDeals
+    .filter((item) => !expectedCloseFor(item) || hygieneStatusFor(item) === 'AtRisk' || followUpFor(item) === 'Overdue')
+    .reduce((sum, item) => sum + weightedFor(item), 0);
+
+  const staleDealCount = openOpportunities.filter((item) => stalenessFor(item)).length;
+  const missingCloseDateCount = openOpportunities.filter((item) => !expectedCloseFor(item)).length;
+  const lowConfidenceCount = openOpportunities.filter((item) => confidenceFor(item) < 60).length;
+  const overdueFollowUpCount = openOpportunities.filter((item) => followUpFor(item) === 'Overdue').length;
+  const hygieneViolationCount = openOpportunities.filter((item) => hygieneStatusFor(item) !== 'Healthy').length;
+
+  const violationRows = [
+    { label: 'Missing Close Date', value: missingCloseDateCount },
+    { label: 'Stale Activity', value: staleDealCount },
+    { label: 'Low Confidence', value: lowConfidenceCount },
+    { label: 'Overdue Follow-Up', value: overdueFollowUpCount },
+    { label: 'Commit Risk', value: commitDeals.filter((item) => riskReasonFor(item) !== 'Monitor').length },
+    { label: 'Hygiene Violation', value: hygieneViolationCount }
+  ];
+
+  const atRiskRevenueByOwnerRows = Object.entries(
+    openOpportunities.reduce((acc, item) => {
+      const owner = ownerFor(item);
+      if (riskReasonFor(item) !== 'Monitor') {
+        acc[owner] = (acc[owner] || 0) + weightedFor(item);
+      }
+      return acc;
+    }, {})
+  )
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const agingRows = [
+    {
+      label: '0–14',
+      value: openOpportunities.filter((item) => {
+        const s = stalenessFor(item).toLowerCase();
+        return s.includes('0') || s.includes('14');
+      }).length
+    },
+    {
+      label: '15–30',
+      value: openOpportunities.filter((item) => stalenessFor(item).toLowerCase().includes('15') || stalenessFor(item).toLowerCase().includes('30')).length
+    },
+    {
+      label: '31–60',
+      value: openOpportunities.filter((item) => stalenessFor(item).toLowerCase().includes('31') || stalenessFor(item).toLowerCase().includes('60')).length
+    },
+    {
+      label: '60+',
+      value: openOpportunities.filter((item) => {
+        const s = stalenessFor(item).toLowerCase();
+        return s.includes('60+') || s.includes('over') || s.includes('stale');
+      }).length
+    }
+  ];
+
+  const hygieneMixRows = ['Healthy', 'Warning', 'AtRisk']
+    .map((label) => ({
+      label,
+      value: openOpportunities.filter((item) => hygieneStatusFor(item) === label).length
+    }))
+    .filter((row) => row.value > 0);
+
+  const commitRiskRows = commitDeals.filter((item) => riskReasonFor(item) !== 'Monitor').slice(0, 6);
+  const bestCaseDriftRows = bestCaseDeals.filter((item) => stalenessFor(item) || followUpFor(item) === 'Overdue').slice(0, 6);
+  const missingFieldRows = openOpportunities.filter((item) => !expectedCloseFor(item) || !ownerFor(item) || revenueFor(item) <= 0).slice(0, 6);
+  const hygieneViolationRows = openOpportunities.filter((item) => hygieneStatusFor(item) !== 'Healthy' || followUpFor(item) === 'Overdue').slice(0, 6);
+
+  const inspectionRows = openOpportunities
+    .filter((item) => riskReasonFor(item) !== 'Monitor')
+    .slice()
+    .sort((a, b) => weightedFor(b) - weightedFor(a));
+
+  const currency = (value) =>
+    Number(value || 0).toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    });
+
+  const pageStyle = { maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' };
+  const heroStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '24px',
+    padding: '28px 30px',
+    boxShadow: '0 18px 40px rgba(5, 47, 53, 0.08)'
+  };
+  const cardStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '22px',
+    padding: '24px',
+    boxShadow: '0 14px 34px rgba(5, 47, 53, 0.06)'
+  };
+  const titleStyle = { margin: 0, fontSize: '22px', lineHeight: 1.2, fontWeight: 800, color: '#123B42' };
+  const introStyle = { margin: '6px 0 0', fontSize: '14px', lineHeight: 1.6, color: '#5F6F72' };
+  const kpiGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '16px' };
+  const kpiCardStyle = {
+    background: '#F7FBF8',
+    border: '1px solid #D9E4DA',
+    borderRadius: '18px',
+    padding: '18px 18px 16px'
+  };
+
+  function renderExceptionList(rows = [], emptyText = 'No exceptions detected.') {
+    if (!rows.length) {
+      return <div style={{ marginTop: '16px', fontSize: '14px', color: '#5F6F72' }}>{emptyText}</div>;
+    }
+
+    return (
+      <div style={{ marginTop: '16px', display: 'grid', gap: '12px' }}>
+        {rows.map((item) => (
+          <div key={item.id} style={{ border: '1px solid #E3ECE4', borderRadius: '16px', padding: '14px 16px', background: '#FFFFFF' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '15px', fontWeight: 800, color: '#123B42' }}>{item?.name || 'Untitled opportunity'}</div>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#B25547' }}>{riskReasonFor(item)}</div>
+            </div>
+            <div style={{ marginTop: '4px', fontSize: '13px', color: '#5F6F72' }}>
+              {(item?.account_name || item?.account || 'No linked account')} • {ownerFor(item)} • {stageFor(item)} • {forecastCategoryFor(item)}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div style={pageStyle}>
+      <div style={heroStyle}>
+        <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#B25547' }}>
+          Forecast Audit View
+        </div>
+        <h2 style={{ margin: '10px 0 0', fontSize: '34px', lineHeight: 1.08, fontWeight: 850, letterSpacing: '-0.03em', color: '#123B42' }}>
+          Forecast Integrity
+        </h2>
+        <p style={{ margin: '10px 0 0', maxWidth: '840px', fontSize: '15px', lineHeight: 1.7, color: '#5F6F72' }}>
+          Inspection view for forecast hygiene, rule compliance, exception risk, and manager intervention readiness.
+        </p>
+      </div>
+
+      <div style={kpiGridStyle}>
+        {[
+          ['At-Risk Commit Revenue', currency(atRiskCommitRevenue)],
+          ['Stale Deal Count', String(staleDealCount)],
+          ['Missing Close Dates', String(missingCloseDateCount)],
+          ['Low Confidence', String(lowConfidenceCount)],
+          ['Overdue Follow-Up', String(overdueFollowUpCount)],
+          ['Hygiene Violations', String(hygieneViolationCount)]
+        ].map(([label, value]) => (
+          <div key={label} style={kpiCardStyle}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5F6F72' }}>{label}</div>
+            <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#B25547' }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '24px' }}>
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Violation Count by Type</h3>
+          <p style={introStyle}>Where forecast discipline is breaking down.</p>
+          {renderHorizontalBarChart(violationRows, (value) => String(value))}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>At-Risk Revenue by Owner</h3>
+          <p style={introStyle}>Where integrity issues are concentrated by owner.</p>
+          {renderHorizontalBarChart(atRiskRevenueByOwnerRows.slice(0, 8), currency)}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Aging Bands</h3>
+          <p style={introStyle}>How many exception-prone deals are aging into risk.</p>
+          {renderVerticalBarChart(agingRows, (value) => String(value))}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Forecast Hygiene Status Mix</h3>
+          <p style={introStyle}>Healthy versus warning versus at-risk forecast records.</p>
+          {renderDonutChart(hygieneMixRows, (value) => String(value))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '24px' }}>
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Commit Risk</h3>
+          <p style={introStyle}>Commit deals with one or more forecast discipline issues.</p>
+          {renderExceptionList(commitRiskRows, 'No commit-risk deals currently detected.')}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Best Case Drift</h3>
+          <p style={introStyle}>Best Case deals drifting without healthy execution signals.</p>
+          {renderExceptionList(bestCaseDriftRows, 'No Best Case drift issues currently detected.')}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Missing Critical Fields</h3>
+          <p style={introStyle}>Deals missing required forecast metadata or commercial fields.</p>
+          {renderExceptionList(missingFieldRows, 'No missing critical field issues currently detected.')}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Hygiene Violations</h3>
+          <p style={introStyle}>Records with stale, overdue, or weak forecast hygiene indicators.</p>
+          {renderExceptionList(hygieneViolationRows, 'No hygiene violations currently detected.')}
+        </div>
+      </div>
+
+      <div style={cardStyle}>
+        <div style={{ marginBottom: '18px' }}>
+          <h3 style={titleStyle}>Integrity Inspection Table</h3>
+          <p style={introStyle}>Exception-driven inspection table showing what is wrong and why.</p>
+        </div>
+
+        <div style={{ display: 'grid', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1.2fr 1.3fr', gap: '12px', padding: '0 8px 8px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72' }}>
+            <div>Opportunity</div>
+            <div>Account</div>
+            <div>Owner</div>
+            <div>Stage</div>
+            <div>Forecast</div>
+            <div>Expected Close</div>
+            <div>Probability</div>
+            <div>Weighted</div>
+            <div>Confidence</div>
+            <div>Hygiene</div>
+            <div>Staleness</div>
+            <div>Risk Reason</div>
+          </div>
+
+          {inspectionRows.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onOpenOpportunity && onOpenOpportunity(item.id)}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1.2fr 1.3fr',
+                gap: '12px',
+                alignItems: 'center',
+                padding: '14px 12px',
+                border: '1px solid #E3ECE4',
+                borderRadius: '16px',
+                background: '#FFFFFF',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ fontSize: '14px', fontWeight: 800, color: '#123B42' }}>{item?.name || 'Untitled opportunity'}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{item?.account_name || item?.account || 'No linked account'}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{ownerFor(item)}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{stageFor(item)}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{forecastCategoryFor(item)}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{expectedCloseFor(item) || '—'}</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{forecastProbabilityFor(item)}%</div>
+              <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(weightedFor(item))}</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: confidenceFor(item) < 60 ? '#B25547' : '#3F8F66' }}>{confidenceFor(item)}</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: hygieneStatusFor(item) === 'Healthy' ? '#3F8F66' : '#B25547' }}>{hygieneStatusFor(item)}</div>
+              <div style={{ fontSize: '12px', color: '#5F6F72' }}>{stalenessFor(item) || 'Current'}</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#B25547' }}>{riskReasonFor(item)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderPeriodControlPage({ opportunities = [], onOpenOpportunity } = {}) {
+  function normalizeText(value) {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+  }
+
+  function toNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function revenueFor(item) {
+    return toNumber(
+      item?.calculated_revenue ??
+      item?.amount_total ??
+      item?.calc_year1_total ??
+      item?.amount_estimated ??
+      item?.calc_arr_total ??
+      item?.arr_total ??
+      0
+    );
+  }
+
+  function forecastProbabilityFor(item) {
+    const explicit = toNumber(item?.forecast_probability ?? item?.forecastProbability ?? item?.probability);
+    if (explicit > 0) return explicit;
+
+    const category = forecastCategoryFor(item);
+    if (category === 'Commit') return 90;
+    if (category === 'Best Case') return 70;
+    if (category === 'Pipeline') return 30;
+    if (category === 'Closed Won') return 100;
+    if (category === 'Closed Lost') return 0;
+    return 0;
+  }
+
+  function weightedFor(item) {
+    const explicitWeighted = toNumber(
+      item?.weighted_revenue ??
+      item?.amount_weighted ??
+      item?.weightedRevenue ??
+      item?.weighted_value
+    );
+    if (explicitWeighted > 0) return explicitWeighted;
+    return revenueFor(item) * (forecastProbabilityFor(item) / 100);
+  }
+
+  function forecastCategoryFor(item) {
+    const raw = normalizeText(item?.forecast_category ?? item?.forecastCategory);
+    if (raw === 'bestcase' || raw === 'best case') return 'Best Case';
+    if (raw === 'commit') return 'Commit';
+    if (raw === 'closedwon' || raw === 'closed won' || raw === 'closed') return 'Closed Won';
+    if (raw === 'closedlost' || raw === 'closed lost') return 'Closed Lost';
+    return 'Pipeline';
+  }
+
+  function stageFor(item) {
+    return String(item?.stage ?? item?.salesStage ?? item?.stage_name ?? item?.stageName ?? '0 Prospecting').trim();
+  }
+
+  function expectedCloseFor(item) {
+    return String(item?.expected_close_date || '').trim();
+  }
+
+  function ownerFor(item) {
+    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+  }
+
+  function hygieneStatusFor(item) {
+    return String(item?.forecast_hygiene_status || 'Healthy').trim() || 'Healthy';
+  }
+
+  function stalenessFor(item) {
+    return String(item?.staleness_flag || '').trim();
+  }
+
+  function isClosedWon(item) {
+    return forecastCategoryFor(item) === 'Closed Won';
+  }
+
+  function isClosedLost(item) {
+    return forecastCategoryFor(item) === 'Closed Lost';
+  }
+
+  function isOpen(item) {
+    return !isClosedWon(item) && !isClosedLost(item);
+  }
+
+  function inCurrentPeriod(item) {
+    const close = expectedCloseFor(item);
+    return close.startsWith('2026-04') || close.startsWith('2026-05') || close.startsWith('2026-06');
+  }
+
+  function nextQuarter(item) {
+    const close = expectedCloseFor(item);
+    return close.startsWith('2026-07') || close.startsWith('2026-08') || close.startsWith('2026-09');
+  }
+
+  function riskReasonFor(item) {
+    const reasons = [];
+    if (hygieneStatusFor(item) !== 'Healthy') reasons.push(hygieneStatusFor(item));
+    if (stalenessFor(item)) reasons.push(stalenessFor(item));
+    if (!expectedCloseFor(item)) reasons.push('Missing close date');
+    if (forecastProbabilityFor(item) < 60) reasons.push('Low confidence');
+    return reasons.join(', ') || 'Monitor';
+  }
+
+  const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
+  const openOpportunities = safeOpportunities.filter(isOpen);
+  const inPeriodNowRows = openOpportunities.filter(inCurrentPeriod);
+  const closedThisPeriodRows = safeOpportunities.filter((item) => isClosedWon(item) && inCurrentPeriod(item));
+  const slippedOutRows = openOpportunities.filter((item) => nextQuarter(item) && (forecastCategoryFor(item) === 'Commit' || forecastCategoryFor(item) === 'Best Case'));
+  const pulledInRows = inPeriodNowRows.filter((item) => forecastCategoryFor(item) === 'Best Case' || forecastCategoryFor(item) === 'Pipeline');
+  const atRiskInPeriodRows = inPeriodNowRows.filter((item) => riskReasonFor(item) !== 'Monitor');
+
+  const revenueInPeriod = inPeriodNowRows.reduce((sum, item) => sum + revenueFor(item), 0);
+  const commitInPeriod = inPeriodNowRows.filter((item) => forecastCategoryFor(item) === 'Commit').reduce((sum, item) => sum + revenueFor(item), 0);
+  const bestCaseInPeriod = inPeriodNowRows.filter((item) => forecastCategoryFor(item) === 'Best Case').reduce((sum, item) => sum + revenueFor(item), 0);
+  const closedWonInPeriod = closedThisPeriodRows.reduce((sum, item) => sum + revenueFor(item), 0);
+
+  const periodBucketRows = [
+    {
+      label: 'Current Quarter',
+      value: openOpportunities.filter(inCurrentPeriod).reduce((sum, item) => sum + revenueFor(item), 0)
+    },
+    {
+      label: 'Next Quarter',
+      value: openOpportunities.filter(nextQuarter).reduce((sum, item) => sum + revenueFor(item), 0)
+    },
+    {
+      label: 'Later',
+      value: openOpportunities
+        .filter((item) => {
+          const close = expectedCloseFor(item);
+          return close >= '2026-10-01';
+        })
+        .reduce((sum, item) => sum + revenueFor(item), 0)
+    }
+  ];
+
+  const movementRows = [
+    { label: 'Starting In Period', value: revenueInPeriod },
+    { label: 'Pulled In', value: pulledInRows.reduce((sum, item) => sum + revenueFor(item), 0) },
+    { label: 'Slipped Out', value: slippedOutRows.reduce((sum, item) => sum + revenueFor(item), 0) },
+    { label: 'Closed Won', value: closedWonInPeriod },
+    { label: 'Remaining Open', value: inPeriodNowRows.filter((item) => !isClosedWon(item)).reduce((sum, item) => sum + revenueFor(item), 0) }
+  ];
+
+  const ownerRows = Object.entries(
+    inPeriodNowRows.reduce((acc, item) => {
+      const owner = ownerFor(item);
+      acc[owner] = (acc[owner] || 0) + revenueFor(item);
+      return acc;
+    }, {})
+  )
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const inPeriodForecastMixRows = ['Commit', 'Best Case', 'Pipeline', 'Closed Won']
+    .map((label) => ({
+      label,
+      value: inPeriodNowRows
+        .filter((item) => forecastCategoryFor(item) === label)
+        .reduce((sum, item) => sum + revenueFor(item), 0)
+    }))
+    .filter((row) => row.value > 0);
+
+  const inspectionRows = inPeriodNowRows
+    .slice()
+    .sort((a, b) => weightedFor(b) - weightedFor(a));
+
+  const currency = (value) =>
+    Number(value || 0).toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    });
+
+  const pageStyle = { maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' };
+  const heroStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '24px',
+    padding: '28px 30px',
+    boxShadow: '0 18px 40px rgba(5, 47, 53, 0.08)'
+  };
+  const cardStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #D9E4DA',
+    borderRadius: '22px',
+    padding: '24px',
+    boxShadow: '0 14px 34px rgba(5, 47, 53, 0.06)'
+  };
+  const titleStyle = { margin: 0, fontSize: '22px', lineHeight: 1.2, fontWeight: 800, color: '#123B42' };
+  const introStyle = { margin: '6px 0 0', fontSize: '14px', lineHeight: 1.6, color: '#5F6F72' };
+  const kpiGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '16px' };
+  const kpiCardStyle = {
+    background: '#F7FBF8',
+    border: '1px solid #D9E4DA',
+    borderRadius: '18px',
+    padding: '18px 18px 16px'
+  };
+
+  function renderMovementCard(label, value, sub) {
+    return (
+      <div style={cardStyle}>
+        <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#0B6771' }}>{label}</div>
+        <div style={{ marginTop: '10px', fontSize: '28px', fontWeight: 800, color: '#123B42' }}>{value}</div>
+        <div style={{ marginTop: '8px', fontSize: '13px', color: '#5F6F72' }}>{sub}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={pageStyle}>
+      <div style={heroStyle}>
+        <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#0B6771' }}>
+          Period Operating View
+        </div>
+        <h2 style={{ margin: '10px 0 0', fontSize: '34px', lineHeight: 1.08, fontWeight: 850, letterSpacing: '-0.03em', color: '#123B42' }}>
+          Period Control
+        </h2>
+        <p style={{ margin: '10px 0 0', maxWidth: '840px', fontSize: '15px', lineHeight: 1.7, color: '#5F6F72' }}>
+          Operating view for the active quarter, including movement, slippage, and close readiness.
+        </p>
+      </div>
+
+      <div style={kpiGridStyle}>
+        {[
+          ['Revenue in Period', currency(revenueInPeriod)],
+          ['Commit in Period', currency(commitInPeriod)],
+          ['Best Case in Period', currency(bestCaseInPeriod)],
+          ['Closed Won in Period', currency(closedWonInPeriod)],
+          ['Slipped Out', String(slippedOutRows.length)],
+          ['Pulled In', String(pulledInRows.length)]
+        ].map(([label, value]) => (
+          <div key={label} style={kpiCardStyle}>
+            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5F6F72' }}>{label}</div>
+            <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#123B42' }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '24px' }}>
+        {renderMovementCard('In Period Now', String(inPeriodNowRows.length), 'Deals currently forecasted inside the active period')}
+        {renderMovementCard('Closed This Period', String(closedThisPeriodRows.length), 'Deals already won in the active period')}
+        {renderMovementCard('Slipped Out', String(slippedOutRows.length), 'Deals moved to a later period')}
+        {renderMovementCard('Pulled In', String(pulledInRows.length), 'Deals brought into the active period')}
+        {renderMovementCard('At Risk This Period', String(atRiskInPeriodRows.length), 'In-period deals needing attention')}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '24px' }}>
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Revenue by Period Bucket</h3>
+          <p style={introStyle}>Revenue timing across the active and upcoming periods.</p>
+          {renderVerticalBarChart(periodBucketRows, currency)}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>Period Movement Waterfall</h3>
+          <p style={introStyle}>Movement in and out of the active period.</p>
+          {renderVerticalBarChart(movementRows, currency)}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>In-Period Revenue by Owner</h3>
+          <p style={introStyle}>Who is carrying the active period.</p>
+          {renderHorizontalBarChart(ownerRows.slice(0, 8), currency)}
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={titleStyle}>In-Period Forecast Mix</h3>
+          <p style={introStyle}>Forecast category mix for deals currently inside the period.</p>
+          {renderDonutChart(inPeriodForecastMixRows, currency)}
+        </div>
+      </div>
+
+      <div style={cardStyle}>
+        <div style={{ marginBottom: '18px' }}>
+          <h3 style={titleStyle}>Period Inspection Table</h3>
+          <p style={introStyle}>Control table for movement, slippage, and in-period close readiness.</p>
+        </div>
+
+        <div style={{ display: 'grid', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1.2fr', gap: '12px', padding: '0 8px 8px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5F6F72' }}>
+            <div>Opportunity</div>
+            <div>Account</div>
+            <div>Owner</div>
+            <div>Stage</div>
+            <div>Forecast</div>
+            <div>Forecast Period</div>
+            <div>Expected Close</div>
+            <div>Year 1</div>
+            <div>Weighted</div>
+            <div>Period Status</div>
+            <div>Slip Status</div>
+            <div>Risk Reason</div>
+          </div>
+
+          {inspectionRows.map((item) => {
+            const slipStatus = nextQuarter(item) ? 'Slipped Out' : inCurrentPeriod(item) ? 'In Period' : 'Later';
+            const periodStatus = isClosedWon(item) ? 'Closed' : atRiskInPeriodRows.some((row) => row.id === item.id) ? 'At Risk' : 'Open';
+
+            return (
+              <div
+                key={item.id}
+                onClick={() => onOpenOpportunity && onOpenOpportunity(item.id)}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 1.2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1.2fr',
+                  gap: '12px',
+                  alignItems: 'center',
+                  padding: '14px 12px',
+                  border: '1px solid #E3ECE4',
+                  borderRadius: '16px',
+                  background: '#FFFFFF',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ fontSize: '14px', fontWeight: 800, color: '#123B42' }}>{item?.name || 'Untitled opportunity'}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{item?.account_name || item?.account || 'No linked account'}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{ownerFor(item)}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{stageFor(item)}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{forecastCategoryFor(item)}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{inCurrentPeriod(item) ? '2026-Q2' : nextQuarter(item) ? '2026-Q3' : 'Later'}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{expectedCloseFor(item) || '—'}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(toNumber(item?.calc_year1_total ?? item?.amount_estimated ?? item?.amount_total ?? 0))}</div>
+                <div style={{ fontSize: '13px', color: '#5F6F72' }}>{currency(weightedFor(item))}</div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: periodStatus === 'At Risk' ? '#B25547' : '#3F8F66' }}>{periodStatus}</div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: slipStatus === 'Slipped Out' ? '#B25547' : '#5F6F72' }}>{slipStatus}</div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#B25547' }}>{riskReasonFor(item)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function formatCurrency(value) {
   return new Intl.NumberFormat('en-US', {
@@ -5983,6 +8326,18 @@ function openOpportunityDetail(opportunityId) {
                       onStartNewContact={startNewContact}
                     />
               )
+              : safeActivePage === 'My Pipeline'
+              ? renderMyPipelinePage({ opportunities, taskList, onOpenOpportunity: openOpportunityDetail })
+              : safeActivePage === 'Pipeline Rollup'
+              ? renderPipelineRollupPage({ opportunities, onOpenOpportunity: openOpportunityDetail })
+              : safeActivePage === 'Revenue Command Center'
+              ? renderRevenueCommandCenterPage({ opportunities, onOpenOpportunity: openOpportunityDetail })
+              : safeActivePage === 'Forecast Dashboard'
+              ? renderForecastDashboardPage({ opportunities, onOpenOpportunity: openOpportunityDetail })
+              : safeActivePage === 'Forecast Integrity'
+              ? renderForecastIntegrityPage({ opportunities, onOpenOpportunity: openOpportunityDetail })
+              : safeActivePage === 'Period Control'
+              ? renderPeriodControlPage({ opportunities, onOpenOpportunity: openOpportunityDetail })
               : safeActivePage === 'Opportunities'
               ? (
                 showNewOpportunityForm
