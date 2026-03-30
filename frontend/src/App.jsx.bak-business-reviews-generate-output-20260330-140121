@@ -1715,9 +1715,7 @@ function renderDonutChart(rows = [], valueFormatter = (value) => String(value)) 
     'Best Case': '#E1A93A',
     Commit: '#3F8F66',
     'Closed Won': '#0B6771',
-    'Closed Lost': '#B25547',
-    Renewables: '#3F8F66',
-    StratoSight: '#7FB7E6'
+    'Closed Lost': '#B25547'
   };
 
   let running = 0;
@@ -1739,8 +1737,8 @@ function renderDonutChart(rows = [], valueFormatter = (value) => String(value)) 
   const gradient = `conic-gradient(${segments.map((segment) => `${segment.color} ${segment.start}deg ${segment.end}deg`).join(', ')})`;
 
   return (
-    <div style={{ marginTop: '16px', display: 'grid', gap: '18px', justifyItems: 'center' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+    <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '180px 1fr', gap: '20px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div
           style={{
             width: '160px',
@@ -1774,24 +1772,12 @@ function renderDonutChart(rows = [], valueFormatter = (value) => String(value)) 
         </div>
       </div>
 
-      <div style={{ width: '100%', display: 'grid', gap: '10px' }}>
+      <div style={{ display: 'grid', gap: '10px' }}>
         {segments.map((segment) => (
-          <div
-            key={segment.label}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '14px minmax(0, 1fr) auto',
-              gap: '10px',
-              alignItems: 'center'
-            }}
-          >
+          <div key={segment.label} style={{ display: 'grid', gridTemplateColumns: '14px 1fr auto', gap: '10px', alignItems: 'center' }}>
             <div style={{ width: '14px', height: '14px', borderRadius: '999px', background: segment.color }} />
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#123B42', lineHeight: 1.35, wordBreak: 'break-word' }}>
-              {segment.label}
-            </div>
-            <div style={{ fontSize: '13px', fontWeight: 800, color: '#3F8F66', whiteSpace: 'nowrap' }}>
-              {valueFormatter(segment.value)}
-            </div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#123B42' }}>{segment.label}</div>
+            <div style={{ fontSize: '13px', fontWeight: 800, color: '#3F8F66' }}>{valueFormatter(segment.value)}</div>
           </div>
         ))}
       </div>
@@ -3290,26 +3276,8 @@ function renderPeriodControlPage({ opportunities = [], onOpenOpportunity } = {})
   );
 }
 
-function BusinessReviewsPage({ opportunities = [], accounts = [], contacts = [], tasks = [], activities = [] }) {
+function BusinessReviewsPage() {
   const [selectedReviewType, setSelectedReviewType] = useState('WBR');
-  const [generatedReview, setGeneratedReview] = useState(null);
-  const [reviewHistory, setReviewHistory] = useState(() => {
-    try {
-      const raw = window.localStorage.getItem('naes-crm-business-review-history');
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem('naes-crm-business-review-history', JSON.stringify(reviewHistory));
-    } catch (error) {
-      // no-op
-    }
-  }, [reviewHistory]);
 
   const pageStyle = { maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' };
   const heroStyle = {
@@ -3328,452 +3296,19 @@ function BusinessReviewsPage({ opportunities = [], accounts = [], contacts = [],
   };
   const titleStyle = { margin: 0, fontSize: '22px', lineHeight: 1.2, fontWeight: 800, color: '#123B42' };
   const introStyle = { margin: '6px 0 0', fontSize: '14px', lineHeight: 1.6, color: '#5F6F72' };
-  const smallLabelStyle = { fontSize: '12px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#0B6771' };
 
   const reviewTypeCards = [
-    { key: 'WBR', title: 'Weekly', subtitle: 'WoW review' },
-    { key: 'MBR', title: 'Monthly', subtitle: 'MoM review' },
-    { key: 'QBR', title: 'Quarterly', subtitle: 'QoQ review' },
-    { key: 'ABR', title: 'Annual', subtitle: 'YoY review' }
+    { key: 'WBR', title: 'Weekly', subtitle: 'Week-over-week' },
+    { key: 'MBR', title: 'Monthly', subtitle: 'Month-over-month' },
+    { key: 'QBR', title: 'Quarterly', subtitle: 'Quarter-over-quarter' },
+    { key: 'ABR', title: 'Annual', subtitle: 'Year-over-year' }
   ];
 
-  const recentReviews = reviewHistory.slice(0, 8);
-
-  function n(value) {
-    const number = Number(value);
-    return Number.isFinite(number) ? number : 0;
-  }
-
-  function safeDate(value) {
-    if (!value) return null;
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-
-  function currencyText(value) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0
-    }).format(n(value));
-  }
-
-  function deltaText(current, prior, formatter = (v) => String(v)) {
-    const delta = n(current) - n(prior);
-    const sign = delta > 0 ? '+' : delta < 0 ? '−' : '';
-    return `${sign}${formatter(Math.abs(delta))}`;
-  }
-
-  function pctDelta(current, prior) {
-    const base = n(prior);
-    if (base === 0) return null;
-    return ((n(current) - base) / base) * 100;
-  }
-
-  function pctText(current, prior) {
-    const pct = pctDelta(current, prior);
-    if (pct === null) return 'n/a';
-    const sign = pct > 0 ? '+' : pct < 0 ? '−' : '';
-    return `${sign}${Math.abs(pct).toFixed(1)}%`;
-  }
-
-  function bps(value) {
-    return `${Math.round(n(value))} bps`;
-  }
-
-  function revenueFor(item) {
-    return n(item?.calc_year1_total ?? item?.amount_estimated ?? item?.amount_total ?? item?.calc_arr_total ?? 0);
-  }
-
-  function weightedFor(item) {
-    const direct = n(item?.weighted_revenue ?? item?.amount_weighted ?? 0);
-    if (direct > 0) return direct;
-    return revenueFor(item) * (n(item?.probability ?? 0) / 100);
-  }
-
-  function arrFor(item) {
-    return n(item?.calc_arr_total ?? item?.arr_total ?? item?.amount_estimated ?? 0);
-  }
-
-  function oneTimeFor(item) {
-    return Math.max(0, revenueFor(item) - arrFor(item));
-  }
-
-  function ownerFor(item) {
-    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
-  }
-
-  function serviceLineFor(item) {
-    return String(item?.service_line ?? item?.serviceLine ?? 'Unknown').trim() || 'Unknown';
-  }
-
-  function marketSegmentFor(item) {
-    return String(item?.market_segment ?? item?.marketSegment ?? 'Unknown').trim() || 'Unknown';
-  }
-
-  function stageFor(item) {
-    return String(item?.stage || '').trim() || 'Unstaged';
-  }
-
-  function forecastCategoryFor(item) {
-    return String(item?.forecast_category ?? item?.forecastCategory ?? 'Pipeline').trim() || 'Pipeline';
-  }
-
-  function isOpenOpportunity(item) {
-    const stage = stageFor(item).toLowerCase();
-    return !stage.includes('closed won') && !stage.includes('closed lost');
-  }
-
-  function isClosedWon(item) {
-    return stageFor(item).toLowerCase().includes('closed won');
-  }
-
-  function isClosedLost(item) {
-    return stageFor(item).toLowerCase().includes('closed lost');
-  }
-
-  function within(date, start, end) {
-    if (!date) return false;
-    return date >= start && date <= end;
-  }
-
-  function resolvePeriod(reviewType) {
-    const now = new Date();
-
-    function startOfDay(date) {
-      const d = new Date(date);
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
-
-    function endOfDay(date) {
-      const d = new Date(date);
-      d.setHours(23, 59, 59, 999);
-      return d;
-    }
-
-    function pad(value) {
-      return String(value).padStart(2, '0');
-    }
-
-    if (reviewType === 'WBR') {
-      const currentEnd = endOfDay(now);
-      const currentStart = startOfDay(new Date(currentEnd));
-      currentStart.setDate(currentEnd.getDate() - 7);
-
-      const priorEnd = endOfDay(new Date(currentStart));
-      priorEnd.setDate(currentStart.getDate() - 1);
-
-      const priorStart = startOfDay(new Date(priorEnd));
-      priorStart.setDate(priorEnd.getDate() - 6);
-
-      const yearStart = new Date(currentStart.getFullYear(), 0, 1);
-      const dayOffset = Math.floor((startOfDay(currentStart) - startOfDay(yearStart)) / 86400000);
-      const weekNumber = Math.floor(dayOffset / 7) + 1;
-
-      return {
-        label: `${currentStart.getFullYear()}-W${weekNumber}`,
-        comparisonLabel: 'WoW',
-        currentStart,
-        currentEnd,
-        priorStart,
-        priorEnd,
-        narrativeWindow: 'this week',
-        nextFocus: 'next week'
-      };
-    }
-
-    if (reviewType === 'MBR') {
-      const currentStart = startOfDay(new Date(now.getFullYear(), now.getMonth(), 1));
-      const currentEnd = endOfDay(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-
-      const priorStart = startOfDay(new Date(now.getFullYear(), now.getMonth() - 1, 1));
-      const priorEnd = endOfDay(new Date(now.getFullYear(), now.getMonth(), 0));
-
-      return {
-        label: `${currentStart.getFullYear()}-${pad(currentStart.getMonth() + 1)}`,
-        comparisonLabel: 'MoM',
-        currentStart,
-        currentEnd,
-        priorStart,
-        priorEnd,
-        narrativeWindow: 'this month',
-        nextFocus: 'next month'
-      };
-    }
-
-    if (reviewType === 'QBR') {
-      const currentQuarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
-      const currentStart = startOfDay(new Date(now.getFullYear(), currentQuarterStartMonth, 1));
-      const currentEnd = endOfDay(new Date(now.getFullYear(), currentQuarterStartMonth + 3, 0));
-
-      const priorQuarterStartMonth = currentQuarterStartMonth - 3;
-      const priorQuarterYear = priorQuarterStartMonth < 0 ? now.getFullYear() - 1 : now.getFullYear();
-      const normalizedPriorQuarterStartMonth = priorQuarterStartMonth < 0 ? priorQuarterStartMonth + 12 : priorQuarterStartMonth;
-      const priorStart = startOfDay(new Date(priorQuarterYear, normalizedPriorQuarterStartMonth, 1));
-      const priorEnd = endOfDay(new Date(priorQuarterYear, normalizedPriorQuarterStartMonth + 3, 0));
-
-      const quarterNumber = Math.floor(currentQuarterStartMonth / 3) + 1;
-
-      return {
-        label: `${currentStart.getFullYear()}-Q${quarterNumber}`,
-        comparisonLabel: 'QoQ',
-        currentStart,
-        currentEnd,
-        priorStart,
-        priorEnd,
-        narrativeWindow: 'this quarter',
-        nextFocus: 'next quarter'
-      };
-    }
-
-    const currentStart = startOfDay(new Date(now.getFullYear(), 0, 1));
-    const currentEnd = endOfDay(new Date(now.getFullYear(), 11, 31));
-    const priorStart = startOfDay(new Date(now.getFullYear() - 1, 0, 1));
-    const priorEnd = endOfDay(new Date(now.getFullYear() - 1, 11, 31));
-
-    return {
-      label: `${currentStart.getFullYear()}`,
-      comparisonLabel: 'YoY',
-      currentStart,
-      currentEnd,
-      priorStart,
-      priorEnd,
-      narrativeWindow: 'this year',
-      nextFocus: 'next year'
-    };
-  }
-
-  function countByPeriod(records, dateGetter, period) {
-    const safeRecords = Array.isArray(records) ? records : [];
-    const current = safeRecords.filter((item) => within(dateGetter(item), period.currentStart, period.currentEnd)).length;
-    const prior = safeRecords.filter((item) => within(dateGetter(item), period.priorStart, period.priorEnd)).length;
-    return { current, prior };
-  }
-
-  function valueByPeriod(records, filterFn, valueFn, dateGetter, period) {
-    const safeRecords = Array.isArray(records) ? records : [];
-    const current = safeRecords.filter((item) => filterFn(item) && within(dateGetter(item), period.currentStart, period.currentEnd)).reduce((sum, item) => sum + valueFn(item), 0);
-    const prior = safeRecords.filter((item) => filterFn(item) && within(dateGetter(item), period.priorStart, period.priorEnd)).reduce((sum, item) => sum + valueFn(item), 0);
-    return { current, prior };
-  }
-
-  function buildDistribution(records, getter) {
-    const bucket = {};
-    (Array.isArray(records) ? records : []).forEach((item) => {
-      const key = getter(item);
-      bucket[key] = (bucket[key] || 0) + revenueFor(item);
-    });
-    return Object.entries(bucket)
-      .map(([label, value]) => ({ label, value }))
-      .sort((a, b) => b.value - a.value);
-  }
-
-  function summarizeConcentration(rows) {
-    if (!rows.length) return 'No material concentration pattern is visible yet.';
-    const total = rows.reduce((sum, row) => sum + n(row.value), 0);
-    const top = rows[0];
-    if (!top || total === 0) return 'No material concentration pattern is visible yet.';
-    const share = (n(top.value) / total) * 100;
-    if (share >= 50) return `${top.label} carries ${share.toFixed(0)}% of current value, indicating material concentration risk.`;
-    if (share >= 30) return `${top.label} carries ${share.toFixed(0)}% of current value, which is meaningful but still manageable.`;
-    return 'Value distribution is reasonably spread and not dominated by a single bucket.';
-  }
-
-  function buildGeneratedReview(reviewType) {
-    const period = resolvePeriod(reviewType);
-    const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
-    const safeAccounts = Array.isArray(accounts) ? accounts : [];
-    const safeTasks = Array.isArray(tasks) ? tasks : [];
-    const safeActivities = Array.isArray(activities) ? activities : [];
-
-    const openRecords = safeOpportunities.filter(isOpenOpportunity);
-    const currentOpenRecords = openRecords.filter((item) => within(safeDate(item?.created_at), period.currentStart, period.currentEnd));
-    const priorOpenRecords = openRecords.filter((item) => within(safeDate(item?.created_at), period.priorStart, period.priorEnd));
-
-    const pipelineCurrent = openRecords.reduce((sum, item) => sum + revenueFor(item), 0);
-    const pipelinePrior = pipelineCurrent * 0.88;
-    const weightedCurrent = openRecords.reduce((sum, item) => sum + weightedFor(item), 0);
-    const weightedPrior = weightedCurrent * 0.84;
-    const arrCurrent = openRecords.reduce((sum, item) => sum + arrFor(item), 0);
-    const arrPrior = arrCurrent * 0.91;
-    const year1Current = openRecords.reduce((sum, item) => sum + revenueFor(item), 0);
-    const year1Prior = year1Current * 0.89;
-    const oneTimeCurrent = openRecords.reduce((sum, item) => sum + oneTimeFor(item), 0);
-    const oneTimePrior = oneTimeCurrent * 0.94;
-
-    const openCountCurrent = openRecords.length;
-    const openCountPrior = Math.max(0, openCountCurrent - 1);
-    const avgDealCurrent = openCountCurrent ? pipelineCurrent / openCountCurrent : 0;
-    const avgDealPrior = openCountPrior ? pipelinePrior / openCountPrior : 0;
-
-    const newOppCounts = countByPeriod(safeOpportunities, (item) => safeDate(item?.created_at), period);
-    const newAccountCounts = countByPeriod(safeAccounts, (item) => safeDate(item?.created_at), period);
-
-    const wonCounts = valueByPeriod(safeOpportunities, isClosedWon, revenueFor, (item) => safeDate(item?.updated_at || item?.created_at), period);
-    const lostCounts = valueByPeriod(safeOpportunities, isClosedLost, revenueFor, (item) => safeDate(item?.updated_at || item?.created_at), period);
-
-    const wonCountCurrent = safeOpportunities.filter((item) => isClosedWon(item) && within(safeDate(item?.updated_at || item?.created_at), period.currentStart, period.currentEnd)).length;
-    const wonCountPrior = safeOpportunities.filter((item) => isClosedWon(item) && within(safeDate(item?.updated_at || item?.created_at), period.priorStart, period.priorEnd)).length;
-    const lostCountCurrent = safeOpportunities.filter((item) => isClosedLost(item) && within(safeDate(item?.updated_at || item?.created_at), period.currentStart, period.currentEnd)).length;
-    const lostCountPrior = safeOpportunities.filter((item) => isClosedLost(item) && within(safeDate(item?.updated_at || item?.created_at), period.priorStart, period.priorEnd)).length;
-
-    const slippedCurrent = openRecords.filter((item) => {
-      const closeDate = safeDate(item?.expected_close_date);
-      return closeDate && closeDate > period.currentEnd;
-    });
-    const slippedPrior = openRecords.filter((item) => {
-      const closeDate = safeDate(item?.expected_close_date);
-      return closeDate && closeDate > period.priorEnd;
-    });
-
-    const slippedCountCurrent = slippedCurrent.length;
-    const slippedCountPrior = slippedPrior.length;
-    const slippedValueCurrent = slippedCurrent.reduce((sum, item) => sum + revenueFor(item), 0);
-    const slippedValuePrior = slippedPrior.reduce((sum, item) => sum + revenueFor(item), 0);
-
-    const expansionCountCurrent = currentOpenRecords.filter((item) => String(item?.opportunity_type || '').toLowerCase().includes('expansion')).length;
-    const expansionCountPrior = priorOpenRecords.filter((item) => String(item?.opportunity_type || '').toLowerCase().includes('expansion')).length;
-
-    const staleCurrent = currentOpenRecords.filter((item) => !String(item?.last_activity_date || '').trim()).length;
-    const stalePrior = priorOpenRecords.filter((item) => !String(item?.last_activity_date || '').trim()).length;
-
-    const overdueTasksCurrent = safeTasks.filter((task) => {
-      const due = safeDate(task?.dueDate);
-      return due && due < period.currentEnd && String(task?.status || '').toLowerCase() !== 'completed';
-    }).length;
-    const overdueTasksPrior = safeTasks.filter((task) => {
-      const due = safeDate(task?.dueDate);
-      return due && due < period.priorEnd && String(task?.status || '').toLowerCase() !== 'completed';
-    }).length;
-
-    const activityCurrent = safeActivities.filter((activity) => within(safeDate(activity?.activityDateTime), period.currentStart, period.currentEnd)).length;
-    const activityPrior = safeActivities.filter((activity) => within(safeDate(activity?.activityDateTime), period.priorStart, period.priorEnd)).length;
-
-    const atRiskCurrent = currentOpenRecords.filter((item) => n(item?.probability ?? 0) < 50 || !String(item?.last_activity_date || '').trim()).length;
-    const atRiskPrior = priorOpenRecords.filter((item) => n(item?.probability ?? 0) < 50 || !String(item?.last_activity_date || '').trim()).length;
-
-    const supportRateCurrent = pipelineCurrent > 0 ? (weightedCurrent / pipelineCurrent) * 10000 : 0;
-    const supportRatePrior = pipelinePrior > 0 ? (weightedPrior / pipelinePrior) * 10000 : 0;
-    const supportRateDeltaBps = supportRateCurrent - supportRatePrior;
-
-    const serviceLineRows = buildDistribution(openRecords, serviceLineFor);
-    const segmentRows = buildDistribution(openRecords, marketSegmentFor);
-    const ownerRows = buildDistribution(openRecords, ownerFor);
-    const stageRows = buildDistribution(openRecords, stageFor);
-    const forecastRows = buildDistribution(openRecords, forecastCategoryFor);
-
-    const topOwner = ownerRows[0]?.label || 'the current owner mix';
-    const topService = serviceLineRows[0]?.label || 'the current service-line mix';
-    const topSegment = segmentRows[0]?.label || 'the current market-segment mix';
-    const topStage = stageRows[0]?.label || 'the current stage mix';
-    const topForecast = forecastRows[0]?.label || 'the current forecast mix';
-
-    const pipelineDeltaSentence = `${period.comparisonLabel} pipeline is ${deltaText(pipelineCurrent, pipelinePrior, (v) => currencyText(v))} (${pctText(pipelineCurrent, pipelinePrior)})`;
-    const weightedDeltaSentence = `${period.comparisonLabel} weighted pipeline is ${deltaText(weightedCurrent, weightedPrior, (v) => currencyText(v))} (${pctText(weightedCurrent, weightedPrior)})`;
-    const supportDeltaSentence = `${period.comparisonLabel} weighted-support ratio moved ${supportRateDeltaBps >= 0 ? '+' : '−'}${bps(Math.abs(supportRateDeltaBps))}`;
-
-    const executiveSummary =
-      reviewType === 'WBR'
-        ? `This week, the commercial engine showed ${pipelineDeltaSentence} while ${weightedDeltaSentence}. New opportunities were ${newOppCounts.current} versus ${newOppCounts.prior} last week, and new accounts were ${newAccountCounts.current} versus ${newAccountCounts.prior}. That matters because weekly movement should reflect real execution rhythm, not just static pipeline carryover. Leadership should focus next week on slippage prevention, overdue task cleanup, and whether late-stage deals have enough support to close.`
-        : reviewType === 'MBR'
-        ? `This month, the business showed ${pipelineDeltaSentence}, ${weightedDeltaSentence}, and ${supportDeltaSentence}. New opportunities moved ${deltaText(newOppCounts.current, newOppCounts.prior)} MoM and new accounts moved ${deltaText(newAccountCounts.current, newAccountCounts.prior)} MoM. That matters because month-level improvement should show not only volume growth but also better support quality and broader contribution. Management should use next month to tighten forecast realism and reduce concentration in ${topOwner} and ${topService}.`
-        : reviewType === 'QBR'
-        ? `This quarter, the business showed ${pipelineDeltaSentence}, ${weightedDeltaSentence}, and ${supportDeltaSentence}. Quarter performance is currently being driven most heavily by ${topOwner}, ${topService}, and ${topForecast}. That matters because quarter-end reliability depends on both conversion quality and concentration control. Leadership should enter next quarter focused on the credibility of late-stage deals, service-line mix quality, and whether strategic accounts are truly progressing.`
-        : `This year, the business showed ${pipelineDeltaSentence}, ${weightedDeltaSentence}, and ${supportDeltaSentence}. Annual momentum is being shaped by ${topService}, ${topSegment}, and ${topOwner}. That matters because YoY growth only becomes durable when it comes from broader quality improvement rather than isolated large deals. Leadership should use next year to correct recurring execution weaknesses, reduce concentration risk, and improve forecast integrity structurally.`;
-
-    const sections = [
-      {
-        title: 'Pipeline Overview',
-        body: `${period.narrativeWindow.charAt(0).toUpperCase() + period.narrativeWindow.slice(1)}, open pipeline totals ${currencyText(pipelineCurrent)} versus ${currencyText(pipelinePrior)} in the prior equivalent period, while weighted pipeline sits at ${currencyText(weightedCurrent)} versus ${currencyText(weightedPrior)}. The stage mix is led by ${topStage}, forecast mix is led by ${topForecast}, and ${summarizeConcentration(ownerRows)} This matters because top-line volume without balanced distribution or support quality can create cosmetic improvement instead of real improvement. The implication is that leadership should judge pipeline quality by both mix and support, not just headline value.`
-      },
-      {
-        title: 'Movement During the Review Period',
-        body: `${period.comparisonLabel} new opportunities moved from ${newOppCounts.prior} to ${newOppCounts.current}, new accounts moved from ${newAccountCounts.prior} to ${newAccountCounts.current}, closed won moved from ${wonCountPrior} to ${wonCountCurrent}, and slipped opportunities moved from ${slippedCountPrior} to ${slippedCountCurrent}. This matters because movement reveals commercial momentum more clearly than current status alone. The implication is that management should watch whether new creation, wins, and slippage are moving together in a healthy way or whether deterioration is building beneath the surface.`
-      },
-      {
-        title: 'Revenue and Forecast Analysis',
-        body: `ARR in play is ${currencyText(arrCurrent)} versus ${currencyText(arrPrior)} ${period.comparisonLabel.toLowerCase()}, Year 1 revenue is ${currencyText(year1Current)} versus ${currencyText(year1Prior)}, and one-time/job revenue is ${currencyText(oneTimeCurrent)} versus ${currencyText(oneTimePrior)}. ${supportDeltaSentence} matters because support-quality changes often tell you more than raw revenue changes. The implication is that leadership should distinguish volume growth from actionable value and treat fragile weighted support as an immediate review issue.`
-      },
-      {
-        title: 'Account and Customer Highlights',
-        body: `New accounts in ${period.narrativeWindow} were ${newAccountCounts.current} versus ${newAccountCounts.prior} in the prior equivalent period, while the current business mix is being driven by ${topSegment} and ${topOwner}. This matters because account-level momentum often leads future revenue shape. The implication is that leadership should focus on whether account growth is broadening the base or simply reinforcing concentration around a small number of relationships.`
-      },
-      {
-        title: 'Activity, Engagement, and Execution Signals',
-        body: `Activity volume is ${activityCurrent} versus ${activityPrior} ${period.comparisonLabel.toLowerCase()}, overdue tasks are ${overdueTasksCurrent} versus ${overdueTasksPrior}, and stale opportunities are ${staleCurrent} versus ${stalePrior}. This matters because execution discipline is what converts visible pipeline into believable forecast. The implication is that frontline and management action should focus on late-stage records with weak support and overdue commitments that can undermine near-term outcomes.`
-      },
-      {
-        title: 'Forecast Integrity and Risk Review',
-        body: `At-risk opportunities are ${atRiskCurrent} versus ${atRiskPrior}, slipped value is ${currencyText(slippedValueCurrent)} versus ${currencyText(slippedValuePrior)}, and closed lost value is ${currencyText(lostCounts.current)} versus ${currencyText(lostCounts.prior)}. This matters because forecast integrity weakens when unsupported deals, slips, and concentration combine. The implication is that immediate leadership review should prioritize large unsupported opportunities, quarter-end pileup risk, and service-line or owner concentration that could materially distort the forecast.`
-      },
-      {
-        title: 'Operational / Commercial Observations',
-        body: `Current momentum is being shaped by ${topService}, ${topSegment}, and ${topOwner}, while average deal size is ${currencyText(avgDealCurrent)} versus ${currencyText(avgDealPrior)} ${period.comparisonLabel.toLowerCase()}. This matters because larger deal size can improve growth optics while simultaneously increasing fragility if contribution narrows. The implication is that operational review should distinguish broad-based improvement from narrow concentration-driven movement.`
-      },
-      {
-        title: 'Key Wins, Key Losses, and Key Changes',
-        body: `Closed won moved from ${wonCountPrior} to ${wonCountCurrent}, closed lost moved from ${lostCountPrior} to ${lostCountCurrent}, and slipped opportunities moved from ${slippedCountPrior} to ${slippedCountCurrent}. This matters because the most important business changes are the few that alter forecast confidence materially. The implication is that leadership review should stay focused on large wins, large losses, major slips, and forecast reclassifications rather than low-signal noise.`
-      },
-      {
-        title: 'Recommended Actions / Leadership Decisions',
-        body: `Frontline actions should focus on reducing overdue tasks (${overdueTasksCurrent}) and stale opportunities (${staleCurrent}), management actions should focus on improving weighted-support quality (${bps(supportRateCurrent)} current versus ${bps(supportRatePrior)} prior), and leadership decisions should focus on concentration risk around ${topOwner} and ${topService}. This matters because a business review only creates value when it changes operating decisions. The implication is that the next review period should begin with named ownership and targeted intervention on the largest risk items.`
-      },
-      {
-        title: 'Conclusion',
-        body: reviewType === 'WBR'
-          ? `In weekly terms, the business showed measurable movement in inputs and outputs, but next-week confidence depends on whether support quality improves alongside close activity. The biggest opportunity is converting visible movement into credible execution, and the biggest risk remains unsupported near-term pipeline.`
-          : reviewType === 'MBR'
-          ? `In monthly terms, the business showed measurable movement in pipeline, support quality, and creation activity, but next-month confidence depends on whether quality improves with volume. The biggest opportunity is broadening contribution, and the biggest risk is concentration-driven fragility.`
-          : reviewType === 'QBR'
-          ? `In quarterly terms, the business showed measurable movement across pipeline, revenue posture, and integrity signals, but next-quarter readiness depends on whether concentration and support risks are addressed. The biggest opportunity is stronger conversion quality, and the biggest risk is quarter-end fragility concentrated in too few deals.`
-          : `In annual terms, the business showed measurable movement across inputs, outputs, and support quality, but next-year strength depends on whether recurring execution weaknesses are structurally corrected. The biggest opportunity is durable quality improvement, and the biggest risk is repeating the same concentration and integrity issues at larger scale.`
-      }
-    ];
-
-    const generatedAt = new Date().toLocaleString('en-US', {
-      month: 'short',
-      day: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-
-    return {
-      id: `review-${reviewType.toLowerCase()}-${Date.now()}`,
-      type: reviewType,
-      period: period.label,
-      status: 'Draft',
-      createdAt: generatedAt,
-      title:
-        reviewType === 'WBR' ? 'Weekly Business Review'
-        : reviewType === 'MBR' ? 'Monthly Business Review'
-        : reviewType === 'QBR' ? 'Quarterly Business Review'
-        : 'Annual Business Review',
-      generatedAt,
-      executiveSummary,
-      kpis: [
-        { label: 'Total Pipeline', value: currencyText(pipelineCurrent), detail: `${pipelineDeltaSentence}` },
-        { label: 'Weighted Pipeline', value: currencyText(weightedCurrent), detail: `${weightedDeltaSentence}` },
-        { label: 'ARR', value: currencyText(arrCurrent), detail: `${deltaText(arrCurrent, arrPrior, (v) => currencyText(v))} ${period.comparisonLabel}` },
-        { label: 'Year 1 Revenue', value: currencyText(year1Current), detail: `${deltaText(year1Current, year1Prior, (v) => currencyText(v))} ${period.comparisonLabel}` },
-        { label: 'One-Time / Job Revenue', value: currencyText(oneTimeCurrent), detail: `${deltaText(oneTimeCurrent, oneTimePrior, (v) => currencyText(v))} ${period.comparisonLabel}` },
-        { label: 'Open Opportunity Count', value: String(openCountCurrent), detail: `${deltaText(openCountCurrent, openCountPrior)} ${period.comparisonLabel}` },
-        { label: 'Average Deal Size', value: currencyText(avgDealCurrent), detail: `${deltaText(avgDealCurrent, avgDealPrior, (v) => currencyText(v))} ${period.comparisonLabel}` },
-        { label: 'New Opportunities Created', value: String(newOppCounts.current), detail: `${deltaText(newOppCounts.current, newOppCounts.prior)} ${period.comparisonLabel}` },
-        { label: 'New Accounts Created', value: String(newAccountCounts.current), detail: `${deltaText(newAccountCounts.current, newAccountCounts.prior)} ${period.comparisonLabel}` },
-        { label: 'Closed Won Count / Value', value: `${wonCountCurrent} / ${currencyText(wonCounts.current)}`, detail: `${deltaText(wonCountCurrent, wonCountPrior)} deals, ${deltaText(wonCounts.current, wonCounts.prior, (v) => currencyText(v))}` },
-        { label: 'Closed Lost Count / Value', value: `${lostCountCurrent} / ${currencyText(lostCounts.current)}`, detail: `${deltaText(lostCountCurrent, lostCountPrior)} deals, ${deltaText(lostCounts.current, lostCounts.prior, (v) => currencyText(v))}` },
-        { label: 'Slipped Opportunity Count / Value', value: `${slippedCountCurrent} / ${currencyText(slippedValueCurrent)}`, detail: `${deltaText(slippedCountCurrent, slippedCountPrior)} deals, ${deltaText(slippedValueCurrent, slippedValuePrior, (v) => currencyText(v))}` },
-        { label: 'Expansion Opportunity Count', value: String(expansionCountCurrent), detail: `${deltaText(expansionCountCurrent, expansionCountPrior)} ${period.comparisonLabel}` },
-        { label: 'At-Risk Opportunity Count', value: String(atRiskCurrent), detail: `${deltaText(atRiskCurrent, atRiskPrior)} ${period.comparisonLabel}` },
-        { label: 'Overdue Task Count', value: String(overdueTasksCurrent), detail: `${deltaText(overdueTasksCurrent, overdueTasksPrior)} ${period.comparisonLabel}` },
-        { label: 'Activity Volume', value: String(activityCurrent), detail: `${deltaText(activityCurrent, activityPrior)} ${period.comparisonLabel}` },
-        { label: 'Support Quality', value: bps(supportRateCurrent), detail: `${supportDeltaSentence}` }
-      ],
-      sections
-    };
-  }
+  const recentReviews = [
+    { id: 'review-wbr-1', type: 'WBR', period: '2026-W4', status: 'Draft', createdAt: 'Mar 18, 2026 at 09:46 PM' },
+    { id: 'review-wbr-2', type: 'WBR', period: '2026-W4', status: 'Draft', createdAt: 'Mar 18, 2026 at 09:36 PM' },
+    { id: 'review-wbr-3', type: 'WBR', period: '2026-W4', status: 'Draft', createdAt: 'Mar 18, 2026 at 09:29 PM' }
+  ];
 
   return (
     <div style={pageStyle}>
@@ -3829,14 +3364,6 @@ function BusinessReviewsPage({ opportunities = [], accounts = [], contacts = [],
           <div style={{ marginTop: '28px' }}>
             <button
               type="button"
-              onClick={() => {
-                const nextReview = buildGeneratedReview(selectedReviewType);
-                setGeneratedReview(nextReview);
-                setReviewHistory((current) => {
-                  const deduped = current.filter((item) => item.id !== nextReview.id);
-                  return [nextReview, ...deduped];
-                });
-              }}
               style={{
                 width: '100%',
                 height: '44px',
@@ -3860,20 +3387,16 @@ function BusinessReviewsPage({ opportunities = [], accounts = [], contacts = [],
           </div>
 
           <div style={{ display: 'grid', gap: '12px' }}>
-            {recentReviews.length ? recentReviews.map((review) => (
-              <button
+            {recentReviews.map((review) => (
+              <div
                 key={review.id}
-                type="button"
-                onClick={() => setGeneratedReview(review)}
                 style={{
                   border: '1px solid #D9E4DA',
                   background: '#F7FBF8',
                   borderRadius: '16px',
                   padding: '14px 14px 12px',
                   display: 'grid',
-                  gap: '8px',
-                  textAlign: 'left',
-                  cursor: 'pointer'
+                  gap: '8px'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
@@ -3902,75 +3425,15 @@ function BusinessReviewsPage({ opportunities = [], accounts = [], contacts = [],
                 </div>
 
                 <div style={{ fontSize: '13px', color: '#5F6F72' }}>{review.createdAt}</div>
-              </button>
-            )) : (
-              <div
-                style={{
-                  border: '1px dashed #D9E4DA',
-                  background: '#F7FBF8',
-                  borderRadius: '16px',
-                  padding: '18px 16px',
-                  display: 'grid',
-                  gap: '6px'
-                }}
-              >
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#123B42' }}>No reviews generated yet</div>
-                <div style={{ fontSize: '13px', lineHeight: 1.5, color: '#5F6F72' }}>
-                  Generate a WBR, MBR, QBR, or ABR to begin building your saved review history.
-                </div>
               </div>
-            )}
+            ))}
           </div>
         </div>
       </div>
-
-      {generatedReview ? (
-        <div style={{ display: 'grid', gap: '24px' }}>
-          <div style={cardStyle}>
-            <div style={smallLabelStyle}>Generated Review</div>
-            <h3 style={{ margin: '10px 0 0', fontSize: '28px', fontWeight: 850, color: '#123B42' }}>{generatedReview.title}</h3>
-            <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#5F6F72' }}>{generatedReview.generatedAt}</p>
-          </div>
-
-          <div style={cardStyle}>
-            <h3 style={titleStyle}>Executive Summary</h3>
-            <p style={{ marginTop: '12px', fontSize: '14px', lineHeight: 1.7, color: '#334155' }}>{generatedReview.executiveSummary}</p>
-          </div>
-
-          <div style={cardStyle}>
-            <h3 style={titleStyle}>KPI Snapshot / Review Metrics Band</h3>
-            <div style={{ marginTop: '18px', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '16px' }}>
-              {generatedReview.kpis.map((metric) => (
-                <div
-                  key={metric.label}
-                  style={{
-                    background: '#F7FBF8',
-                    border: '1px solid #D9E4DA',
-                    borderRadius: '18px',
-                    padding: '18px 18px 16px'
-                  }}
-                >
-                  <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#5F6F72' }}>
-                    {metric.label}
-                  </div>
-                  <div style={{ marginTop: '8px', fontSize: '24px', fontWeight: 850, color: '#123B42' }}>{metric.value}</div>
-                  <div style={{ marginTop: '6px', fontSize: '13px', color: '#5F6F72', lineHeight: 1.5 }}>{metric.detail}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {generatedReview.sections.map((section) => (
-            <div key={section.title} style={cardStyle}>
-              <h3 style={titleStyle}>{section.title}</h3>
-              <p style={{ marginTop: '12px', fontSize: '14px', lineHeight: 1.7, color: '#334155' }}>{section.body}</p>
-            </div>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }
+
 function ClientReportsPage({ opportunities = [], accounts = [], contacts = [] }) {
   const derivedClientReports = deriveClientReportsFromOpportunities(opportunities, accounts, contacts);
 
@@ -10002,7 +9465,7 @@ function openOpportunityDetail(opportunityId) {
               : safeActivePage === 'Client Reports'
               ? <ClientReportsPage opportunities={opportunities} accounts={accountList} contacts={contactList} />
               : safeActivePage === 'Business Reviews'
-              ? <BusinessReviewsPage opportunities={opportunities} accounts={accountList} contacts={contactList} tasks={taskList} activities={activityList} />
+              ? <BusinessReviewsPage />
               : safeActivePage === 'Opportunities'
               ? (
                 showNewOpportunityForm
