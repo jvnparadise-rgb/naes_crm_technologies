@@ -9968,6 +9968,95 @@ export default function App() {
       return contactRecords;
     }
   });
+
+  function mapBackendContactToFrontend(record = {}) {
+    return {
+      id: String(record?.id || ''),
+      firstName: String(record?.firstName || '').trim(),
+      lastName: String(record?.lastName || '').trim(),
+      fullName: String(record?.fullName || [record?.firstName, record?.lastName].filter(Boolean).join(' ')).trim(),
+      name: String(record?.fullName || [record?.firstName, record?.lastName].filter(Boolean).join(' ')).trim(),
+      jobTitle: String(record?.jobTitle || '').trim(),
+      title: String(record?.jobTitle || '').trim(),
+      accountId: String(record?.accountId || '').trim(),
+      accountName: '',
+      email: String(record?.email || '').trim(),
+      mobilePhone: String(record?.mobile || '').trim(),
+      officePhone: String(record?.phone || '').trim(),
+      address: '',
+      city: '',
+      state: '',
+      zip: '',
+      linkedin: '',
+      website: '',
+      preferredContactMethod: String(record?.preferredContactMethod || '').trim(),
+      roleInBuyingProcess: String(record?.roleInBuyingProcess || '').trim(),
+      notes: String(record?.notes || '').trim(),
+      decisionMaker: Boolean(record?.decisionMaker),
+      champion: Boolean(record?.champion),
+      primaryContact: Boolean(record?.primaryContact),
+      _backend: record,
+    };
+  }
+
+  function buildContactApiPayload(form = {}) {
+    return {
+      accountId: String(form.accountId || '').trim() || null,
+      firstName: String(form.firstName || '').trim(),
+      lastName: String(form.lastName || '').trim(),
+      fullName: [String(form.firstName || '').trim(), String(form.lastName || '').trim()].filter(Boolean).join(' ') || null,
+      jobTitle: String(form.jobTitle || '').trim() || null,
+      email: String(form.email || '').trim() || null,
+      phone: String(form.officePhone || '').trim() || null,
+      mobile: String(form.mobilePhone || '').trim() || null,
+      preferredContactMethod: String(form.preferredContactMethod || '').trim() || null,
+      roleInBuyingProcess: String(form.roleInBuyingProcess || '').trim() || null,
+      notes: String(form.notes || '').trim() || null,
+      decisionMaker: Boolean(form.decisionMaker),
+      champion: Boolean(form.champion),
+      primaryContact: Boolean(form.primaryContact),
+    };
+  }
+
+  async function fetchContactsFromApi() {
+    const response = await fetch(buildBackendUrl('/api/contacts'));
+    if (!response.ok) {
+      throw new Error(`Contacts fetch failed: ${response.status}`);
+    }
+    const json = await response.json();
+    const rows = Array.isArray(json?.data) ? json.data : [];
+    return sanitizeContacts(rows.map(mapBackendContactToFrontend));
+  }
+
+  async function createContactViaApi(form = {}) {
+    const response = await fetch(buildBackendUrl('/api/contacts'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildContactApiPayload(form)),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Contact create failed: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return mapBackendContactToFrontend(json?.data || {});
+  }
+
+  async function updateContactViaApi(contactId, form = {}) {
+    const response = await fetch(buildBackendUrl(`/api/contacts/${contactId}`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildContactApiPayload(form)),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Contact update failed: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return mapBackendContactToFrontend(json?.data || {});
+  }
   const [showNewContactForm, setShowNewContactForm] = useState(false);
   const [showEditContactForm, setShowEditContactForm] = useState(false);
   const [newContactForm, setNewContactForm] = useState(buildContactFormFromRecord());
@@ -10275,6 +10364,27 @@ export default function App() {
   }, [contactList]);
 
   React.useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateContactsFromBackend() {
+      try {
+        const backendContacts = await fetchContactsFromApi();
+        if (!cancelled && Array.isArray(backendContacts) && backendContacts.length) {
+          setContactList(backendContacts);
+        }
+      } catch (error) {
+        console.warn('Could not hydrate contacts from backend', error);
+      }
+    }
+
+    hydrateContactsFromBackend();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
     try {
       window.localStorage.setItem('naes-crm-opportunity-list', JSON.stringify(opportunities));
     } catch (error) {
@@ -10561,7 +10671,7 @@ export default function App() {
     setNewContactForm(buildContactFormFromRecord());
   }
 
-  function saveEditedContact() {
+  async function saveEditedContact() {
     if (!contactDetailId) return;
 
     const firstName = String(newContactForm.firstName || '').trim();
@@ -10571,56 +10681,7 @@ export default function App() {
 
     const account = newContactForm.accountId ? getAccountById(newContactForm.accountId, accountList) : null;
 
-    setContactList((prev) =>
-      prev.map((contact) =>
-        contact.id === contactDetailId
-          ? {
-              ...contact,
-              firstName,
-              lastName,
-              fullName,
-              name: fullName,
-              jobTitle: String(newContactForm.jobTitle || '').trim(),
-              title: String(newContactForm.jobTitle || '').trim(),
-              accountId: String(newContactForm.accountId || '').trim(),
-              accountName: account?.name || '',
-              email: String(newContactForm.email || '').trim(),
-              mobilePhone: String(newContactForm.mobilePhone || '').trim(),
-              officePhone: String(newContactForm.officePhone || '').trim(),
-              address: String(newContactForm.address || '').trim(),
-              city: String(newContactForm.city || '').trim(),
-              state: String(newContactForm.state || '').trim(),
-              zip: String(newContactForm.zip || '').trim(),
-              linkedin: String(newContactForm.linkedin || '').trim(),
-              website: String(newContactForm.website || '').trim(),
-              preferredContactMethod: String(newContactForm.preferredContactMethod || '').trim(),
-              roleInBuyingProcess: String(newContactForm.roleInBuyingProcess || '').trim(),
-              notes: String(newContactForm.notes || '').trim(),
-              decisionMaker: Boolean(newContactForm.decisionMaker),
-              champion: Boolean(newContactForm.champion),
-              primaryContact: Boolean(newContactForm.primaryContact),
-            }
-          : contact
-      )
-    );
-
-    setShowEditContactForm(false);
-    setShowNewContactForm(false);
-    setNewContactForm(buildContactFormFromRecord());
-    setActivePage('Contacts');
-  }
-
-  function saveNewContact() {
-    const firstName = String(newContactForm.firstName || '').trim();
-    const lastName = String(newContactForm.lastName || '').trim();
-    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
-    if (!fullName) return;
-
-    const id = `contact-${fullName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new'}`;
-    const account = newContactForm.accountId ? getAccountById(newContactForm.accountId, accountList) : null;
-
-    const newRecord = {
-      id,
+    const fallbackRecord = {
       firstName,
       lastName,
       fullName,
@@ -10646,9 +10707,83 @@ export default function App() {
       primaryContact: Boolean(newContactForm.primaryContact),
     };
 
-    setContactList((prev) => [newRecord, ...prev]);
+    let nextRecord = fallbackRecord;
+
+    try {
+      nextRecord = await updateContactViaApi(contactDetailId, newContactForm);
+      nextRecord = {
+        ...nextRecord,
+        accountName: account?.name || nextRecord.accountName || '',
+      };
+    } catch (error) {
+      console.warn('Could not save edited contact to backend, using local fallback', error);
+    }
+
+    setContactList((prev) =>
+      prev.map((contact) =>
+        contact.id === contactDetailId
+          ? { ...contact, ...nextRecord }
+          : contact
+      )
+    );
+
+    setShowEditContactForm(false);
     setShowNewContactForm(false);
-    setContactDetailId(id);
+    setNewContactForm(buildContactFormFromRecord());
+    setActivePage('Contacts');
+  }
+
+  async function saveNewContact() {
+    const firstName = String(newContactForm.firstName || '').trim();
+    const lastName = String(newContactForm.lastName || '').trim();
+    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+    if (!fullName) return;
+
+    const fallbackId = `contact-${fullName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new'}`;
+    const account = newContactForm.accountId ? getAccountById(newContactForm.accountId, accountList) : null;
+
+    const fallbackRecord = {
+      id: fallbackId,
+      firstName,
+      lastName,
+      fullName,
+      name: fullName,
+      jobTitle: String(newContactForm.jobTitle || '').trim(),
+      title: String(newContactForm.jobTitle || '').trim(),
+      accountId: String(newContactForm.accountId || '').trim(),
+      accountName: account?.name || '',
+      email: String(newContactForm.email || '').trim(),
+      mobilePhone: String(newContactForm.mobilePhone || '').trim(),
+      officePhone: String(newContactForm.officePhone || '').trim(),
+      address: String(newContactForm.address || '').trim(),
+      city: String(newContactForm.city || '').trim(),
+      state: String(newContactForm.state || '').trim(),
+      zip: String(newContactForm.zip || '').trim(),
+      linkedin: String(newContactForm.linkedin || '').trim(),
+      website: String(newContactForm.website || '').trim(),
+      preferredContactMethod: String(newContactForm.preferredContactMethod || '').trim(),
+      roleInBuyingProcess: String(newContactForm.roleInBuyingProcess || '').trim(),
+      notes: String(newContactForm.notes || '').trim(),
+      decisionMaker: Boolean(newContactForm.decisionMaker),
+      champion: Boolean(newContactForm.champion),
+      primaryContact: Boolean(newContactForm.primaryContact),
+    };
+
+    let nextRecord = fallbackRecord;
+
+    try {
+      nextRecord = await createContactViaApi(newContactForm);
+      nextRecord = {
+        ...nextRecord,
+        accountName: account?.name || nextRecord.accountName || '',
+      };
+    } catch (error) {
+      console.warn('Could not create contact in backend, using local fallback', error);
+    }
+
+    setContactList((prev) => [nextRecord, ...prev]);
+    setShowNewContactForm(false);
+    setContactDetailId(nextRecord.id);
     setActivePage('Contacts');
     setNewContactForm(buildContactFormFromRecord());
   }
