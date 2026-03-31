@@ -37,6 +37,32 @@ async function main() {
     },
   });
 
+  const managerUser = await prisma.user.create({
+    data: {
+      email: 'morgan.manager@naescrm.local',
+      firstName: 'Morgan',
+      lastName: 'Lee',
+      nickname: 'Morgan',
+      title: 'Sales Manager',
+      role: UserRole.SALES_MANAGER,
+      teamName: 'Renewables',
+      isActive: true,
+    },
+  });
+
+  const executiveUser = await prisma.user.create({
+    data: {
+      email: 'erin.executive@naescrm.local',
+      firstName: 'Erin',
+      lastName: 'Parker',
+      nickname: 'Erin',
+      title: 'Executive',
+      role: UserRole.EXECUTIVE,
+      teamName: 'Leadership',
+      isActive: true,
+    },
+  });
+
   const account1 = await prisma.account.create({
     data: {
       name: 'Onyx Renewables',

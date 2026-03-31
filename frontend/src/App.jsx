@@ -10093,19 +10093,26 @@ export default function App() {
   const [selectedDevUserId, setSelectedDevUserId] = useState(() => {
     try {
       const raw = window.localStorage.getItem('naes-crm-dev-user-id');
-      if (raw && ['cmnets1uk0001it3vdjr9tbfw', 'cmnets1ui0000it3vjwlh4apn'].includes(raw)) {
+      if (raw && [
+        'cmnf1dl3q0001itfekw0gh3nh',
+        'cmnf1dl3r0002itfefc92jnqa',
+        'cmnf1dl3r0003itfetsf1dff6',
+        'cmnf1dl3p0000itfeogbofo8v'
+      ].includes(raw)) {
         return raw;
       }
     } catch (error) {
       // ignore local storage issues
     }
-    return 'cmnets1uk0001it3vdjr9tbfw';
+    return 'cmnf1dl3q0001itfekw0gh3nh';
   });
 
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:4000').replace(/\/$/, '');
   const DEV_USER_OPTIONS = [
-    { id: 'cmnets1uk0001it3vdjr9tbfw', label: 'Ashley · Sales Associate', role: 'Associate' },
-    { id: 'cmnets1ui0000it3vjwlh4apn', label: 'Jeff · Admin', role: 'Admin' }
+    { id: 'cmnf1dl3q0001itfekw0gh3nh', headerUserId: 'cmnf1dl3q0001itfekw0gh3nh', label: 'Ashley · Sales Associate', role: 'Associate' },
+    { id: 'cmnf1dl3r0002itfefc92jnqa', headerUserId: 'cmnf1dl3r0002itfefc92jnqa', label: 'Morgan · Sales Manager', role: 'Manager' },
+    { id: 'cmnf1dl3r0003itfetsf1dff6', headerUserId: 'cmnf1dl3r0003itfetsf1dff6', label: 'Erin · Executive', role: 'Executive' },
+    { id: 'cmnf1dl3p0000itfeogbofo8v', headerUserId: 'cmnf1dl3p0000itfeogbofo8v', label: 'Jeff · Admin', role: 'Admin' }
   ];
 
   function buildBackendUrl(path = '') {
@@ -10122,7 +10129,7 @@ export default function App() {
   async function backendFetch(path = '', options = {}) {
     return fetch(buildBackendUrl(path), {
       ...options,
-      headers: buildBackendHeaders(selectedDevUserId, options.headers || {}),
+      headers: buildBackendHeaders(effectiveDevHeaderUserId, options.headers || {}),
     });
   }
 
@@ -10661,6 +10668,7 @@ export default function App() {
     [selectedDevUserId]
   );
 
+  const effectiveDevHeaderUserId = selectedDevUser?.headerUserId || 'cmnf1dl3q0001itfekw0gh3nh';
   const effectiveUserRole = selectedDevUser?.role || userProfile?.role || 'Associate';
 
   const visibleSidebarSections = useMemo(() => {
