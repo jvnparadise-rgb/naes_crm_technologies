@@ -1,0 +1,46 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const pinoHttp = require('pino-http');
+
+const { env } = require('./config/env');
+const healthRouter = require('./routes/health');
+const usersRouter = require('./routes/users');
+const accountsRouter = require('./routes/accounts');
+const contactsRouter = require('./routes/contacts');
+const opportunitiesRouter = require('./routes/opportunities');
+const tasksRouter = require('./routes/tasks');
+const activitiesRouter = require('./routes/activities');
+
+const app = express();
+
+app.use(helmet());
+app.use(cors());
+app.use(express.json({ limit: '2mb' }));
+app.use(pinoHttp({ level: env.logLevel }));
+
+app.get('/', (_req, res) => {
+  res.json({
+    ok: true,
+    service: 'naes-crm-backend',
+    message: 'Backend scaffold is running',
+  });
+});
+
+app.use('/health', healthRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/accounts', accountsRouter);
+app.use('/api/contacts', contactsRouter);
+app.use('/api/opportunities', opportunitiesRouter);
+app.use('/api/tasks', tasksRouter);
+app.use('/api/activities', activitiesRouter);
+
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  res.status(500).json({
+    ok: false,
+    error: 'Internal server error',
+  });
+});
+
+module.exports = { app };
