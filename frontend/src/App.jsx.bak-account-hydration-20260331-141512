@@ -9937,7 +9937,14 @@ export default function App() {
   const [activePage, setActivePage] = useState('Welcome');
   const [pageHistory, setPageHistory] = useState(['Welcome']);
   const [accountDetailId, setAccountDetailId] = useState(null);
-  const [accountList, setAccountList] = useState(() => sanitizeAccounts([]));
+  const [accountList, setAccountList] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem('naes-crm-account-list');
+      return sanitizeAccounts(safeParseStoredJson(raw, accountRecords));
+    } catch (error) {
+      return accountRecords;
+    }
+  });
   const [showNewAccountForm, setShowNewAccountForm] = useState(false);
   const [showEditAccountForm, setShowEditAccountForm] = useState(false);
   const [accountHistoryMap, setAccountHistoryMap] = useState(() => {
@@ -10735,7 +10742,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDevUserId]);
+  }, []);
 
   useEffect(() => {
     try {
@@ -10764,7 +10771,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDevUserId]);
+  }, []);
 
   const selectedOpportunity =
     routeInfo.detailId
@@ -10778,7 +10785,7 @@ export default function App() {
 
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [selectedDevUserId]);
+  }, []);
 
   React.useEffect(() => {
     try {
@@ -10802,8 +10809,8 @@ export default function App() {
     async function hydrateAccountsFromBackend() {
       try {
         const backendAccounts = await fetchAccountsFromApi();
-        if (!cancelled && Array.isArray(backendAccounts)) {
-          setAccountList(sanitizeAccounts(backendAccounts));
+        if (!cancelled && Array.isArray(backendAccounts) && backendAccounts.length) {
+          setAccountList(backendAccounts);
         }
       } catch (error) {
         console.warn('Could not hydrate accounts from backend', error);

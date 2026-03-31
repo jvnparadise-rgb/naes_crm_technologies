@@ -9937,7 +9937,14 @@ export default function App() {
   const [activePage, setActivePage] = useState('Welcome');
   const [pageHistory, setPageHistory] = useState(['Welcome']);
   const [accountDetailId, setAccountDetailId] = useState(null);
-  const [accountList, setAccountList] = useState(() => sanitizeAccounts([]));
+  const [accountList, setAccountList] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem('naes-crm-account-list');
+      return sanitizeAccounts(safeParseStoredJson(raw, accountRecords));
+    } catch (error) {
+      return accountRecords;
+    }
+  });
   const [showNewAccountForm, setShowNewAccountForm] = useState(false);
   const [showEditAccountForm, setShowEditAccountForm] = useState(false);
   const [accountHistoryMap, setAccountHistoryMap] = useState(() => {
@@ -10087,25 +10094,25 @@ export default function App() {
     try {
       const raw = window.localStorage.getItem('naes-crm-dev-user-id');
       if (raw && [
-        'cmnf3hd990001ija05yot9ct2',
-        'cmnf3hd9d0002ija00unvzwd6',
-        'cmnf3hd9g0003ija0a1qxzlkh',
-        'cmnf3hd900000ija0h5uvlflr'
+        'cmnf1dl3q0001itfekw0gh3nh',
+        'cmnf1dl3r0002itfefc92jnqa',
+        'cmnf1dl3r0003itfetsf1dff6',
+        'cmnf1dl3p0000itfeogbofo8v'
       ].includes(raw)) {
         return raw;
       }
     } catch (error) {
       // ignore local storage issues
     }
-    return 'cmnf3hd990001ija05yot9ct2';
+    return 'cmnf1dl3q0001itfekw0gh3nh';
   });
 
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:4000').replace(/\/$/, '');
   const DEV_USER_OPTIONS = [
-    { id: 'cmnf3hd990001ija05yot9ct2', headerUserId: 'cmnf3hd990001ija05yot9ct2', label: 'Ashley · Sales Associate', role: 'Associate' },
-    { id: 'cmnf3hd9d0002ija00unvzwd6', headerUserId: 'cmnf3hd9d0002ija00unvzwd6', label: 'Morgan · Sales Manager', role: 'Manager' },
-    { id: 'cmnf3hd9g0003ija0a1qxzlkh', headerUserId: 'cmnf3hd9g0003ija0a1qxzlkh', label: 'Erin · Executive', role: 'Executive' },
-    { id: 'cmnf3hd900000ija0h5uvlflr', headerUserId: 'cmnf3hd900000ija0h5uvlflr', label: 'Jeff · Admin', role: 'Admin' }
+    { id: 'cmnf1dl3q0001itfekw0gh3nh', headerUserId: 'cmnf1dl3q0001itfekw0gh3nh', label: 'Ashley · Sales Associate', role: 'Associate' },
+    { id: 'cmnf1dl3r0002itfefc92jnqa', headerUserId: 'cmnf1dl3r0002itfefc92jnqa', label: 'Morgan · Sales Manager', role: 'Manager' },
+    { id: 'cmnf1dl3r0003itfetsf1dff6', headerUserId: 'cmnf1dl3r0003itfetsf1dff6', label: 'Erin · Executive', role: 'Executive' },
+    { id: 'cmnf1dl3p0000itfeogbofo8v', headerUserId: 'cmnf1dl3p0000itfeogbofo8v', label: 'Jeff · Admin', role: 'Admin' }
   ];
 
   function buildBackendUrl(path = '') {
@@ -10661,7 +10668,7 @@ export default function App() {
     [selectedDevUserId]
   );
 
-  const effectiveDevHeaderUserId = selectedDevUser?.headerUserId || 'cmnf3hd990001ija05yot9ct2';
+  const effectiveDevHeaderUserId = selectedDevUser?.headerUserId || 'cmnf1dl3q0001itfekw0gh3nh';
   const effectiveUserRole = selectedDevUser?.role || userProfile?.role || 'Associate';
 
   const visibleSidebarSections = useMemo(() => {
@@ -10735,7 +10742,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDevUserId]);
+  }, []);
 
   useEffect(() => {
     try {
@@ -10764,7 +10771,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDevUserId]);
+  }, []);
 
   const selectedOpportunity =
     routeInfo.detailId
@@ -10778,7 +10785,7 @@ export default function App() {
 
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [selectedDevUserId]);
+  }, []);
 
   React.useEffect(() => {
     try {
@@ -10802,8 +10809,8 @@ export default function App() {
     async function hydrateAccountsFromBackend() {
       try {
         const backendAccounts = await fetchAccountsFromApi();
-        if (!cancelled && Array.isArray(backendAccounts)) {
-          setAccountList(sanitizeAccounts(backendAccounts));
+        if (!cancelled && Array.isArray(backendAccounts) && backendAccounts.length) {
+          setAccountList(backendAccounts);
         }
       } catch (error) {
         console.warn('Could not hydrate accounts from backend', error);

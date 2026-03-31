@@ -9894,7 +9894,7 @@ export default function App() {
         root.style.overflow = prevRootOverflow;
       }
     };
-  }, []);
+  }, [selectedDevUserId]);
 
   useEffect(() => {
     const html = document.documentElement;

@@ -10735,7 +10735,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDevUserId]);
+  }, []);
 
   useEffect(() => {
     try {
@@ -10764,7 +10764,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDevUserId]);
+  }, []);
 
   const selectedOpportunity =
     routeInfo.detailId
@@ -10778,7 +10778,7 @@ export default function App() {
 
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [selectedDevUserId]);
+  }, []);
 
   React.useEffect(() => {
     try {
