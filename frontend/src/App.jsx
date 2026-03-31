@@ -15,7 +15,7 @@ const sidebarSections = [
   },
   {
     title: 'Admin',
-    items: ['Settings']
+    items: ['Settings', 'User Accounts']
   }
 ];
 
@@ -249,7 +249,382 @@ function naesCardStyle(elevated = false) {
   };
 }
 
-function renderUserPlacard() {
+function buildDefaultUserProfile() {
+  return {
+    fullName: 'Jeff Yarbrough',
+    nickname: '',
+    title: 'VP of Operations',
+    role: 'Admin',
+    email: 'jeff.yarbrough@naes.com',
+    department: 'Operations',
+    team: 'Executive Leadership',
+    status: 'Active',
+    permissionLevel: 'Administrator - L6',
+    businessUnitAccess: 'NAES Technologies CRM',
+    serviceLineAccess: 'Renewables, StratoSight',
+    territoryScope: 'Global',
+    authType: 'Managed Identity',
+    passwordNote: 'Password is managed by administrator or identity provider.',
+    lastLogin: dtNow(),
+    photoDataUrl: ''
+  };
+}
+
+function getUserDisplayName(profile = {}) {
+  return String(profile?.nickname || profile?.fullName || 'User').trim() || 'User';
+}
+
+function getUserInitials(profile = {}) {
+  const source = String(profile?.nickname || profile?.fullName || 'User').trim();
+  if (!source) return 'U';
+  const parts = source.split(/\s+/).filter(Boolean).slice(0, 2);
+  const initials = parts.map((part) => part.charAt(0).toUpperCase()).join('');
+  return initials || source.charAt(0).toUpperCase();
+}
+
+function SettingsPage({ userProfile = {}, userAccounts = [], onSaveUserProfile, onSaveUserAccounts }) {
+  const [draftNickname, setDraftNickname] = useState(String(userProfile?.nickname || ''));
+  const [draftPhotoDataUrl, setDraftPhotoDataUrl] = useState(String(userProfile?.photoDataUrl || ''));
+  const [imageError, setImageError] = useState('');
+
+  useEffect(() => {
+    setDraftNickname(String(userProfile?.nickname || ''));
+    setDraftPhotoDataUrl(String(userProfile?.photoDataUrl || ''));
+    setImageError('');
+  }, [userProfile]);
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  const hasChanges =
+    draftNickname !== String(userProfile?.nickname || '') ||
+    draftPhotoDataUrl !== String(userProfile?.photoDataUrl || '');
+
+  function handlePhotoUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    if (!allowedTypes.includes(file.type)) {
+      setImageError('Only JPG, JPEG, PNG, and WEBP images are supported.');
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const source = String(reader.result || '');
+      const img = new Image();
+
+      img.onload = () => {
+        try {
+          const maxSize = 320;
+          const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+          const targetWidth = Math.max(1, Math.round(img.width * scale));
+          const targetHeight = Math.max(1, Math.round(img.height * scale));
+
+          const canvas = document.createElement('canvas');
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            setDraftPhotoDataUrl(source);
+            setImageError('');
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+          const compressed = canvas.toDataURL('image/jpeg', 0.82);
+          setDraftPhotoDataUrl(String(compressed || source));
+          setImageError('');
+        } catch (error) {
+          setDraftPhotoDataUrl(source);
+          setImageError('');
+        }
+      };
+
+      img.onerror = () => {
+        setImageError('Could not process that image. Please try another file.');
+      };
+
+      img.src = source;
+    };
+    reader.onerror = () => {
+      setImageError('Could not read that image. Please try another file.');
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  }
+
+  function handleRemovePhoto() {
+    setDraftPhotoDataUrl('');
+    setImageError('');
+  }
+
+  function handleCancel() {
+    setDraftNickname(String(userProfile?.nickname || ''));
+    setDraftPhotoDataUrl(String(userProfile?.photoDataUrl || ''));
+    setImageError('');
+  }
+
+  function handleSave() {
+    if (!hasChanges) return;
+    const nextProfile = {
+      ...userProfile,
+      nickname: draftNickname.trim(),
+      photoDataUrl: draftPhotoDataUrl
+    };
+
+    try {
+      window.localStorage.setItem('naes-crm-user-profile', JSON.stringify(nextProfile));
+    } catch (error) {
+      setImageError('Profile could not be saved locally. Try a smaller image.');
+      return;
+    }
+
+    if (Array.isArray(userAccounts) && typeof onSaveUserAccounts === 'function') {
+      const nextAccounts = userAccounts.map((item) => (
+        item && item.linkedProfile
+          ? {
+              ...item,
+              nickname: nextProfile.nickname,
+              photoDataUrl: nextProfile.photoDataUrl
+            }
+          : item
+      ));
+
+      try {
+        window.localStorage.setItem('naes-crm-user-accounts', JSON.stringify(nextAccounts));
+      } catch (error) {
+        setImageError('Profile saved, but linked account sync failed locally. Try a smaller image.');
+      }
+
+      onSaveUserAccounts(nextAccounts);
+    }
+
+    setImageError('');
+    onSaveUserProfile(nextProfile);
+  }
+
+  function readOnlyRow(label, value, helper = '') {
+    return (
+      <div style={{ display: 'grid', gap: '6px', padding: '14px 0', borderBottom: `1px solid ${naesTheme.border}` }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+          {label}
+        </div>
+        <div style={{ fontSize: '14px', fontWeight: 700, color: naesTheme.text }}>
+          {value || '—'}
+        </div>
+        {helper ? (
+          <div style={{ fontSize: '12px', lineHeight: 1.5, color: naesTheme.textMuted }}>
+            {helper}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  const displayName = getUserDisplayName({ ...userProfile, nickname: draftNickname });
+  const previewProfile = { ...userProfile, nickname: draftNickname, photoDataUrl: draftPhotoDataUrl };
+
+  return (
+    <div style={{ maxWidth: '860px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+      <section style={{ ...naesCardStyle(false), padding: '28px' }}>
+        {smallLabel('Personal Settings')}
+        <h2 style={{ margin: '8px 0 0 0', fontSize: '30px', fontWeight: 800, color: naesTheme.text }}>
+          Settings
+        </h2>
+        <p style={{ marginTop: '10px', maxWidth: '720px', fontSize: '14px', lineHeight: 1.7, color: naesTheme.textMuted }}>
+          Manage your personal display preferences here. Profile photo and nickname can be updated by the user. Identity, role, access, and account permissions remain read-only and are managed by an administrator.
+        </p>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '24px' }}>
+        {smallLabel('Profile Summary')}
+        <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: '20px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {previewProfile.photoDataUrl ? (
+              <img
+                src={previewProfile.photoDataUrl}
+                alt={displayName}
+                style={{ width: '104px', height: '104px', borderRadius: '24px', objectFit: 'cover', border: `1px solid ${naesTheme.border}` }}
+              />
+            ) : (
+              <div style={{ width: '104px', height: '104px', borderRadius: '24px', background: naesTheme.primarySoft, color: naesTheme.primaryStrong, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px', fontWeight: 800, border: `1px solid ${naesTheme.border}` }}>
+                {getUserInitials(previewProfile)}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gap: '8px' }}>
+            <div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>{userProfile.fullName || '—'}</div>
+              <div style={{ marginTop: '4px', fontSize: '14px', color: naesTheme.textMuted }}>
+                {draftNickname ? `Preferred display name: ${draftNickname}` : 'No nickname set'}
+              </div>
+            </div>
+            <div style={{ display: 'grid', gap: '6px' }}>
+              <div style={{ fontSize: '14px', color: naesTheme.textMuted }}><strong style={{ color: naesTheme.text }}>Title:</strong> {userProfile.title || '—'}</div>
+              <div style={{ fontSize: '14px', color: naesTheme.textMuted }}><strong style={{ color: naesTheme.text }}>Role:</strong> {userProfile.role || '—'}</div>
+              <div style={{ fontSize: '14px', color: naesTheme.textMuted }}><strong style={{ color: naesTheme.text }}>Email:</strong> {userProfile.email || '—'}</div>
+              <div style={{ fontSize: '14px', color: naesTheme.textMuted }}><strong style={{ color: naesTheme.text }}>Status:</strong> {userProfile.status || '—'}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '24px', display: 'grid', gap: '18px' }}>
+        {smallLabel('Editable Personal Settings')}
+
+        <div style={{ display: 'grid', gap: '10px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: naesTheme.text }}>Profile Photo</div>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <label
+              style={{
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: naesTheme.accentSoft,
+                color: naesTheme.text,
+                padding: '10px 14px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Upload Photo
+              <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} style={{ display: 'none' }} />
+            </label>
+
+            <button
+              type="button"
+              onClick={handleRemovePhoto}
+              style={{
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#FFFFFF',
+                color: naesTheme.text,
+                padding: '10px 14px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Remove Photo
+            </button>
+          </div>
+
+          <div style={{ fontSize: '12px', color: naesTheme.textMuted }}>
+            Supported file types: JPG, JPEG, PNG, and WEBP.
+          </div>
+
+          {imageError ? (
+            <div style={{ fontSize: '12px', fontWeight: 700, color: naesTheme.danger }}>
+              {imageError}
+            </div>
+          ) : null}
+        </div>
+
+        <div style={{ display: 'grid', gap: '8px' }}>
+          <label style={{ fontSize: '13px', fontWeight: 700, color: naesTheme.text }}>Nickname / Preferred Display Name</label>
+          <input
+            value={draftNickname}
+            onChange={(event) => setDraftNickname(event.target.value)}
+            placeholder="Enter preferred display name"
+            style={{
+              height: '44px',
+              borderRadius: '14px',
+              border: `1px solid ${naesTheme.border}`,
+              padding: '0 14px',
+              fontSize: '14px',
+              color: naesTheme.text,
+              background: '#FFFFFF'
+            }}
+          />
+          <div style={{ fontSize: '12px', color: naesTheme.textMuted }}>
+            This is the name shown in the user placard and profile display areas when set.
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!hasChanges}
+            style={{
+              borderRadius: '14px',
+              border: `1px solid ${hasChanges ? naesTheme.primary : naesTheme.border}`,
+              background: hasChanges ? naesTheme.primary : '#F3F5F4',
+              color: hasChanges ? '#FFFFFF' : naesTheme.textSoft,
+              padding: '10px 18px',
+              fontSize: '14px',
+              fontWeight: 800,
+              cursor: hasChanges ? 'pointer' : 'not-allowed'
+            }}
+          >
+            Save Changes
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCancel}
+            style={{
+              borderRadius: '14px',
+              border: `1px solid ${naesTheme.border}`,
+              background: '#FFFFFF',
+              color: naesTheme.text,
+              padding: '10px 18px',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '24px' }}>
+        {smallLabel('Read-Only Account Information')}
+        <div style={{ marginTop: '10px', display: 'grid' }}>
+          {readOnlyRow('Full Name', userProfile.fullName)}
+          {readOnlyRow('Title', userProfile.title)}
+          {readOnlyRow('Work Email', userProfile.email)}
+          {readOnlyRow('Role', userProfile.role)}
+          {readOnlyRow('Department', userProfile.department)}
+          {readOnlyRow('Team', userProfile.team)}
+          {readOnlyRow('Account Status', userProfile.status)}
+        </div>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '24px' }}>
+        {smallLabel('Read-Only Access / Permissions')}
+        <div style={{ marginTop: '10px', display: 'grid' }}>
+          {readOnlyRow('Role / Permission Level', userProfile.permissionLevel, 'Managed by administrator')}
+          {readOnlyRow('Business Unit Access', userProfile.businessUnitAccess, 'Managed by administrator')}
+          {readOnlyRow('Service Line Access', userProfile.serviceLineAccess, 'Managed by administrator')}
+          {readOnlyRow('Territory / Scope', userProfile.territoryScope, 'Managed by administrator')}
+        </div>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '24px' }}>
+        {smallLabel('Authentication / Login')}
+        <div style={{ marginTop: '10px', display: 'grid' }}>
+          {readOnlyRow('Authentication Type', userProfile.authType)}
+          {readOnlyRow('Password', userProfile.passwordNote)}
+          {readOnlyRow('Last Login', userProfile.lastLogin || '—')}
+        </div>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '24px', background: naesTheme.surfaceAlt }}>
+        {smallLabel('Support')}
+        <div style={{ marginTop: '10px', fontSize: '14px', lineHeight: 1.7, color: naesTheme.textMuted }}>
+          Contact an administrator for changes to role, access, title, email, department, team, or account permissions. Personal display preferences on this page are limited to profile photo and nickname only.
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function renderUserPlacard(profile = buildDefaultUserProfile()) {
+  const displayName = getUserDisplayName(profile);
   return (
     <div style={{ borderRadius: '24px', border: '1px solid #0C5A63', background: '#055059', padding: '16px', boxShadow: '0 12px 28px rgba(0,0,0,0.24)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
@@ -258,18 +633,574 @@ function renderUserPlacard() {
             User Profile
           </div>
           <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: 700, color: '#fff' }}>
-            Jeff Yarbrough
+            {displayName}
           </div>
           <div style={{ marginTop: '2px', fontSize: '12px', color: 'rgba(255,255,255,0.65)' }}>
-            VP of Operations
+            {profile.title || '—'}
           </div>
           <div style={{ marginTop: '8px', display: 'inline-flex', borderRadius: '999px', background: '#0B6771', padding: '4px 10px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#B6FFFB' }}>
-            Admin
+            {profile.role || 'User'}
           </div>
         </div>
-        <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: '#0C6670', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '18px', color: '#DDFEFB' }}>
-          JY
-        </div>
+        {profile.photoDataUrl ? (
+          <img
+            src={profile.photoDataUrl}
+            alt={displayName}
+            style={{ width: '56px', height: '56px', borderRadius: '18px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.18)' }}
+          />
+        ) : (
+          <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: '#0C6670', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '18px', color: '#DDFEFB' }}>
+            {getUserInitials(profile)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function buildInitialUserAccounts(profile = buildDefaultUserProfile()) {
+  return [
+    {
+      id: 'user-jeff-yarbrough',
+      linkedProfile: true,
+      fullName: profile.fullName,
+      nickname: profile.nickname || '',
+      title: profile.title,
+      email: profile.email,
+      role: profile.role,
+      department: profile.department,
+      team: profile.team,
+      status: profile.status,
+      permissionLevel: profile.permissionLevel,
+      businessUnitAccess: profile.businessUnitAccess,
+      serviceLineAccess: profile.serviceLineAccess,
+      territoryScope: profile.territoryScope,
+      authType: profile.authType,
+      passwordNote: profile.passwordNote,
+      lastLogin: profile.lastLogin,
+      photoDataUrl: profile.photoDataUrl || ''
+    }
+  ];
+}
+
+function normalizeUserRole(role = '') {
+  const raw = String(role || '').trim().toLowerCase();
+  if (raw === 'sales manager') return 'Manager';
+  if (raw === 'sales associate') return 'Associate';
+  if (raw === 'admin') return 'Admin';
+  if (raw === 'executive') return 'Executive';
+  if (raw === 'manager') return 'Manager';
+  if (raw === 'associate') return 'Associate';
+  return 'Associate';
+}
+
+function getRoleProfile(role = '') {
+  const normalized = normalizeUserRole(role);
+
+  if (normalized === 'Admin') {
+    return {
+      role: 'Admin',
+      permissionLevel: 'Administrator - L6',
+      businessUnitAccess: 'NAES Technologies CRM',
+      serviceLineAccess: 'Renewables and StratoSight',
+      territoryScope: 'Global'
+    };
+  }
+
+  if (normalized === 'Executive') {
+    return {
+      role: 'Executive',
+      permissionLevel: 'Executive - L5',
+      businessUnitAccess: 'NAES Technologies CRM',
+      serviceLineAccess: 'Renewables and StratoSight',
+      territoryScope: 'Global'
+    };
+  }
+
+  if (normalized === 'Manager') {
+    return {
+      role: 'Manager',
+      permissionLevel: 'Manager - L4',
+      businessUnitAccess: 'NAES Technologies CRM',
+      serviceLineAccess: 'Renewables and StratoSight',
+      territoryScope: 'Assigned Team / Territory'
+    };
+  }
+
+  return {
+    role: 'Associate',
+    permissionLevel: 'Associate - L3',
+    businessUnitAccess: 'CRM Workspace',
+    serviceLineAccess: 'Assigned Service Lines',
+    territoryScope: 'Assigned Accounts / Territory'
+  };
+}
+
+function getAllowedPagesForRole(role = '') {
+  const normalized = normalizeUserRole(role);
+  const allPages = sidebarSections.flatMap((section) => section.items);
+
+  if (normalized === 'Admin') {
+    return allPages;
+  }
+
+  if (normalized === 'Executive') {
+    return allPages.filter((item) => item !== 'User Accounts');
+  }
+
+  if (normalized === 'Manager') {
+    return allPages.filter((item) => item !== 'Dashboard' && item !== 'User Accounts');
+  }
+
+  return [
+    'Welcome',
+    'My Pipeline',
+    'Accounts',
+    'Contacts',
+    'Opportunities',
+    'Tasks',
+    'Activities',
+    'Client Reports',
+    'Settings'
+  ];
+}
+
+function buildNewUserAccount(role = 'Associate') {
+  const profile = getRoleProfile(role);
+  return {
+    id: `user-${Date.now()}`,
+    linkedProfile: false,
+    fullName: '',
+    nickname: '',
+    title: '',
+    email: '',
+    role: profile.role,
+    department: '',
+    team: '',
+    status: 'Active',
+    permissionLevel: profile.permissionLevel,
+    businessUnitAccess: profile.businessUnitAccess,
+    serviceLineAccess: profile.serviceLineAccess,
+    territoryScope: profile.territoryScope,
+    authType: 'Managed Identity',
+    passwordNote: 'Password is managed by administrator or identity provider.',
+    lastLogin: '',
+    photoDataUrl: ''
+  };
+}
+
+function buildUserAccountDraft(record = {}) {
+  const normalizedRole = normalizeUserRole(record.role || '');
+  const roleProfile = getRoleProfile(normalizedRole);
+
+  return {
+    id: String(record.id || ''),
+    linkedProfile: Boolean(record.linkedProfile),
+    fullName: String(record.fullName || ''),
+    nickname: String(record.nickname || ''),
+    title: String(record.title || ''),
+    email: String(record.email || ''),
+    role: normalizedRole,
+    department: String(record.department || ''),
+    team: String(record.team || ''),
+    status: String(record.status || 'Active'),
+    permissionLevel: String(record.permissionLevel || roleProfile.permissionLevel || ''),
+    businessUnitAccess: String(record.businessUnitAccess || roleProfile.businessUnitAccess || ''),
+    serviceLineAccess: String(record.serviceLineAccess || roleProfile.serviceLineAccess || ''),
+    territoryScope: String(record.territoryScope || roleProfile.territoryScope || ''),
+    authType: String(record.authType || ''),
+    passwordNote: String(record.passwordNote || ''),
+    lastLogin: String(record.lastLogin || ''),
+    photoDataUrl: String(record.photoDataUrl || '')
+  };
+}
+
+function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrentUserProfile }) {
+  const safeAccounts = Array.isArray(userAccounts) ? userAccounts.map((item) => buildUserAccountDraft(item)) : [];
+  const initialSelectedId = safeAccounts[0]?.id || null;
+
+  const [selectedUserId, setSelectedUserId] = useState(initialSelectedId);
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [draftUser, setDraftUser] = useState(buildUserAccountDraft(safeAccounts[0] || buildNewUserAccount('Associate')));
+
+  useEffect(() => {
+    if (isCreatingNew) return;
+    const nextSelectedId = safeAccounts.some((item) => item.id === selectedUserId)
+      ? selectedUserId
+      : (safeAccounts[0]?.id || null);
+    setSelectedUserId(nextSelectedId);
+    const selectedRecord = safeAccounts.find((item) => item.id === nextSelectedId) || buildNewUserAccount('Associate');
+    setDraftUser(buildUserAccountDraft(selectedRecord));
+  }, [userAccounts, isCreatingNew]);
+
+  const selectedRecord = safeAccounts.find((item) => item.id === selectedUserId) || null;
+  const hasChanges = isCreatingNew
+    ? JSON.stringify(buildUserAccountDraft(buildNewUserAccount(draftUser.role || 'Associate'))) !== JSON.stringify(draftUser)
+    : JSON.stringify(buildUserAccountDraft(selectedRecord || {})) !== JSON.stringify(draftUser);
+
+  function updateField(field, value) {
+    setDraftUser((current) => {
+      const next = { ...current, [field]: value };
+      if (field === 'role') {
+        const roleProfile = getRoleProfile(value);
+        next.role = roleProfile.role;
+        next.permissionLevel = roleProfile.permissionLevel;
+        next.businessUnitAccess = roleProfile.businessUnitAccess;
+        next.serviceLineAccess = roleProfile.serviceLineAccess;
+        next.territoryScope = roleProfile.territoryScope;
+      }
+      return next;
+    });
+  }
+
+  function handleStartNewUser() {
+    setIsCreatingNew(true);
+    setSelectedUserId(null);
+    setDraftUser(buildUserAccountDraft(buildNewUserAccount('Associate')));
+  }
+
+  function handleSelectUser(userId) {
+    setIsCreatingNew(false);
+    setSelectedUserId(userId);
+    const selected = safeAccounts.find((item) => item.id === userId) || buildNewUserAccount('Associate');
+    setDraftUser(buildUserAccountDraft(selected));
+  }
+
+  function handleCancel() {
+    if (isCreatingNew) {
+      setIsCreatingNew(false);
+      const fallback = safeAccounts[0] || buildNewUserAccount('Associate');
+      setSelectedUserId(safeAccounts[0]?.id || null);
+      setDraftUser(buildUserAccountDraft(fallback));
+      return;
+    }
+    setDraftUser(buildUserAccountDraft(selectedRecord || {}));
+  }
+
+  function handleSave() {
+    if (isCreatingNew) {
+      const nextUser = {
+        ...draftUser,
+        id: draftUser.id || `user-${Date.now()}`,
+        linkedProfile: false
+      };
+      const nextAccounts = [nextUser, ...safeAccounts];
+
+      try {
+        window.localStorage.setItem('naes-crm-user-accounts', JSON.stringify(nextAccounts));
+      } catch (error) {
+        // ignore local storage persistence issues in preview shell
+      }
+
+      onSaveUserAccounts(nextAccounts);
+      setIsCreatingNew(false);
+      setSelectedUserId(nextUser.id);
+      setDraftUser(buildUserAccountDraft(nextUser));
+      return;
+    }
+
+    if (!selectedRecord) return;
+
+    const nextAccounts = safeAccounts.map((item) => (
+      item.id === selectedRecord.id
+        ? {
+            ...item,
+            ...draftUser
+          }
+        : item
+    ));
+
+    try {
+      window.localStorage.setItem('naes-crm-user-accounts', JSON.stringify(nextAccounts));
+    } catch (error) {
+      // ignore local storage persistence issues in preview shell
+    }
+
+    onSaveUserAccounts(nextAccounts);
+
+    if (draftUser.linkedProfile) {
+      const nextProfile = {
+        fullName: draftUser.fullName,
+        nickname: draftUser.nickname,
+        title: draftUser.title,
+        email: draftUser.email,
+        role: draftUser.role,
+        department: draftUser.department,
+        team: draftUser.team,
+        status: draftUser.status,
+        permissionLevel: draftUser.permissionLevel,
+        businessUnitAccess: draftUser.businessUnitAccess,
+        serviceLineAccess: draftUser.serviceLineAccess,
+        territoryScope: draftUser.territoryScope,
+        authType: draftUser.authType,
+        passwordNote: draftUser.passwordNote,
+        lastLogin: draftUser.lastLogin,
+        photoDataUrl: draftUser.photoDataUrl
+      };
+
+      try {
+        window.localStorage.setItem('naes-crm-user-profile', JSON.stringify(nextProfile));
+      } catch (error) {
+        // ignore local storage persistence issues in preview shell
+      }
+
+      onSyncCurrentUserProfile((current) => ({
+        ...current,
+        ...nextProfile
+      }));
+    }
+  }
+
+  function handleDelete() {
+    if (isCreatingNew) {
+      handleCancel();
+      return;
+    }
+    if (!selectedRecord || selectedRecord.linkedProfile) return;
+
+    const nextAccounts = safeAccounts.filter((item) => item.id !== selectedRecord.id);
+    onSaveUserAccounts(nextAccounts);
+    const fallback = nextAccounts[0] || buildNewUserAccount('Associate');
+    setSelectedUserId(nextAccounts[0]?.id || null);
+    setDraftUser(buildUserAccountDraft(fallback));
+  }
+
+  function renderField(label, field, options = {}) {
+    const isTextarea = options.type === 'textarea';
+    const isSelect = Array.isArray(options.options);
+    const commonStyle = {
+      width: '100%',
+      boxSizing: 'border-box',
+      borderRadius: '14px',
+      border: `1px solid ${naesTheme.border}`,
+      background: '#FFFFFF',
+      color: naesTheme.text,
+      fontSize: '14px',
+      padding: isTextarea ? '12px 14px' : '0 12px',
+      height: isTextarea ? 'auto' : '40px',
+      minHeight: isTextarea ? '96px' : '40px'
+    };
+
+    return (
+      <div style={{ display: 'grid', gap: '8px' }}>
+        <label style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: naesTheme.textSoft }}>
+          {label}
+        </label>
+        {isSelect ? (
+          <select value={draftUser[field] || ''} onChange={(event) => updateField(field, event.target.value)} style={commonStyle}>
+            {options.options.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        ) : isTextarea ? (
+          <textarea value={draftUser[field] || ''} onChange={(event) => updateField(field, event.target.value)} style={commonStyle} />
+        ) : (
+          <input value={draftUser[field] || ''} onChange={(event) => updateField(field, event.target.value)} style={commonStyle} />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
+      <section style={{ ...naesCardStyle(false), padding: '28px' }}>
+        {smallLabel('Admin Directory')}
+        <h2 style={{ margin: '8px 0 0 0', fontSize: '30px', fontWeight: 800, color: naesTheme.text }}>
+          User Accounts
+        </h2>
+        <p style={{ marginTop: '10px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.7, color: naesTheme.textMuted }}>
+          Admin-managed user directory for identity, role, access, team, and account-status maintenance. This is the correct place to update managed fields such as email, title, role, and user access.
+        </p>
+      </section>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '340px minmax(0, 1fr)', gap: '24px', alignItems: 'start' }}>
+        <section style={{ ...naesCardStyle(false), padding: '20px', display: 'grid', gap: '14px', maxWidth: '360px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+            <div>
+              {smallLabel('User Directory')}
+              <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: 800, color: naesTheme.text }}>
+                Accounts
+              </h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleStartNewUser}
+              style={{
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.primary}`,
+                background: naesTheme.primary,
+                color: '#FFFFFF',
+                padding: '10px 14px',
+                fontSize: '13px',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              Add Account
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {safeAccounts.map((user) => {
+              const isActive = user.id === selectedUserId && !isCreatingNew;
+              const displayName = String(user.nickname || user.fullName || 'User').trim() || 'User';
+              return (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => handleSelectUser(user.id)}
+                  style={{
+                    borderRadius: '18px',
+                    border: `1px solid ${isActive ? naesTheme.primary : naesTheme.border}`,
+                    background: isActive ? naesTheme.primarySoft : '#FFFFFF',
+                    padding: '14px',
+                    display: 'grid',
+                    gap: '8px',
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: naesTheme.text }}>{displayName}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: user.status === 'Active' ? naesTheme.primaryStrong : naesTheme.danger }}>
+                      {user.status || '—'}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '13px', color: naesTheme.textMuted }}>{user.email || '—'}</div>
+                  <div style={{ fontSize: '12px', color: naesTheme.textSoft }}>{user.title || '—'} • {normalizeUserRole(user.role || 'Associate')}</div>
+                </button>
+              );
+            })}
+
+            {isCreatingNew ? (
+              <div style={{ borderRadius: '18px', border: `1px dashed ${naesTheme.primary}`, background: naesTheme.primarySoft, padding: '14px', fontSize: '13px', fontWeight: 700, color: naesTheme.primaryStrong }}>
+                Creating new user account
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section style={{ ...naesCardStyle(false), padding: '24px', display: 'grid', gap: '18px', maxWidth: '576px', width: '100%' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '88px minmax(0, 1fr)', gap: '18px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {draftUser.photoDataUrl ? (
+                <img
+                  src={draftUser.photoDataUrl}
+                  alt={draftUser.fullName || 'User'}
+                  style={{ width: '80px', height: '80px', borderRadius: '22px', objectFit: 'cover', border: `1px solid ${naesTheme.border}` }}
+                />
+              ) : (
+                <div style={{ width: '80px', height: '80px', borderRadius: '22px', background: naesTheme.primarySoft, color: naesTheme.primaryStrong, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 800, border: `1px solid ${naesTheme.border}` }}>
+                  {getUserInitials(draftUser)}
+                </div>
+              )}
+            </div>
+            <div>
+              {smallLabel(isCreatingNew ? 'New Account' : 'Selected Account')}
+              <div style={{ marginTop: '6px', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>
+                {draftUser.fullName || 'User'}
+              </div>
+              <div style={{ marginTop: '4px', fontSize: '14px', color: naesTheme.textMuted }}>
+                {draftUser.linkedProfile ? 'Linked to current signed-in profile' : isCreatingNew ? 'New directory account' : 'Directory-only account'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {smallLabel('Identity / Account')}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 280px)', gap: '16px', justifyContent: 'start' }}>
+              {renderField('Full Name', 'fullName')}
+              {renderField('Nickname', 'nickname')}
+              {renderField('Title', 'title')}
+              {renderField('Work Email', 'email')}
+              {renderField('Role', 'role', { options: ['Admin', 'Executive', 'Manager', 'Associate'] })}
+              {renderField('Department', 'department')}
+              {renderField('Team', 'team')}
+              {renderField('Account Status', 'status', { options: ['Active', 'Inactive'] })}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {smallLabel('Permissions / Access')}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 280px)', gap: '16px', justifyContent: 'start' }}>
+              {renderField('Permission Level', 'permissionLevel')}
+              {renderField('Business Unit Access', 'businessUnitAccess')}
+              {renderField('Service Line Access', 'serviceLineAccess')}
+              {renderField('Territory / Scope', 'territoryScope')}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {smallLabel('Authentication')}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 280px)', gap: '16px', justifyContent: 'start' }}>
+              {renderField('Authentication Type', 'authType')}
+              {renderField('Last Login', 'lastLogin')}
+            </div>
+            {renderField('Password / Login Note', 'passwordNote', { type: 'textarea' })}
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!hasChanges}
+              style={{
+                borderRadius: '14px',
+                border: `1px solid ${hasChanges ? naesTheme.primary : naesTheme.border}`,
+                background: hasChanges ? naesTheme.primary : '#F3F5F4',
+                color: hasChanges ? '#FFFFFF' : naesTheme.textSoft,
+                padding: '10px 18px',
+                fontSize: '14px',
+                fontWeight: 800,
+                cursor: hasChanges ? 'pointer' : 'not-allowed'
+              }}
+            >
+              {isCreatingNew ? 'Create User Account' : 'Save User Account'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCancel}
+              style={{
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#FFFFFF',
+                color: naesTheme.text,
+                padding: '10px 18px',
+                fontSize: '14px',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={Boolean(selectedRecord?.linkedProfile) && !isCreatingNew}
+              style={{
+                borderRadius: '14px',
+                border: `1px solid ${selectedRecord?.linkedProfile && !isCreatingNew ? naesTheme.border : naesTheme.danger}`,
+                background: '#FFFFFF',
+                color: selectedRecord?.linkedProfile && !isCreatingNew ? naesTheme.textSoft : naesTheme.danger,
+                padding: '10px 18px',
+                fontSize: '14px',
+                fontWeight: 700,
+                cursor: selectedRecord?.linkedProfile && !isCreatingNew ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {isCreatingNew ? 'Discard New Account' : 'Delete Account'}
+            </button>
+          </div>
+
+          {selectedRecord?.linkedProfile && !isCreatingNew ? (
+            <div style={{ fontSize: '12px', lineHeight: 1.6, color: naesTheme.textMuted }}>
+              The currently linked signed-in profile can be edited and activated/inactivated, but not deleted from the directory.
+            </div>
+          ) : null}
+        </section>
       </div>
     </div>
   );
@@ -8864,6 +9795,10 @@ function renderHeaderBand(activePage, onBack, canGoBack, options = {}) {
     Settings: {
       title: 'Settings',
       subtitle: 'User and system settings.'
+    },
+    'User Accounts': {
+      title: 'User Accounts',
+      subtitle: 'Admin-managed user directory, identity, and access control.'
     }
   };
 
@@ -8936,6 +9871,44 @@ function replacePath(path) {
 }
 
 export default function App() {
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const root = document.getElementById('root');
+
+    const prevHtmlOverflow = html.style.overflow;
+    const prevHtmlHeight = html.style.height;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyHeight = body.style.height;
+    const prevBodyMargin = body.style.margin;
+    const prevRootHeight = root ? root.style.height : '';
+    const prevRootOverflow = root ? root.style.overflow : '';
+
+    html.style.overflow = 'hidden';
+    html.style.height = '100%';
+    body.style.overflow = 'hidden';
+    body.style.height = '100%';
+    body.style.margin = '0';
+
+    if (root) {
+      root.style.height = '100%';
+      root.style.overflow = 'hidden';
+    }
+
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      html.style.height = prevHtmlHeight;
+      body.style.overflow = prevBodyOverflow;
+      body.style.height = prevBodyHeight;
+      body.style.margin = prevBodyMargin;
+
+      if (root) {
+        root.style.height = prevRootHeight;
+        root.style.overflow = prevRootOverflow;
+      }
+    };
+  }, []);
+
   const [activePage, setActivePage] = useState('Welcome');
   const [pageHistory, setPageHistory] = useState(['Welcome']);
   const [accountDetailId, setAccountDetailId] = useState(null);
@@ -9012,16 +9985,6 @@ export default function App() {
     }
   });
 
-  const flatItems = useMemo(() => sidebarSections.flatMap((section) => section.items), []);
-  const routeInfo = parseOpportunityRoute(routePath);
-
-  const safeActivePage =
-    routeInfo.isOpportunities
-      ? 'Opportunities'
-      : flatItems.includes(activePage)
-      ? activePage
-      : 'Welcome';
-
   const [taskList, setTaskList] = useState(() => {
     try {
       const raw = window.localStorage.getItem('naes-crm-task-list');
@@ -9047,6 +10010,65 @@ export default function App() {
   const [showNewActivityForm, setShowNewActivityForm] = useState(false);
   const [showEditActivityForm, setShowEditActivityForm] = useState(false);
   const [newActivityForm, setNewActivityForm] = useState(buildActivityFormFromRecord());
+  const [userProfile, setUserProfile] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem('naes-crm-user-profile');
+      return {
+        ...buildDefaultUserProfile(),
+        ...safeParseStoredJson(raw, buildDefaultUserProfile())
+      };
+    } catch (error) {
+      return buildDefaultUserProfile();
+    }
+  });
+  const [userAccounts, setUserAccounts] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem('naes-crm-user-accounts');
+      const parsed = safeParseStoredJson(raw, null);
+      if (Array.isArray(parsed) && parsed.length) {
+        return parsed.map((item) => buildUserAccountDraft(item));
+      }
+      return buildInitialUserAccounts(buildDefaultUserProfile()).map((item) => buildUserAccountDraft(item));
+    } catch (error) {
+      return buildInitialUserAccounts(buildDefaultUserProfile()).map((item) => buildUserAccountDraft(item));
+    }
+  });
+
+  const visibleSidebarSections = useMemo(() => {
+    const allowed = new Set(getAllowedPagesForRole(userProfile?.role));
+    return sidebarSections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => allowed.has(item))
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [userProfile?.role]);
+
+  const flatItems = useMemo(() => sidebarSections.flatMap((section) => section.items), []);
+  const visibleFlatItems = useMemo(() => visibleSidebarSections.flatMap((section) => section.items), [visibleSidebarSections]);
+  const routeInfo = parseOpportunityRoute(routePath);
+
+  const safeActivePage =
+    routeInfo.isOpportunities && visibleFlatItems.includes('Opportunities')
+      ? 'Opportunities'
+      : visibleFlatItems.includes(activePage)
+      ? activePage
+      : (visibleFlatItems[0] || 'Welcome');
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('naes-crm-user-profile', JSON.stringify(userProfile));
+    } catch (error) {
+      // ignore local storage persistence issues in preview shell
+    }
+  }, [userProfile]);
+
+  useEffect(() => {
+    const allowed = getAllowedPagesForRole(userProfile?.role);
+    if (!routeInfo.isOpportunities && !allowed.includes(activePage)) {
+      setActivePage(allowed[0] || 'Welcome');
+    }
+  }, [userProfile?.role, activePage, routeInfo.isOpportunities]);
 
   useEffect(() => {
     try {
@@ -9828,9 +10850,10 @@ function openOpportunityDetail(opportunityId) {
   const canGoBack = pageHistory.length > 1;
 
   return (
-    <div style={{ height: '100vh', overflow: 'hidden', background: '#E8EEEB', color: '#0f172a', fontFamily: 'Inter, Arial, sans-serif' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '290px 1fr', height: '100vh', overflow: 'hidden' }}>
-        <aside style={{ borderRight: '1px solid #0E545D', background: '#043941', color: '#fff', height: '100vh', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div style={{ minHeight: '100vh', height: '100vh', overflow: 'hidden', background: '#E8EEEB', color: '#0f172a', fontFamily: 'Inter, Arial, sans-serif' }}>
+      <div style={{ display: 'grid', gridTemplateRows: 'minmax(0, 1fr) 46px', height: '100%', overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '290px 1fr', minHeight: 0, overflow: 'hidden' }}>
+        <aside style={{ borderRight: '1px solid #0E545D', background: '#043941', color: '#fff', height: '100%', minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
           <div style={{ borderBottom: '1px solid #0E545D', padding: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
               <div>
@@ -9846,12 +10869,12 @@ function openOpportunityDetail(opportunityId) {
               </div>
             </div>
 
-            <div style={{ marginTop: '12px' }}>{renderUserPlacard()}</div>
+            <div style={{ marginTop: '12px' }}>{renderUserPlacard(userProfile)}</div>
           </div>
 
           <div style={{ padding: '16px 12px 24px 12px' }}>
             <nav style={{ display: 'grid', gap: '14px' }}>
-              {sidebarSections.map((section) => (
+              {visibleSidebarSections.map((section) => (
                 <div key={section.title}>
                   <div style={{ marginBottom: '8px', padding: '0 8px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.40)' }}>
                     {section.title}
@@ -9890,7 +10913,7 @@ function openOpportunityDetail(opportunityId) {
           </div>
         </aside>
 
-        <main style={{ minWidth: 0, height: '100vh', overflowY: 'auto', overflowX: 'hidden' }}>
+        <main style={{ minWidth: 0, minHeight: 0, height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', borderBottom: '1px solid #0E545D', background: '#052F35' }}>
             {topStrip.map((item, idx) => (
               <div
@@ -10080,7 +11103,24 @@ function openOpportunityDetail(opportunityId) {
                       onOpenActivity={openActivityDetail}
                     />
               )
-: (
+: safeActivePage === 'Settings'
+              ? (
+                <SettingsPage
+                  userProfile={userProfile}
+                  userAccounts={userAccounts}
+                  onSaveUserProfile={setUserProfile}
+                  onSaveUserAccounts={setUserAccounts}
+                />
+              )
+              : safeActivePage === 'User Accounts'
+              ? (
+                <UserAccountsPage
+                  userAccounts={userAccounts}
+                  onSaveUserAccounts={setUserAccounts}
+                  onSyncCurrentUserProfile={setUserProfile}
+                />
+              )
+              : (
                 <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
                   <section style={{ ...naesCardStyle(false), padding: '24px' }}>
                     {smallLabel('Preview Placeholder')}
@@ -10093,6 +11133,76 @@ function openOpportunityDetail(opportunityId) {
               )}
           </div>
         </main>
+      </div>
+
+      <footer
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '290px minmax(0, 1fr)',
+          minHeight: '46px',
+          borderTop: '1px solid #0E545D',
+          background: '#052F35',
+          color: 'rgba(255,255,255,0.88)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+          width: '100%'
+        }}
+      >
+        <div style={{ borderRight: '1px solid #0E545D', background: '#043941' }} />
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0',
+            minWidth: 0,
+            width: '100%',
+            background: '#052F35'
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '28px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+              <span
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '999px',
+                  background: '#B11226',
+                  display: 'inline-block',
+                  boxShadow: '0 0 0 2px rgba(255,255,255,0.06)'
+                }}
+              />
+              <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.01em' }}>
+                Powered by NAES
+              </span>
+            </div>
+
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+              <span
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '999px',
+                  background: '#D6861C',
+                  display: 'inline-block',
+                  boxShadow: '0 0 0 2px rgba(255,255,255,0.06)'
+                }}
+              />
+              <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.01em' }}>
+                Native infrastructure provided by AWS
+              </span>
+            </div>
+          </div>
+        </div>
+      </footer>
       </div>
     </div>
   );
