@@ -128,11 +128,111 @@ function buildOpportunityUpdateData(input) {
   return data;
 }
 
-router.get('/', async (_req, res, next) => {
+function requireCurrentUser(req, res) {
+  if (!req.currentUser) {
+    res.status(401).json({
+      ok: false,
+      error: 'Authentication required',
+    });
+    return false;
+  }
+  return true;
+}
+
+function canWriteOpportunities(req) {
+  const role = String(req.currentUser?.role || '').trim();
+  return role === 'ADMIN' || role === 'EXECUTIVE' || role === 'SALES_MANAGER' || role === 'SALES_ASSOCIATE';
+}
+
+async function buildOpportunityReadWhere(req) {
+  const currentUser = req.currentUser;
+  const role = String(currentUser?.role || '').trim();
+  const teamName = String(currentUser?.teamName || '').trim();
+
+  if (role === 'ADMIN' || role === 'EXECUTIVE') {
+    return {};
+  }
+
+  if (role === 'SALES_MANAGER') {
+    const teamUsers = await prisma.user.findMany({
+      where: {
+        teamName,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    const teamUserIds = teamUsers.map((user) => user.id).filter(Boolean);
+
+    if (!teamUserIds.length) {
+      return { id: '__NO_MATCH__' };
+    }
+
+    return {
+      ownerUserId: {
+        in: teamUserIds,
+      },
+    };
+  }
+
+  if (role === 'SALES_ASSOCIATE') {
+    return {
+      ownerUserId: currentUser.id,
+    };
+  }
+
+  return { id: '__NO_MATCH__' };
+}
+
+function requireOpportunityWriteAccess(req, res, existingOpportunity = null) {
+  if (!req.currentUser) {
+    res.status(401).json({
+      ok: false,
+      error: 'Authentication required',
+    });
+    return false;
+  }
+
+  const role = String(req.currentUser?.role || '').trim();
+
+  if (role === 'ADMIN' || role === 'EXECUTIVE' || role === 'SALES_MANAGER') {
+    return true;
+  }
+
+  if (role === 'SALES_ASSOCIATE') {
+    if (!existingOpportunity) {
+      return true;
+    }
+
+    if (existingOpportunity.ownerUserId === req.currentUser.id) {
+      return true;
+    }
+
+    res.status(403).json({
+      ok: false,
+      error: 'Forbidden',
+    });
+    return false;
+  }
+
+  res.status(403).json({
+    ok: false,
+    error: 'Forbidden',
+  });
+  return false;
+}
+
+router.get('/', async (req, res, next) => {
   try {
+    if (!requireCurrentUser(req, res)) return;
+
+    const where = await buildOpportunityReadWhere(req);
+
     const rows = await prisma.opportunity.findMany({
+      where,
       orderBy: [{ createdAt: 'desc' }],
     });
+
     res.json({ ok: true, count: rows.length, data: rows });
   } catch (error) {
     next(error);
@@ -141,6 +241,22 @@ router.get('/', async (_req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
+    if (!requireCurrentUser(req, res)) return;
+
+    const where = await buildOpportunityReadWhere(req);
+
+    const allowed = await prisma.opportunity.findFirst({
+      where: {
+        ...where,
+        id: req.params.id,
+      },
+      select: { id: true },
+    });
+
+    if (!allowed) {
+      return res.status(404).json({ ok: false, error: 'Opportunity not found' });
+    }
+
     const row = await prisma.opportunity.findUnique({
       where: { id: req.params.id },
       include: {
@@ -167,6 +283,11 @@ router.get('/:id', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
+    if (!requireCurrentUser(req, res)) return;
+    if (!canWriteOpportunities(req)) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
+
     const parsed = createOpportunitySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
@@ -177,23 +298,34 @@ router.post('/', async (req, res, next) => {
     }
 
     const payload = buildOpportunityCreateData(parsed.data);
+    const role = String(req.currentUser?.role || '').trim();
+
+    if (role === 'SALES_ASSOCIATE') {
+      payload.ownerUserId = req.currentUser.id;
+      payload.createdByUserId = req.currentUser.id;
+      payload.updatedByUserId = req.currentUser.id;
+    } else {
+      payload.ownerUserId = payload.ownerUserId ?? req.currentUser.id;
+      payload.createdByUserId = payload.createdByUserId ?? req.currentUser.id;
+      payload.updatedByUserId = payload.updatedByUserId ?? req.currentUser.id;
+    }
 
     const created = await prisma.$transaction(async (tx) => {
-      const opportunity = await tx.opportunity.create({
+      const row = await tx.opportunity.create({
         data: payload,
       });
 
       await tx.opportunityStageHistory.create({
         data: {
-          opportunityId: opportunity.id,
+          opportunityId: row.id,
           fromStage: null,
-          toStage: opportunity.stage,
-          changeReason: 'Initial opportunity creation',
+          toStage: row.stage,
           changedByUserId: payload.updatedByUserId ?? payload.createdByUserId ?? payload.ownerUserId ?? null,
+          changeReason: 'Initial stage on create',
         },
       });
 
-      return opportunity;
+      return row;
     });
 
     res.status(201).json({ ok: true, data: created });
@@ -204,14 +336,7 @@ router.post('/', async (req, res, next) => {
 
 router.patch('/:id', async (req, res, next) => {
   try {
-    const parsed = updateOpportunitySchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({
-        ok: false,
-        error: 'Invalid opportunity update payload',
-        details: parsed.error.flatten(),
-      });
-    }
+    if (!requireCurrentUser(req, res)) return;
 
     const existing = await prisma.opportunity.findUnique({
       where: { id: req.params.id },
@@ -221,32 +346,46 @@ router.patch('/:id', async (req, res, next) => {
       return res.status(404).json({ ok: false, error: 'Opportunity not found' });
     }
 
-    const payload = buildOpportunityUpdateData(parsed.data);
+    if (!requireOpportunityWriteAccess(req, res, existing)) return;
+
+    const parsed = updateOpportunitySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Invalid opportunity update payload',
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const updateData = buildOpportunityUpdateData(parsed.data);
+    const role = String(req.currentUser?.role || '').trim();
+
+    if (role === 'SALES_ASSOCIATE') {
+      delete updateData.ownerUserId;
+      updateData.updatedByUserId = req.currentUser.id;
+    } else {
+      updateData.updatedByUserId = updateData.updatedByUserId ?? req.currentUser.id;
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const opportunity = await tx.opportunity.update({
+      const row = await tx.opportunity.update({
         where: { id: req.params.id },
-        data: payload,
+        data: updateData,
       });
 
-      const stageChanged =
-        payload.stage !== undefined &&
-        payload.stage !== null &&
-        payload.stage !== existing.stage;
-
-      if (stageChanged) {
+      if (updateData.stage && updateData.stage !== existing.stage) {
         await tx.opportunityStageHistory.create({
           data: {
-            opportunityId: existing.id,
+            opportunityId: row.id,
             fromStage: existing.stage,
-            toStage: payload.stage,
-            changeReason: 'Stage updated through PATCH route',
-            changedByUserId: payload.updatedByUserId ?? existing.updatedByUserId ?? existing.ownerUserId ?? null,
+            toStage: updateData.stage,
+            changedByUserId: updateData.updatedByUserId ?? req.currentUser.id ?? null,
+            changeReason: 'Stage changed on update',
           },
         });
       }
 
-      return opportunity;
+      return row;
     });
 
     res.json({ ok: true, data: updated });

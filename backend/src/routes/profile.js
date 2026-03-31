@@ -18,10 +18,44 @@ function normalizeNullableString(value) {
   return trimmed === '' ? null : trimmed;
 }
 
+function requireCurrentUser(req, res) {
+  if (!req.currentUser) {
+    res.status(401).json({
+      ok: false,
+      error: 'Authentication required',
+    });
+    return false;
+  }
+  return true;
+}
+
+function requireSelf(req, res) {
+  if (!req.currentUser) {
+    res.status(401).json({
+      ok: false,
+      error: 'Authentication required',
+    });
+    return false;
+  }
+
+  if (req.currentUser.id !== req.params.id) {
+    res.status(403).json({
+      ok: false,
+      error: 'Forbidden',
+    });
+    return false;
+  }
+
+  return true;
+}
+
 router.get('/:id', async (req, res, next) => {
   try {
+    if (!requireCurrentUser(req, res)) return;
+    if (!requireSelf(req, res)) return;
+
     const row = await prisma.user.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.currentUser.id },
       select: {
         id: true,
         email: true,
@@ -50,6 +84,9 @@ router.get('/:id', async (req, res, next) => {
 
 router.patch('/:id', async (req, res, next) => {
   try {
+    if (!requireCurrentUser(req, res)) return;
+    if (!requireSelf(req, res)) return;
+
     const parsed = updateProfileSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
@@ -60,7 +97,7 @@ router.patch('/:id', async (req, res, next) => {
     }
 
     const existing = await prisma.user.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.currentUser.id },
       select: { id: true },
     });
 
@@ -69,7 +106,7 @@ router.patch('/:id', async (req, res, next) => {
     }
 
     const updated = await prisma.user.update({
-      where: { id: req.params.id },
+      where: { id: req.currentUser.id },
       data: {
         nickname: normalizeNullableString(parsed.data.nickname),
         profilePhotoUrl: normalizeNullableString(parsed.data.profilePhotoUrl),

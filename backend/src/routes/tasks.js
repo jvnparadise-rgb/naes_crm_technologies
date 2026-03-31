@@ -84,11 +84,111 @@ function buildTaskUpdateData(input) {
   return data;
 }
 
-router.get('/', async (_req, res, next) => {
+function requireCurrentUser(req, res) {
+  if (!req.currentUser) {
+    res.status(401).json({
+      ok: false,
+      error: 'Authentication required',
+    });
+    return false;
+  }
+  return true;
+}
+
+function canWriteTasks(req) {
+  const role = String(req.currentUser?.role || '').trim();
+  return role === 'ADMIN' || role === 'EXECUTIVE' || role === 'SALES_MANAGER' || role === 'SALES_ASSOCIATE';
+}
+
+async function buildTaskReadWhere(req) {
+  const currentUser = req.currentUser;
+  const role = String(currentUser?.role || '').trim();
+  const teamName = String(currentUser?.teamName || '').trim();
+
+  if (role === 'ADMIN' || role === 'EXECUTIVE') {
+    return {};
+  }
+
+  if (role === 'SALES_MANAGER') {
+    const teamUsers = await prisma.user.findMany({
+      where: {
+        teamName,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    const teamUserIds = teamUsers.map((user) => user.id).filter(Boolean);
+
+    if (!teamUserIds.length) {
+      return { id: '__NO_MATCH__' };
+    }
+
+    return {
+      ownerUserId: {
+        in: teamUserIds,
+      },
+    };
+  }
+
+  if (role === 'SALES_ASSOCIATE') {
+    return {
+      ownerUserId: currentUser.id,
+    };
+  }
+
+  return { id: '__NO_MATCH__' };
+}
+
+function requireTaskWriteAccess(req, res, existingTask = null) {
+  if (!req.currentUser) {
+    res.status(401).json({
+      ok: false,
+      error: 'Authentication required',
+    });
+    return false;
+  }
+
+  const role = String(req.currentUser?.role || '').trim();
+
+  if (role === 'ADMIN' || role === 'EXECUTIVE' || role === 'SALES_MANAGER') {
+    return true;
+  }
+
+  if (role === 'SALES_ASSOCIATE') {
+    if (!existingTask) {
+      return true;
+    }
+
+    if (existingTask.ownerUserId === req.currentUser.id) {
+      return true;
+    }
+
+    res.status(403).json({
+      ok: false,
+      error: 'Forbidden',
+    });
+    return false;
+  }
+
+  res.status(403).json({
+    ok: false,
+    error: 'Forbidden',
+  });
+  return false;
+}
+
+router.get('/', async (req, res, next) => {
   try {
+    if (!requireCurrentUser(req, res)) return;
+
+    const where = await buildTaskReadWhere(req);
+
     const rows = await prisma.task.findMany({
+      where,
       orderBy: [{ createdAt: 'desc' }],
     });
+
     res.json({ ok: true, count: rows.length, data: rows });
   } catch (error) {
     next(error);
@@ -97,6 +197,22 @@ router.get('/', async (_req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
+    if (!requireCurrentUser(req, res)) return;
+
+    const where = await buildTaskReadWhere(req);
+
+    const allowed = await prisma.task.findFirst({
+      where: {
+        ...where,
+        id: req.params.id,
+      },
+      select: { id: true },
+    });
+
+    if (!allowed) {
+      return res.status(404).json({ ok: false, error: 'Task not found' });
+    }
+
     const row = await prisma.task.findUnique({
       where: { id: req.params.id },
       include: {
@@ -119,6 +235,11 @@ router.get('/:id', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
+    if (!requireCurrentUser(req, res)) return;
+    if (!canWriteTasks(req)) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
+
     const parsed = createTaskSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
@@ -128,8 +249,21 @@ router.post('/', async (req, res, next) => {
       });
     }
 
+    const payload = buildTaskCreateData(parsed.data);
+    const role = String(req.currentUser?.role || '').trim();
+
+    if (role === 'SALES_ASSOCIATE') {
+      payload.ownerUserId = req.currentUser.id;
+      payload.createdByUserId = req.currentUser.id;
+      payload.updatedByUserId = req.currentUser.id;
+    } else {
+      payload.ownerUserId = payload.ownerUserId ?? req.currentUser.id;
+      payload.createdByUserId = payload.createdByUserId ?? req.currentUser.id;
+      payload.updatedByUserId = payload.updatedByUserId ?? req.currentUser.id;
+    }
+
     const created = await prisma.task.create({
-      data: buildTaskCreateData(parsed.data),
+      data: payload,
     });
 
     res.status(201).json({ ok: true, data: created });
@@ -140,14 +274,7 @@ router.post('/', async (req, res, next) => {
 
 router.patch('/:id', async (req, res, next) => {
   try {
-    const parsed = updateTaskSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({
-        ok: false,
-        error: 'Invalid task update payload',
-        details: parsed.error.flatten(),
-      });
-    }
+    if (!requireCurrentUser(req, res)) return;
 
     const existing = await prisma.task.findUnique({
       where: { id: req.params.id },
@@ -157,9 +284,30 @@ router.patch('/:id', async (req, res, next) => {
       return res.status(404).json({ ok: false, error: 'Task not found' });
     }
 
+    if (!requireTaskWriteAccess(req, res, existing)) return;
+
+    const parsed = updateTaskSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Invalid task update payload',
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const updateData = buildTaskUpdateData(parsed.data);
+    const role = String(req.currentUser?.role || '').trim();
+
+    if (role === 'SALES_ASSOCIATE') {
+      delete updateData.ownerUserId;
+      updateData.updatedByUserId = req.currentUser.id;
+    } else {
+      updateData.updatedByUserId = updateData.updatedByUserId ?? req.currentUser.id;
+    }
+
     const updated = await prisma.task.update({
       where: { id: req.params.id },
-      data: buildTaskUpdateData(parsed.data),
+      data: updateData,
     });
 
     res.json({ ok: true, data: updated });
