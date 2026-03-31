@@ -10380,6 +10380,119 @@ export default function App() {
       return initialTasks;
     }
   });
+
+  function frontendTaskStatusToBackend(status = '') {
+    const value = String(status || '').trim().toLowerCase();
+    if (value === 'not started') return 'NOT_STARTED';
+    if (value === 'in progress') return 'IN_PROGRESS';
+    if (value === 'completed') return 'COMPLETED';
+    if (value === 'blocked') return 'BLOCKED';
+    return 'NOT_STARTED';
+  }
+
+  function backendTaskStatusToFrontend(status = '') {
+    const value = String(status || '').trim();
+    if (value === 'NOT_STARTED') return 'Not Started';
+    if (value === 'IN_PROGRESS') return 'In Progress';
+    if (value === 'COMPLETED') return 'Completed';
+    if (value === 'BLOCKED') return 'Blocked';
+    return 'Not Started';
+  }
+
+  function frontendTaskPriorityToBackend(priority = '') {
+    const value = String(priority || '').trim().toLowerCase();
+    if (value === 'low') return 'LOW';
+    if (value === 'medium') return 'MEDIUM';
+    if (value === 'high') return 'HIGH';
+    if (value === 'critical') return 'CRITICAL';
+    return 'MEDIUM';
+  }
+
+  function backendTaskPriorityToFrontend(priority = '') {
+    const value = String(priority || '').trim();
+    if (value === 'LOW') return 'Low';
+    if (value === 'MEDIUM') return 'Medium';
+    if (value === 'HIGH') return 'High';
+    if (value === 'CRITICAL') return 'Critical';
+    return 'Medium';
+  }
+
+  function mapBackendTaskToFrontend(record = {}) {
+    return {
+      id: String(record?.id || ''),
+      title: String(record?.title || 'New Task').trim(),
+      accountId: String(record?.accountId || '').trim(),
+      contactId: String(record?.contactId || '').trim(),
+      opportunityId: String(record?.opportunityId || '').trim(),
+      owner: '',
+      dueDate: record?.dueDate ? String(record.dueDate).slice(0, 10) : '',
+      priority: backendTaskPriorityToFrontend(record?.priority),
+      status: backendTaskStatusToFrontend(record?.status),
+      notes: String(record?.description || '').trim(),
+      created_at: String(record?.createdAt || dtNow()),
+      updated_at: String(record?.updatedAt || dtNow()),
+      _backend: record,
+    };
+  }
+
+  function buildTaskApiPayload(form = {}, fallbackTask = {}) {
+    return {
+      accountId: String(form.accountId || fallbackTask.accountId || '').trim() || null,
+      contactId: String(form.contactId || fallbackTask.contactId || '').trim() || null,
+      opportunityId: String(form.opportunityId || fallbackTask.opportunityId || '').trim() || null,
+      title: String(form.title || fallbackTask.title || 'New Task').trim(),
+      description: String(form.notes || fallbackTask.notes || '').trim() || null,
+      status: frontendTaskStatusToBackend(form.status || fallbackTask.status || 'Not Started'),
+      priority: frontendTaskPriorityToBackend(form.priority || fallbackTask.priority || 'Medium'),
+      dueDate: String(form.dueDate || fallbackTask.dueDate || '').trim()
+        ? new Date(String(form.dueDate || fallbackTask.dueDate).trim()).toISOString()
+        : null,
+      completedAt:
+        String(form.status || fallbackTask.status || '').trim().toLowerCase() === 'completed'
+          ? (fallbackTask.completedAt || new Date().toISOString())
+          : null,
+    };
+  }
+
+  async function fetchTasksFromApi() {
+    const response = await fetch(buildBackendUrl('/api/tasks'));
+    if (!response.ok) {
+      throw new Error(`Tasks fetch failed: ${response.status}`);
+    }
+    const json = await response.json();
+    const rows = Array.isArray(json?.data) ? json.data : [];
+    return sanitizeTasks(rows.map(mapBackendTaskToFrontend));
+  }
+
+  async function createTaskViaApi(form = {}, fallbackTask = {}) {
+    const response = await fetch(buildBackendUrl('/api/tasks'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildTaskApiPayload(form, fallbackTask)),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Task create failed: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return mapBackendTaskToFrontend(json?.data || {});
+  }
+
+  async function updateTaskViaApi(taskId, form = {}, currentTask = {}) {
+    const response = await fetch(buildBackendUrl(`/api/tasks/${taskId}`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildTaskApiPayload(form, currentTask)),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Task update failed: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return mapBackendTaskToFrontend(json?.data || {});
+  }
   const [taskDetailId, setTaskDetailId] = useState(null);
   const [showNewTaskForm, setShowNewTaskForm] = useState(false);
   const [showEditTaskForm, setShowEditTaskForm] = useState(false);
@@ -10464,6 +10577,27 @@ export default function App() {
       // ignore local storage persistence issues in preview shell
     }
   }, [taskList]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateTasksFromBackend() {
+      try {
+        const backendTasks = await fetchTasksFromApi();
+        if (!cancelled && Array.isArray(backendTasks) && backendTasks.length) {
+          setTaskList(backendTasks);
+        }
+      } catch (error) {
+        console.warn('Could not hydrate tasks from backend', error);
+      }
+    }
+
+    hydrateTasksFromBackend();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -11011,25 +11145,34 @@ function updateNewTaskField(field, value) {
   setNewTaskForm((current) => ({ ...current, [field]: value }));
 }
 
-function saveEditedTask() {
+async function saveEditedTask() {
   if (!taskDetailId) return;
+
+  const fallbackTask = {
+    title: String(newTaskForm.title || 'New Task').trim(),
+    accountId: String(newTaskForm.accountId || '').trim(),
+    contactId: String(newTaskForm.contactId || '').trim(),
+    opportunityId: String(newTaskForm.opportunityId || '').trim(),
+    owner: String(newTaskForm.owner || 'Jeff Yarbrough').trim(),
+    dueDate: String(newTaskForm.dueDate || '').trim(),
+    priority: String(newTaskForm.priority || 'Medium').trim(),
+    status: String(newTaskForm.status || 'Not Started').trim(),
+    notes: String(newTaskForm.notes || '').trim(),
+    updated_at: dtNow()
+  };
+
+  let nextTask = fallbackTask;
+
+  try {
+    nextTask = await updateTaskViaApi(taskDetailId, newTaskForm, fallbackTask);
+  } catch (error) {
+    console.warn('Could not save edited task to backend, using local fallback', error);
+  }
 
   setTaskList((current) =>
     current.map((task) =>
       task.id === taskDetailId
-        ? {
-            ...task,
-            title: String(newTaskForm.title || 'New Task').trim(),
-            accountId: String(newTaskForm.accountId || '').trim(),
-            contactId: String(newTaskForm.contactId || '').trim(),
-            opportunityId: String(newTaskForm.opportunityId || '').trim(),
-            owner: String(newTaskForm.owner || 'Jeff Yarbrough').trim(),
-            dueDate: String(newTaskForm.dueDate || '').trim(),
-            priority: String(newTaskForm.priority || 'Medium').trim(),
-            status: String(newTaskForm.status || 'Not Started').trim(),
-            notes: String(newTaskForm.notes || '').trim(),
-            updated_at: dtNow()
-          }
+        ? { ...task, ...nextTask }
         : task
     )
   );
@@ -11039,8 +11182,8 @@ function saveEditedTask() {
   setNewTaskForm(buildTaskFormFromRecord());
 }
 
-function saveNewTask() {
-  const newTask = {
+async function saveNewTask() {
+  const fallbackTask = {
     id: `task-${Date.now()}`,
     title: String(newTaskForm.title || 'New Task').trim(),
     accountId: String(newTaskForm.accountId || '').trim(),
@@ -11055,7 +11198,15 @@ function saveNewTask() {
     updated_at: dtNow()
   };
 
-  setTaskList((current) => [newTask, ...current]);
+  let nextTask = fallbackTask;
+
+  try {
+    nextTask = await createTaskViaApi(newTaskForm, fallbackTask);
+  } catch (error) {
+    console.warn('Could not create task in backend, using local fallback', error);
+  }
+
+  setTaskList((current) => [nextTask, ...current]);
   setShowNewTaskForm(false);
   setNewTaskForm(buildTaskFormFromRecord());
 }
