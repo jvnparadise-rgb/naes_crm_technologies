@@ -10083,7 +10083,22 @@ export default function App() {
   }
 
   const [routePath, setRoutePath] = useState(getInitialPath());
-  const [selectedDevUserId, setSelectedDevUserId] = useState(() => 'cmnf3hd900000ija0h5uvlflr');
+  const [selectedDevUserId, setSelectedDevUserId] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem('naes-crm-dev-user-id');
+      if (raw && [
+        'cmnf3hd990001ija05yot9ct2',
+        'cmnf3hd9d0002ija00unvzwd6',
+        'cmnf3hd9g0003ija0a1qxzlkh',
+        'cmnf3hd900000ija0h5uvlflr'
+      ].includes(raw)) {
+        return raw;
+      }
+    } catch (error) {
+      // ignore local storage issues
+    }
+    return 'cmnf3hd990001ija05yot9ct2';
+  });
 
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:4000').replace(/\/$/, '');
   const DEV_USER_OPTIONS = [
@@ -11723,6 +11738,31 @@ function openOpportunityDetail(opportunityId) {
 
             <div style={{ marginTop: '12px' }}>{renderUserPlacard(userProfile)}</div>
 
+            <div style={{ marginTop: '12px', borderRadius: '18px', border: '1px solid #0F6670', background: '#054E57', padding: '12px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.58)' }}>
+                Dev User
+              </div>
+              <select
+                value={selectedDevUserId}
+                onChange={(e) => setSelectedDevUserId(e.target.value)}
+                style={{
+                  marginTop: '8px',
+                  width: '100%',
+                  borderRadius: '12px',
+                  border: '1px solid #0F6670',
+                  background: '#043941',
+                  color: '#FFFFFF',
+                  padding: '10px 12px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  outline: 'none'
+                }}
+              >
+                {DEV_USER_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>{option.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div style={{ padding: '16px 12px 24px 12px' }}>

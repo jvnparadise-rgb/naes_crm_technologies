@@ -10083,7 +10083,22 @@ export default function App() {
   }
 
   const [routePath, setRoutePath] = useState(getInitialPath());
-  const [selectedDevUserId, setSelectedDevUserId] = useState(() => 'cmnf3hd900000ija0h5uvlflr');
+  const [selectedDevUserId, setSelectedDevUserId] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem('naes-crm-dev-user-id');
+      if (raw && [
+        'cmnf3hd990001ija05yot9ct2',
+        'cmnf3hd9d0002ija00unvzwd6',
+        'cmnf3hd9g0003ija0a1qxzlkh',
+        'cmnf3hd900000ija0h5uvlflr'
+      ].includes(raw)) {
+        return raw;
+      }
+    } catch (error) {
+      // ignore local storage issues
+    }
+    return 'cmnf3hd900000ija0h5uvlflr';
+  });
 
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:4000').replace(/\/$/, '');
   const DEV_USER_OPTIONS = [
