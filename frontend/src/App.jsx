@@ -10090,17 +10090,31 @@ export default function App() {
   }
 
   const [routePath, setRoutePath] = useState(getInitialPath());
+  const [selectedDevUserId, setSelectedDevUserId] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem('naes-crm-dev-user-id');
+      if (raw && ['cmnets1uk0001it3vdjr9tbfw', 'cmnets1ui0000it3vjwlh4apn'].includes(raw)) {
+        return raw;
+      }
+    } catch (error) {
+      // ignore local storage issues
+    }
+    return 'cmnets1uk0001it3vdjr9tbfw';
+  });
 
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:4000').replace(/\/$/, '');
-  const DEV_USER_ID = 'cmnets1uk0001it3vdjr9tbfw';
+  const DEV_USER_OPTIONS = [
+    { id: 'cmnets1uk0001it3vdjr9tbfw', label: 'Ashley · Sales Associate', role: 'Associate' },
+    { id: 'cmnets1ui0000it3vjwlh4apn', label: 'Jeff · Admin', role: 'Admin' }
+  ];
 
   function buildBackendUrl(path = '') {
     return `${API_BASE_URL}${path}`;
   }
 
-  function buildBackendHeaders(extraHeaders = {}) {
+  function buildBackendHeaders(devUserId, extraHeaders = {}) {
     return {
-      'x-dev-user-id': DEV_USER_ID,
+      'x-dev-user-id': devUserId,
       ...extraHeaders,
     };
   }
@@ -10108,7 +10122,7 @@ export default function App() {
   async function backendFetch(path = '', options = {}) {
     return fetch(buildBackendUrl(path), {
       ...options,
-      headers: buildBackendHeaders(options.headers || {}),
+      headers: buildBackendHeaders(selectedDevUserId, options.headers || {}),
     });
   }
 
@@ -10642,15 +10656,22 @@ export default function App() {
     }
   });
 
+  const selectedDevUser = useMemo(
+    () => DEV_USER_OPTIONS.find((option) => option.id === selectedDevUserId) || DEV_USER_OPTIONS[0],
+    [selectedDevUserId]
+  );
+
+  const effectiveUserRole = selectedDevUser?.role || userProfile?.role || 'Associate';
+
   const visibleSidebarSections = useMemo(() => {
-    const allowed = new Set(getAllowedPagesForRole(userProfile?.role));
+    const allowed = new Set(getAllowedPagesForRole(effectiveUserRole));
     return sidebarSections
       .map((section) => ({
         ...section,
         items: section.items.filter((item) => allowed.has(item))
       }))
       .filter((section) => section.items.length > 0);
-  }, [userProfile?.role]);
+  }, [effectiveUserRole]);
 
   const flatItems = useMemo(() => sidebarSections.flatMap((section) => section.items), []);
   const visibleFlatItems = useMemo(() => visibleSidebarSections.flatMap((section) => section.items), [visibleSidebarSections]);
@@ -10672,11 +10693,19 @@ export default function App() {
   }, [userProfile]);
 
   useEffect(() => {
-    const allowed = getAllowedPagesForRole(userProfile?.role);
+    try {
+      window.localStorage.setItem('naes-crm-dev-user-id', selectedDevUserId);
+    } catch (error) {
+      // ignore local storage persistence issues in preview shell
+    }
+  }, [selectedDevUserId]);
+
+  useEffect(() => {
+    const allowed = getAllowedPagesForRole(effectiveUserRole);
     if (!routeInfo.isOpportunities && !allowed.includes(activePage)) {
       setActivePage(allowed[0] || 'Welcome');
     }
-  }, [userProfile?.role, activePage, routeInfo.isOpportunities]);
+  }, [effectiveUserRole, activePage, routeInfo.isOpportunities]);
 
   useEffect(() => {
     try {
@@ -11707,6 +11736,32 @@ function openOpportunityDetail(opportunityId) {
             </div>
 
             <div style={{ marginTop: '12px' }}>{renderUserPlacard(userProfile)}</div>
+
+            <div style={{ marginTop: '12px', borderRadius: '18px', border: '1px solid #0F6670', background: '#054E57', padding: '12px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.58)' }}>
+                Dev User
+              </div>
+              <select
+                value={selectedDevUserId}
+                onChange={(e) => setSelectedDevUserId(e.target.value)}
+                style={{
+                  marginTop: '8px',
+                  width: '100%',
+                  borderRadius: '12px',
+                  border: '1px solid #0F6670',
+                  background: '#043941',
+                  color: '#FFFFFF',
+                  padding: '10px 12px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  outline: 'none'
+                }}
+              >
+                {DEV_USER_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>{option.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div style={{ padding: '16px 12px 24px 12px' }}>
