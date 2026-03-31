@@ -10001,6 +10001,110 @@ export default function App() {
   }
 
   const [routePath, setRoutePath] = useState(getInitialPath());
+
+  function buildBackendUrl(path = '') {
+    return `http://127.0.0.1:4000${path}`;
+  }
+
+  function mapBackendAccountToFrontend(record = {}) {
+    const mainAddress = [record?.address1, record?.address2].filter(Boolean).join(', ');
+
+    return {
+      id: String(record?.id || ''),
+      name: String(record?.name || '').trim(),
+      legalBusinessName: '',
+      businessType: String(record?.accountType || record?.industry || '').trim(),
+      website: String(record?.website || '').trim(),
+      linkedin: '',
+      mainPhone: String(record?.phone || '').trim(),
+      generalEmail: String(record?.email || '').trim(),
+      mainAddress,
+      city: String(record?.city || '').trim(),
+      state: String(record?.state || '').trim(),
+      zip: String(record?.postalCode || '').trim(),
+      country: String(record?.country || '').trim(),
+      primaryAccountOwner: '',
+      interestedServices: '',
+      totalMw: '',
+      portfolioType: '',
+      generalFootprintRegion: '',
+      estimatedBuildingCount: '',
+      estimatedSquareFootage: '',
+      generalSiteType: '',
+      notes: String(record?.notes || '').trim(),
+      primaryContactName: '',
+      email: String(record?.email || '').trim(),
+      phone: String(record?.phone || '').trim(),
+      segment: String(record?.marketSegment || '').trim(),
+      region: String(record?.state || record?.country || '').trim(),
+      owner: '',
+      arr: 0,
+      annualRevenue: 0,
+      ctsPercent: 0,
+      marginPercent: 0,
+      openOpportunityIds: [],
+      contactIds: [],
+      _backend: record,
+    };
+  }
+
+  function buildAccountApiPayload(form = {}) {
+    return {
+      name: String(form.name || '').trim(),
+      accountType: String(form.businessType || '').trim() || null,
+      marketSegment: String(form.segment || '').trim() || null,
+      website: String(form.website || '').trim() || null,
+      phone: String(form.mainPhone || form.phone || '').trim() || null,
+      email: String(form.generalEmail || form.email || '').trim() || null,
+      address1: String(form.mainAddress || '').trim() || null,
+      city: String(form.city || '').trim() || null,
+      state: String(form.state || '').trim() || null,
+      postalCode: String(form.zip || '').trim() || null,
+      country: String(form.country || '').trim() || null,
+      notes: String(form.notes || '').trim() || null,
+    };
+  }
+
+  async function fetchAccountsFromApi() {
+    const response = await fetch(buildBackendUrl('/api/accounts'));
+    if (!response.ok) {
+      throw new Error(`Accounts fetch failed: ${response.status}`);
+    }
+    const json = await response.json();
+    const rows = Array.isArray(json?.data) ? json.data : [];
+    return sanitizeAccounts(rows.map(mapBackendAccountToFrontend));
+  }
+
+  async function createAccountViaApi(form = {}) {
+    const response = await fetch(buildBackendUrl('/api/accounts'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildAccountApiPayload(form)),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Account create failed: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return mapBackendAccountToFrontend(json?.data || {});
+  }
+
+  async function updateAccountViaApi(accountId, form = {}) {
+    const response = await fetch(buildBackendUrl(`/api/accounts/${accountId}`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildAccountApiPayload(form)),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Account update failed: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return mapBackendAccountToFrontend(json?.data || {});
+  }
+
   const [opportunities, setOpportunities] = useState(() => {
     try {
       const raw = window.localStorage.getItem('naes-crm-opportunity-list');
@@ -10142,6 +10246,27 @@ export default function App() {
   }, [accountHistoryMap]);
 
   React.useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateAccountsFromBackend() {
+      try {
+        const backendAccounts = await fetchAccountsFromApi();
+        if (!cancelled && Array.isArray(backendAccounts) && backendAccounts.length) {
+          setAccountList(backendAccounts);
+        }
+      } catch (error) {
+        console.warn('Could not hydrate accounts from backend', error);
+      }
+    }
+
+    hydrateAccountsFromBackend();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
     try {
       window.localStorage.setItem('naes-crm-contact-list', JSON.stringify(contactList));
     } catch (error) {
@@ -10221,39 +10346,61 @@ export default function App() {
     setNewAccountForm(buildAccountFormFromRecord());
   }
 
-  function saveEditedAccount() {
+  async function saveEditedAccount() {
     if (!accountDetailId) return;
 
     const name = String(newAccountForm.name || '').trim();
     if (!name) return;
 
+    const fallbackUpdatedRecord = {
+      id: accountDetailId,
+      name,
+      legalBusinessName: String(newAccountForm.legalBusinessName || '').trim(),
+      businessType: String(newAccountForm.businessType || '').trim(),
+      website: String(newAccountForm.website || '').trim(),
+      linkedin: String(newAccountForm.linkedin || '').trim(),
+      mainPhone: String(newAccountForm.mainPhone || '').trim(),
+      generalEmail: String(newAccountForm.generalEmail || '').trim(),
+      mainAddress: String(newAccountForm.mainAddress || '').trim(),
+      city: String(newAccountForm.city || '').trim(),
+      state: String(newAccountForm.state || '').trim(),
+      zip: String(newAccountForm.zip || '').trim(),
+      country: String(newAccountForm.country || '').trim(),
+      primaryAccountOwner: String(newAccountForm.primaryAccountOwner || '').trim(),
+      interestedServices: String(newAccountForm.interestedServices || '').trim(),
+      totalMw: String(newAccountForm.totalMw || '').trim(),
+      portfolioType: String(newAccountForm.portfolioType || '').trim(),
+      generalFootprintRegion: String(newAccountForm.generalFootprintRegion || '').trim(),
+      estimatedBuildingCount: String(newAccountForm.estimatedBuildingCount || '').trim(),
+      estimatedSquareFootage: String(newAccountForm.estimatedSquareFootage || '').trim(),
+      generalSiteType: String(newAccountForm.generalSiteType || '').trim(),
+      notes: String(newAccountForm.notes || '').trim(),
+      primaryContactName: '',
+      email: String(newAccountForm.generalEmail || '').trim(),
+      phone: String(newAccountForm.mainPhone || '').trim(),
+      segment: '',
+      region: String(newAccountForm.state || newAccountForm.country || '').trim(),
+      owner: '',
+      arr: 0,
+      annualRevenue: 0,
+      ctsPercent: 0,
+      marginPercent: 0,
+      openOpportunityIds: [],
+      contactIds: [],
+    };
+
+    let nextRecord = fallbackUpdatedRecord;
+
+    try {
+      nextRecord = await updateAccountViaApi(accountDetailId, newAccountForm);
+    } catch (error) {
+      console.warn('Could not save edited account to backend, using local fallback', error);
+    }
+
     setAccountList((prev) =>
       prev.map((account) =>
         account.id === accountDetailId
-          ? {
-              ...account,
-              name,
-              legalBusinessName: String(newAccountForm.legalBusinessName || '').trim(),
-              businessType: String(newAccountForm.businessType || '').trim(),
-              website: String(newAccountForm.website || '').trim(),
-              linkedin: String(newAccountForm.linkedin || '').trim(),
-              mainPhone: String(newAccountForm.mainPhone || '').trim(),
-              generalEmail: String(newAccountForm.generalEmail || '').trim(),
-              mainAddress: String(newAccountForm.mainAddress || '').trim(),
-              city: String(newAccountForm.city || '').trim(),
-              state: String(newAccountForm.state || '').trim(),
-              zip: String(newAccountForm.zip || '').trim(),
-              country: String(newAccountForm.country || '').trim(),
-              primaryAccountOwner: String(newAccountForm.primaryAccountOwner || '').trim(),
-              interestedServices: String(newAccountForm.interestedServices || '').trim(),
-              totalMw: String(newAccountForm.totalMw || '').trim(),
-              portfolioType: String(newAccountForm.portfolioType || '').trim(),
-              generalFootprintRegion: String(newAccountForm.generalFootprintRegion || '').trim(),
-              estimatedBuildingCount: String(newAccountForm.estimatedBuildingCount || '').trim(),
-              estimatedSquareFootage: String(newAccountForm.estimatedSquareFootage || '').trim(),
-              generalSiteType: String(newAccountForm.generalSiteType || '').trim(),
-              notes: String(newAccountForm.notes || '').trim(),
-            }
+          ? { ...account, ...nextRecord }
           : account
       )
     );
@@ -10279,14 +10426,14 @@ export default function App() {
   
   
   
-  function saveNewAccount() {
+  async function saveNewAccount() {
     const name = String(newAccountForm.name || '').trim();
     if (!name) return;
 
-    const id = `acct-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new'}`;
+    const fallbackId = `acct-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new'}`;
 
-    const newRecord = {
-      id,
+    const fallbackRecord = {
+      id: fallbackId,
       name,
       legalBusinessName: String(newAccountForm.legalBusinessName || '').trim(),
       businessType: String(newAccountForm.businessType || '').trim(),
@@ -10322,10 +10469,18 @@ export default function App() {
       contactIds: [],
     };
 
-    setAccountList((prev) => [newRecord, ...prev]);
+    let nextRecord = fallbackRecord;
+
+    try {
+      nextRecord = await createAccountViaApi(newAccountForm);
+    } catch (error) {
+      console.warn('Could not create account in backend, using local fallback', error);
+    }
+
+    setAccountList((prev) => [nextRecord, ...prev]);
     setAccountHistoryMap((prev) => ({
       ...prev,
-      [id]: [
+      [nextRecord.id]: [
         {
           id: `hist-${Date.now()}`,
           at: new Date().toLocaleString(),
@@ -10336,7 +10491,7 @@ export default function App() {
     }));
     setShowNewAccountForm(false);
     setShowEditAccountForm(false);
-    setAccountDetailId(id);
+    setAccountDetailId(nextRecord.id);
     setActivePage('Accounts');
     setNewAccountForm(buildAccountFormFromRecord());
   }
