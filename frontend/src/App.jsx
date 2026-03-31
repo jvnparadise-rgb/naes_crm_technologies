@@ -10506,6 +10506,97 @@ export default function App() {
       return [];
     }
   });
+
+  function frontendActivityTypeToBackend(activityType = '') {
+    const value = String(activityType || '').trim().toLowerCase();
+    if (value === 'call') return 'CALL';
+    if (value === 'email') return 'EMAIL';
+    if (value === 'meeting') return 'MEETING';
+    if (value === 'note') return 'NOTE';
+    if (value === 'task') return 'TASK';
+    return 'OTHER';
+  }
+
+  function backendActivityTypeToFrontend(activityType = '') {
+    const value = String(activityType || '').trim();
+    if (value === 'CALL') return 'Call';
+    if (value === 'EMAIL') return 'Email';
+    if (value === 'MEETING') return 'Meeting';
+    if (value === 'NOTE') return 'Note';
+    if (value === 'TASK') return 'Task';
+    return 'Other';
+  }
+
+  function mapBackendActivityToFrontend(record = {}) {
+    return {
+      id: String(record?.id || ''),
+      activityType: backendActivityTypeToFrontend(record?.activityType),
+      subject: String(record?.subject || 'New Activity').trim(),
+      activityDateTime: record?.activityDate ? String(record.activityDate).slice(0, 16) : '',
+      owner: '',
+      accountId: String(record?.accountId || '').trim(),
+      contactId: String(record?.contactId || '').trim(),
+      opportunityId: String(record?.opportunityId || '').trim(),
+      notes: String(record?.description || '').trim(),
+      created_at: String(record?.createdAt || dtNow()),
+      updated_at: String(record?.updatedAt || dtNow()),
+      _backend: record,
+    };
+  }
+
+  function buildActivityApiPayload(form = {}, fallbackActivity = {}) {
+    return {
+      accountId: String(form.accountId || fallbackActivity.accountId || '').trim() || null,
+      contactId: String(form.contactId || fallbackActivity.contactId || '').trim() || null,
+      opportunityId: String(form.opportunityId || fallbackActivity.opportunityId || '').trim() || null,
+      activityType: frontendActivityTypeToBackend(form.activityType || fallbackActivity.activityType || 'Call'),
+      subject: String(form.subject || fallbackActivity.subject || 'New Activity').trim(),
+      description: String(form.notes || fallbackActivity.notes || '').trim() || null,
+      activityDate: String(form.activityDateTime || fallbackActivity.activityDateTime || '').trim()
+        ? new Date(String(form.activityDateTime || fallbackActivity.activityDateTime).trim()).toISOString()
+        : null,
+    };
+  }
+
+  async function fetchActivitiesFromApi() {
+    const response = await fetch(buildBackendUrl('/api/activities'));
+    if (!response.ok) {
+      throw new Error(`Activities fetch failed: ${response.status}`);
+    }
+    const json = await response.json();
+    const rows = Array.isArray(json?.data) ? json.data : [];
+    return rows.map(mapBackendActivityToFrontend);
+  }
+
+  async function createActivityViaApi(form = {}, fallbackActivity = {}) {
+    const response = await fetch(buildBackendUrl('/api/activities'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildActivityApiPayload(form, fallbackActivity)),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Activity create failed: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return mapBackendActivityToFrontend(json?.data || {});
+  }
+
+  async function updateActivityViaApi(activityId, form = {}, currentActivity = {}) {
+    const response = await fetch(buildBackendUrl(`/api/activities/${activityId}`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildActivityApiPayload(form, currentActivity)),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Activity update failed: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return mapBackendActivityToFrontend(json?.data || {});
+  }
   const [activityDetailId, setActivityDetailId] = useState(null);
   const [showNewActivityForm, setShowNewActivityForm] = useState(false);
   const [showEditActivityForm, setShowEditActivityForm] = useState(false);
@@ -10606,6 +10697,27 @@ export default function App() {
       // ignore local storage persistence issues in preview shell
     }
   }, [activityList]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateActivitiesFromBackend() {
+      try {
+        const backendActivities = await fetchActivitiesFromApi();
+        if (!cancelled && Array.isArray(backendActivities) && backendActivities.length) {
+          setActivityList(backendActivities);
+        }
+      } catch (error) {
+        console.warn('Could not hydrate activities from backend', error);
+      }
+    }
+
+    hydrateActivitiesFromBackend();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectedOpportunity =
     routeInfo.detailId
@@ -11244,8 +11356,8 @@ function updateNewActivityField(field, value) {
   setNewActivityForm((current) => ({ ...current, [field]: value }));
 }
 
-function saveNewActivity() {
-  const newActivity = {
+async function saveNewActivity() {
+  const fallbackActivity = {
     id: `activity-${Date.now()}`,
     activityType: String(newActivityForm.activityType || 'Call').trim(),
     subject: String(newActivityForm.subject || 'New Activity').trim(),
@@ -11259,29 +11371,46 @@ function saveNewActivity() {
     updated_at: dtNow()
   };
 
-  setActivityList((current) => [newActivity, ...current]);
+  let nextActivity = fallbackActivity;
+
+  try {
+    nextActivity = await createActivityViaApi(newActivityForm, fallbackActivity);
+  } catch (error) {
+    console.warn('Could not create activity in backend, using local fallback', error);
+  }
+
+  setActivityList((current) => [nextActivity, ...current]);
   setShowNewActivityForm(false);
   setNewActivityForm(buildActivityFormFromRecord());
 }
 
-function saveEditedActivity() {
+async function saveEditedActivity() {
   if (!activityDetailId) return;
+
+  const fallbackActivity = {
+    activityType: String(newActivityForm.activityType || 'Call').trim(),
+    subject: String(newActivityForm.subject || 'Activity').trim(),
+    activityDateTime: String(newActivityForm.activityDateTime || '').trim(),
+    owner: String(newActivityForm.owner || 'Jeff Yarbrough').trim(),
+    accountId: String(newActivityForm.accountId || '').trim(),
+    contactId: String(newActivityForm.contactId || '').trim(),
+    opportunityId: String(newActivityForm.opportunityId || '').trim(),
+    notes: String(newActivityForm.notes || '').trim(),
+    updated_at: dtNow()
+  };
+
+  let nextActivity = fallbackActivity;
+
+  try {
+    nextActivity = await updateActivityViaApi(activityDetailId, newActivityForm, fallbackActivity);
+  } catch (error) {
+    console.warn('Could not save edited activity to backend, using local fallback', error);
+  }
 
   setActivityList((current) =>
     current.map((activity) =>
       activity.id === activityDetailId
-        ? {
-            ...activity,
-            activityType: String(newActivityForm.activityType || 'Call').trim(),
-            subject: String(newActivityForm.subject || 'Activity').trim(),
-            activityDateTime: String(newActivityForm.activityDateTime || '').trim(),
-            owner: String(newActivityForm.owner || 'Jeff Yarbrough').trim(),
-            accountId: String(newActivityForm.accountId || '').trim(),
-            contactId: String(newActivityForm.contactId || '').trim(),
-            opportunityId: String(newActivityForm.opportunityId || '').trim(),
-            notes: String(newActivityForm.notes || '').trim(),
-            updated_at: dtNow()
-          }
+        ? { ...activity, ...nextActivity }
         : activity
     )
   );
