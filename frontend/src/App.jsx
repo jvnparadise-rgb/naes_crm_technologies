@@ -10019,7 +10019,7 @@ export default function App() {
   }
 
   async function fetchContactsFromApi() {
-    const response = await fetch(buildBackendUrl('/api/contacts'));
+    const response = await backendFetch('/api/contacts');
     if (!response.ok) {
       throw new Error(`Contacts fetch failed: ${response.status}`);
     }
@@ -10029,7 +10029,7 @@ export default function App() {
   }
 
   async function createContactViaApi(form = {}) {
-    const response = await fetch(buildBackendUrl('/api/contacts'), {
+    const response = await backendFetch('/api/contacts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildContactApiPayload(form)),
@@ -10044,7 +10044,7 @@ export default function App() {
   }
 
   async function updateContactViaApi(contactId, form = {}) {
-    const response = await fetch(buildBackendUrl(`/api/contacts/${contactId}`), {
+    const response = await backendFetch(`/api/contacts/${contactId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildContactApiPayload(form)),
@@ -10092,9 +10092,24 @@ export default function App() {
   const [routePath, setRoutePath] = useState(getInitialPath());
 
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:4000').replace(/\/$/, '');
+  const DEV_USER_ID = 'cmnets1uk0001it3vdjr9tbfw';
 
   function buildBackendUrl(path = '') {
     return `${API_BASE_URL}${path}`;
+  }
+
+  function buildBackendHeaders(extraHeaders = {}) {
+    return {
+      'x-dev-user-id': DEV_USER_ID,
+      ...extraHeaders,
+    };
+  }
+
+  async function backendFetch(path = '', options = {}) {
+    return fetch(buildBackendUrl(path), {
+      ...options,
+      headers: buildBackendHeaders(options.headers || {}),
+    });
   }
 
   function mapBackendAccountToFrontend(record = {}) {
@@ -10157,7 +10172,7 @@ export default function App() {
   }
 
   async function fetchAccountsFromApi() {
-    const response = await fetch(buildBackendUrl('/api/accounts'));
+    const response = await backendFetch('/api/accounts');
     if (!response.ok) {
       throw new Error(`Accounts fetch failed: ${response.status}`);
     }
@@ -10167,7 +10182,7 @@ export default function App() {
   }
 
   async function createAccountViaApi(form = {}) {
-    const response = await fetch(buildBackendUrl('/api/accounts'), {
+    const response = await backendFetch('/api/accounts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildAccountApiPayload(form)),
@@ -10182,7 +10197,7 @@ export default function App() {
   }
 
   async function updateAccountViaApi(accountId, form = {}) {
-    const response = await fetch(buildBackendUrl(`/api/accounts/${accountId}`), {
+    const response = await backendFetch(`/api/accounts/${accountId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildAccountApiPayload(form)),
@@ -10326,7 +10341,7 @@ export default function App() {
   }
 
   async function fetchOpportunitiesFromApi() {
-    const response = await fetch(buildBackendUrl('/api/opportunities'));
+    const response = await backendFetch('/api/opportunities');
     if (!response.ok) {
       throw new Error(`Opportunities fetch failed: ${response.status}`);
     }
@@ -10336,7 +10351,7 @@ export default function App() {
   }
 
   async function createOpportunityViaApi(form = {}, fallbackRecord = {}) {
-    const response = await fetch(buildBackendUrl('/api/opportunities'), {
+    const response = await backendFetch('/api/opportunities', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildOpportunityApiPayload(form, fallbackRecord)),
@@ -10351,7 +10366,7 @@ export default function App() {
   }
 
   async function updateOpportunityViaApi(opportunityId, patch = {}, currentRecord = {}) {
-    const response = await fetch(buildBackendUrl(`/api/opportunities/${opportunityId}`), {
+    const response = await backendFetch(`/api/opportunities/${opportunityId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildOpportunityApiPayload(patch, currentRecord)),
@@ -10457,7 +10472,7 @@ export default function App() {
   }
 
   async function fetchTasksFromApi() {
-    const response = await fetch(buildBackendUrl('/api/tasks'));
+    const response = await backendFetch('/api/tasks');
     if (!response.ok) {
       throw new Error(`Tasks fetch failed: ${response.status}`);
     }
@@ -10467,7 +10482,7 @@ export default function App() {
   }
 
   async function createTaskViaApi(form = {}, fallbackTask = {}) {
-    const response = await fetch(buildBackendUrl('/api/tasks'), {
+    const response = await backendFetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildTaskApiPayload(form, fallbackTask)),
@@ -10482,7 +10497,7 @@ export default function App() {
   }
 
   async function updateTaskViaApi(taskId, form = {}, currentTask = {}) {
-    const response = await fetch(buildBackendUrl(`/api/tasks/${taskId}`), {
+    const response = await backendFetch(`/api/tasks/${taskId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildTaskApiPayload(form, currentTask)),
@@ -10561,7 +10576,7 @@ export default function App() {
   }
 
   async function fetchActivitiesFromApi() {
-    const response = await fetch(buildBackendUrl('/api/activities'));
+    const response = await backendFetch('/api/activities');
     if (!response.ok) {
       throw new Error(`Activities fetch failed: ${response.status}`);
     }
@@ -10571,7 +10586,7 @@ export default function App() {
   }
 
   async function createActivityViaApi(form = {}, fallbackActivity = {}) {
-    const response = await fetch(buildBackendUrl('/api/activities'), {
+    const response = await backendFetch('/api/activities', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildActivityApiPayload(form, fallbackActivity)),
@@ -10586,7 +10601,7 @@ export default function App() {
   }
 
   async function updateActivityViaApi(activityId, form = {}, currentActivity = {}) {
-    const response = await fetch(buildBackendUrl(`/api/activities/${activityId}`), {
+    const response = await backendFetch(`/api/activities/${activityId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildActivityApiPayload(form, currentActivity)),
