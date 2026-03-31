@@ -7,7 +7,10 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "prisma": "prisma",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "start:prod": "NODE_ENV=production node src/server.js",
+    "start:prod:log": "mkdir -p /tmp/naes-crm && NODE_ENV=production node src/server.js >> /tmp/naes-crm/backend.log 2>&1",
+    "health": "curl -s http://127.0.0.1:${PORT:-4000}/health"
   },
   "keywords": [],
   "author": "",
