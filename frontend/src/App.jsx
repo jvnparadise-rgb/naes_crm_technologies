@@ -10194,6 +10194,175 @@ export default function App() {
     return mapBackendAccountToFrontend(json?.data || {});
   }
 
+  function frontendStageToBackend(stage = '') {
+    const value = String(stage || '').trim().toLowerCase();
+    if (value.includes('prospecting')) return 'PROSPECTING';
+    if (value.includes('qualified')) return 'QUALIFIED';
+    if (value.includes('discovery')) return 'DISCOVERY';
+    if (value.includes('solution')) return 'SOLUTION_FIT';
+    if (value.includes('commercial')) return 'COMMERCIALS';
+    if (value.includes('security') || value.includes('legal')) return 'SECURITY_LEGAL';
+    if (value.includes('commit')) return 'COMMIT';
+    if (value.includes('closed won')) return 'CLOSED_WON';
+    if (value.includes('closed lost')) return 'CLOSED_LOST';
+    return 'PROSPECTING';
+  }
+
+  function backendStageToFrontend(stage = '') {
+    const value = String(stage || '').trim();
+    if (value === 'PROSPECTING') return '0 Prospecting';
+    if (value === 'QUALIFIED') return '1 Qualified';
+    if (value === 'DISCOVERY') return '2 Discovery';
+    if (value === 'SOLUTION_FIT') return '3 Solution Fit';
+    if (value === 'COMMERCIALS') return '4 Commercials';
+    if (value === 'SECURITY_LEGAL') return '5 Security Legal';
+    if (value === 'COMMIT') return '6 Commit';
+    if (value === 'CLOSED_WON') return '7 Closed Won';
+    if (value === 'CLOSED_LOST') return '8 Closed Lost';
+    return '0 Prospecting';
+  }
+
+  function frontendForecastToBackend(category = '') {
+    const value = String(category || '').trim().toLowerCase();
+    if (value === 'pipeline') return 'PIPELINE';
+    if (value === 'best case' || value === 'best_case' || value === 'bestcase') return 'BEST_CASE';
+    if (value === 'commit') return 'COMMIT';
+    if (value === 'closed' || value === 'closed won' || value === 'closed_won') return 'CLOSED_WON';
+    if (value === 'closed lost' || value === 'closed_lost') return 'CLOSED_LOST';
+    if (value === 'omitted') return 'OMITTED';
+    return 'PIPELINE';
+  }
+
+  function backendForecastToFrontend(category = '') {
+    const value = String(category || '').trim();
+    if (value === 'PIPELINE') return 'Pipeline';
+    if (value === 'BEST_CASE') return 'Best Case';
+    if (value === 'COMMIT') return 'Commit';
+    if (value === 'CLOSED_WON') return 'Closed Won';
+    if (value === 'CLOSED_LOST') return 'Closed Lost';
+    if (value === 'OMITTED') return 'Omitted';
+    return 'Pipeline';
+  }
+
+  function mapBackendOpportunityToFrontend(record = {}) {
+    const estimated = Number(record?.totalEstimatedRevenue ?? record?.annualRevenue ?? record?.arr ?? 0) || 0;
+    const arr = Number(record?.arr ?? record?.annualRevenue ?? 0) || 0;
+    const oneTime = Number(record?.oneTimeRevenue ?? Math.max(estimated - arr, 0)) || 0;
+    const probability = Number(record?.forecastProbability ?? 0) || 0;
+
+    return {
+      id: String(record?.id || ''),
+      name: String(record?.name || 'New Opportunity').trim(),
+      account: '',
+      account_id: String(record?.accountId || '').trim(),
+      primary_contact_id: String(record?.primaryContactId || '').trim(),
+      primary_contact_name: '',
+      owner_full_name: '',
+      owner_team_name: '',
+      stage: backendStageToFrontend(record?.stage),
+      forecast_category: backendForecastToFrontend(record?.forecastCategory),
+      probability,
+      expected_close_date: record?.expectedCloseDate ? String(record.expectedCloseDate).slice(0, 10) : '',
+      opportunity_type: String(record?.opportunityType || 'New Customer').trim(),
+      service_line: String(record?.serviceLine || 'Renewables').trim(),
+      market_segment: String(record?.marketSegment || '').trim(),
+      commercial_basis: '',
+      total_mwdc: null,
+      total_mwac: null,
+      estimated_square_footage: null,
+      amount_estimated: estimated,
+      calc_year1_total: estimated,
+      calc_arr_total: arr,
+      amount_total: estimated,
+      low_estimate: estimated,
+      high_estimate: estimated,
+      weighted_revenue: estimated * (probability / 100),
+      calculated_revenue: estimated,
+      estimated_earnings_pct: Number(record?.marginPercent ?? 0) || 0,
+      estimated_cts_pct: Number(record?.ctsPercent ?? 0) || 0,
+      account_name: '',
+      last_activity_date: '',
+      staleness_flag: 'Current',
+      created_at: String(record?.createdAt || dtNow()),
+      updated_at: String(record?.updatedAt || dtNow()),
+      _backend: record,
+    };
+  }
+
+  function buildOpportunityApiPayload(form = {}, fallbackRecord = {}) {
+    return {
+      accountId: String(form.accountId || fallbackRecord.account_id || '').trim() || null,
+      primaryContactId: String(form.primaryContactId || fallbackRecord.primary_contact_id || '').trim() || null,
+      name: String(form.name || fallbackRecord.name || 'New Opportunity').trim(),
+      serviceLine: String(form.serviceLine || fallbackRecord.service_line || 'Renewables').trim() || null,
+      marketSegment: String(
+        form.renewablesSegment ||
+        form.marketSegment ||
+        fallbackRecord.market_segment ||
+        ''
+      ).trim() || null,
+      opportunityType: String(form.opportunityType || fallbackRecord.opportunity_type || 'New Customer').trim() || null,
+      stage: frontendStageToBackend(form.stage || fallbackRecord.stage || '0 Prospecting'),
+      forecastCategory: frontendForecastToBackend(form.forecastCategory || fallbackRecord.forecast_category || 'Pipeline'),
+      forecastProbability: Number(form.probability || fallbackRecord.probability || 0) || 0,
+      forecastPeriod: null,
+      expectedCloseDate: String(form.expectedCloseDate || fallbackRecord.expected_close_date || '').trim()
+        ? new Date(String(form.expectedCloseDate || fallbackRecord.expected_close_date).trim()).toISOString()
+        : null,
+      annualRevenue: Number(fallbackRecord.calc_year1_total ?? fallbackRecord.amount_estimated ?? 0) || 0,
+      arr: Number(fallbackRecord.calc_arr_total ?? 0) || 0,
+      oneTimeRevenue: Number(
+        fallbackRecord.amount_total ??
+        fallbackRecord.amount_estimated ??
+        0
+      ) - Number(fallbackRecord.calc_arr_total ?? 0) || 0,
+      totalEstimatedRevenue: Number(fallbackRecord.amount_total ?? fallbackRecord.amount_estimated ?? 0) || 0,
+      ctsPercent: Number(fallbackRecord.estimated_cts_pct ?? 0) || 0,
+      marginPercent: Number(fallbackRecord.estimated_earnings_pct ?? 0) || 0,
+      notes: String(form.scopeNotes || form.notes || '').trim() || null,
+    };
+  }
+
+  async function fetchOpportunitiesFromApi() {
+    const response = await fetch(buildBackendUrl('/api/opportunities'));
+    if (!response.ok) {
+      throw new Error(`Opportunities fetch failed: ${response.status}`);
+    }
+    const json = await response.json();
+    const rows = Array.isArray(json?.data) ? json.data : [];
+    return sanitizeOpportunities(rows.map(mapBackendOpportunityToFrontend));
+  }
+
+  async function createOpportunityViaApi(form = {}, fallbackRecord = {}) {
+    const response = await fetch(buildBackendUrl('/api/opportunities'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildOpportunityApiPayload(form, fallbackRecord)),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Opportunity create failed: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return mapBackendOpportunityToFrontend(json?.data || {});
+  }
+
+  async function updateOpportunityViaApi(opportunityId, patch = {}, currentRecord = {}) {
+    const response = await fetch(buildBackendUrl(`/api/opportunities/${opportunityId}`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildOpportunityApiPayload(patch, currentRecord)),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Opportunity update failed: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return mapBackendOpportunityToFrontend(json?.data || {});
+  }
+
   const [opportunities, setOpportunities] = useState(() => {
     try {
       const raw = window.localStorage.getItem('naes-crm-opportunity-list');
@@ -10391,6 +10560,27 @@ export default function App() {
       console.warn('Could not persist opportunity list', error);
     }
   }, [opportunities]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateOpportunitiesFromBackend() {
+      try {
+        const backendOpportunities = await fetchOpportunitiesFromApi();
+        if (!cancelled && Array.isArray(backendOpportunities) && backendOpportunities.length) {
+          setOpportunities(backendOpportunities);
+        }
+      } catch (error) {
+        console.warn('Could not hydrate opportunities from backend', error);
+      }
+    }
+
+    hydrateOpportunitiesFromBackend();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function navigate(nextPage) {
     setActivePage(nextPage);
@@ -10964,7 +11154,7 @@ function updateNewOpportunityField(field, value) {
   setNewOpportunityForm((current) => ({ ...current, [field]: value }));
 }
 
-function saveNewOpportunity() {
+async function saveNewOpportunity() {
   const newId = `opp-${Date.now()}`;
 
   const serviceLine = String(newOpportunityForm.serviceLine || 'Renewables').trim();
@@ -11124,10 +11314,26 @@ function saveNewOpportunity() {
     updated_at: dtNow()
   };
 
-  setOpportunities((current) => [newOpportunity, ...current]);
+  let nextOpportunity = newOpportunity;
+
+  try {
+    const backendOpportunity = await createOpportunityViaApi(newOpportunityForm, newOpportunity);
+    nextOpportunity = {
+      ...newOpportunity,
+      ...backendOpportunity,
+      account: account?.name || newOpportunity.account,
+      account_name: account?.name || newOpportunity.account_name,
+      primary_contact_name:
+        newOpportunity.primary_contact_name || backendOpportunity.primary_contact_name || '',
+    };
+  } catch (error) {
+    console.warn('Could not create opportunity in backend, using local fallback', error);
+  }
+
+  setOpportunities((current) => [nextOpportunity, ...current]);
   setShowNewOpportunityForm(false);
   setNewOpportunityForm(buildOpportunityFormFromRecord());
-  openOpportunityDetail(newId);
+  openOpportunityDetail(nextOpportunity.id);
 }
 
 function openOpportunityDetail(opportunityId) {
@@ -11143,11 +11349,30 @@ function openOpportunityDetail(opportunityId) {
     setActivePage('Opportunities');
   }
 
-  function saveOpportunityPatch(opportunityId, patch) {
+  async function saveOpportunityPatch(opportunityId, patch) {
+    const currentRecord = opportunities.find((item) => item.id === opportunityId) || null;
+    if (!currentRecord) return;
+
+    const fallbackRecord = { ...currentRecord, ...patch };
+    let nextRecord = fallbackRecord;
+
+    try {
+      const backendRecord = await updateOpportunityViaApi(opportunityId, patch, fallbackRecord);
+      nextRecord = {
+        ...fallbackRecord,
+        ...backendRecord,
+        account: currentRecord.account || backendRecord.account || '',
+        account_name: currentRecord.account_name || backendRecord.account_name || '',
+        primary_contact_name: currentRecord.primary_contact_name || backendRecord.primary_contact_name || '',
+      };
+    } catch (error) {
+      console.warn('Could not save opportunity patch to backend, using local fallback', error);
+    }
+
     setOpportunities((prev) =>
       prev.map((item) =>
         item.id === opportunityId
-          ? { ...item, ...patch }
+          ? nextRecord
           : item
       )
     );
