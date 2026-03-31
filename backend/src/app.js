@@ -11,6 +11,7 @@ const contactsRouter = require('./routes/contacts');
 const opportunitiesRouter = require('./routes/opportunities');
 const tasksRouter = require('./routes/tasks');
 const activitiesRouter = require('./routes/activities');
+const profileRouter = require('./routes/profile');
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use('/api/contacts', contactsRouter);
 app.use('/api/opportunities', opportunitiesRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/activities', activitiesRouter);
+app.use('/api/profile', profileRouter);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

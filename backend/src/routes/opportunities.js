@@ -176,8 +176,24 @@ router.post('/', async (req, res, next) => {
       });
     }
 
-    const created = await prisma.opportunity.create({
-      data: buildOpportunityCreateData(parsed.data),
+    const payload = buildOpportunityCreateData(parsed.data);
+
+    const created = await prisma.$transaction(async (tx) => {
+      const opportunity = await tx.opportunity.create({
+        data: payload,
+      });
+
+      await tx.opportunityStageHistory.create({
+        data: {
+          opportunityId: opportunity.id,
+          fromStage: null,
+          toStage: opportunity.stage,
+          changeReason: 'Initial opportunity creation',
+          changedByUserId: payload.updatedByUserId ?? payload.createdByUserId ?? payload.ownerUserId ?? null,
+        },
+      });
+
+      return opportunity;
     });
 
     res.status(201).json({ ok: true, data: created });
@@ -205,9 +221,32 @@ router.patch('/:id', async (req, res, next) => {
       return res.status(404).json({ ok: false, error: 'Opportunity not found' });
     }
 
-    const updated = await prisma.opportunity.update({
-      where: { id: req.params.id },
-      data: buildOpportunityUpdateData(parsed.data),
+    const payload = buildOpportunityUpdateData(parsed.data);
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const opportunity = await tx.opportunity.update({
+        where: { id: req.params.id },
+        data: payload,
+      });
+
+      const stageChanged =
+        payload.stage !== undefined &&
+        payload.stage !== null &&
+        payload.stage !== existing.stage;
+
+      if (stageChanged) {
+        await tx.opportunityStageHistory.create({
+          data: {
+            opportunityId: existing.id,
+            fromStage: existing.stage,
+            toStage: payload.stage,
+            changeReason: 'Stage updated through PATCH route',
+            changedByUserId: payload.updatedByUserId ?? existing.updatedByUserId ?? existing.ownerUserId ?? null,
+          },
+        });
+      }
+
+      return opportunity;
     });
 
     res.json({ ok: true, data: updated });
