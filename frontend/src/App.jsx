@@ -10091,8 +10091,10 @@ export default function App() {
 
   const [routePath, setRoutePath] = useState(getInitialPath());
 
+  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:4000').replace(/\/$/, '');
+
   function buildBackendUrl(path = '') {
-    return `http://127.0.0.1:4000${path}`;
+    return `${API_BASE_URL}${path}`;
   }
 
   function mapBackendAccountToFrontend(record = {}) {
