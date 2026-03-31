@@ -1695,8 +1695,8 @@ function renderWelcomePage({ onStartNewContact, onStartNewAccount, onStartNewOpp
   const quickStartSteps = [
     {
       number: '1',
-      title: 'Create a New Contact',
-      body: 'Start with the person first so communication, title, and ownership are established before tying them to a customer record.',
+      title: 'Create a New Account',
+      body: 'Start by setting up the company or customer record so contacts, opportunities, and future work all point to the correct account structure.',
       bg: '#EAF4EC',
       border: '#CFE3D4',
       numberBg: '#6D8F72',
@@ -1704,8 +1704,8 @@ function renderWelcomePage({ onStartNewContact, onStartNewAccount, onStartNewOpp
     },
     {
       number: '2',
-      title: 'Create a New Account',
-      body: 'Set up the company or customer record next so contacts, opportunities, and future work all point to the same account structure.',
+      title: 'Create a New Contact',
+      body: 'After the account exists, add the person record so communication, title, and ownership are tied to the right customer account.',
       bg: '#EEF7F8',
       border: '#CFE3E8',
       numberBg: '#0B6771',
@@ -1714,7 +1714,7 @@ function renderWelcomePage({ onStartNewContact, onStartNewAccount, onStartNewOpp
     {
       number: '3',
       title: 'Create a New Opportunity',
-      body: 'After the account and contact exist, open the commercial opportunity and begin pricing, forecasting, and pipeline tracking.',
+      body: 'Once the account and contact are in place, open the commercial opportunity and begin pricing, forecasting, and pipeline tracking.',
       bg: '#EEF5FB',
       border: '#D4E3F2',
       numberBg: '#2A83C5',
@@ -1788,15 +1788,15 @@ function renderWelcomePage({ onStartNewContact, onStartNewAccount, onStartNewOpp
                 role="button"
                 tabIndex={0}
                 onClick={() => {
-                  if (step.number === '1') onStartNewContact?.();
-                  if (step.number === '2') onStartNewAccount?.();
+                  if (step.number === '1') onStartNewAccount?.();
+                  if (step.number === '2') onStartNewContact?.();
                   if (step.number === '3') onStartNewOpportunity?.();
                 }}
                 onKeyDown={(event) => {
                   if (event.key !== 'Enter' && event.key !== ' ') return;
                   event.preventDefault();
-                  if (step.number === '1') onStartNewContact?.();
-                  if (step.number === '2') onStartNewAccount?.();
+                  if (step.number === '1') onStartNewAccount?.();
+                  if (step.number === '2') onStartNewContact?.();
                   if (step.number === '3') onStartNewOpportunity?.();
                 }}
                 style={{
@@ -1842,19 +1842,6 @@ function renderWelcomePage({ onStartNewContact, onStartNewAccount, onStartNewOpp
         </div>
       </section>
 
-      <section style={{ padding: '2px 6px 6px 6px' }}>
-        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#334155', fontSize: '13px', fontWeight: 700 }}>
-            <span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#B11226', boxShadow: '0 0 0 4px rgba(177,18,38,0.10)' }} />
-            Powered by NAES
-          </div>
-
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#334155', fontSize: '13px', fontWeight: 700 }}>
-            <span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#E17A24', boxShadow: '0 0 0 4px rgba(225,122,36,0.10)' }} />
-            Native infrastructure provided by AWS
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
@@ -9808,9 +9795,9 @@ function renderHeaderBand(activePage, onBack, canGoBack, options = {}) {
   };
 
   return (
-    <div style={{ background: 'linear-gradient(90deg,#063F47 0%,#0A7983 40%,#21C8D3 70%,#239EE2 100%)', padding: '24px 32px 32px 32px', color: '#fff', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.08)' }}>
+    <div style={{ background: 'linear-gradient(90deg,#063F47 0%,#0A7983 40%,#21C8D3 70%,#239EE2 100%)', padding: '14px 32px 18px 32px', color: '#fff', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.08)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ flex: '1 1 560px', minWidth: '320px', paddingTop: isWelcome ? '18px' : '0' }}>
+        <div style={{ flex: '1 1 560px', minWidth: '320px', paddingTop: isWelcome ? '6px' : '0' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)' }}>
             {isWelcome ? '' : 'Opportunity Workspace'}
           </div>
@@ -9826,7 +9813,7 @@ function renderHeaderBand(activePage, onBack, canGoBack, options = {}) {
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', gap: '12px', flex: '0 0 auto', minWidth: isWelcome ? '520px' : 'auto' }}>
           {isWelcome ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '120px', minWidth: '420px', padding: '0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '84px', minWidth: '420px', padding: '0' }}>
               <img
                 src="/assets/naes-technologies-logo.png"
                 alt="NAES Technologies"
@@ -9871,6 +9858,44 @@ function replacePath(path) {
 }
 
 export default function App() {
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const root = document.getElementById('root');
+
+    const prevHtmlOverflow = html.style.overflow;
+    const prevHtmlHeight = html.style.height;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyHeight = body.style.height;
+    const prevBodyMargin = body.style.margin;
+    const prevRootHeight = root ? root.style.height : '';
+    const prevRootOverflow = root ? root.style.overflow : '';
+
+    html.style.overflow = 'hidden';
+    html.style.height = '100%';
+    body.style.overflow = 'hidden';
+    body.style.height = '100%';
+    body.style.margin = '0';
+
+    if (root) {
+      root.style.height = '100%';
+      root.style.overflow = 'hidden';
+    }
+
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      html.style.height = prevHtmlHeight;
+      body.style.overflow = prevBodyOverflow;
+      body.style.height = prevBodyHeight;
+      body.style.margin = prevBodyMargin;
+
+      if (root) {
+        root.style.height = prevRootHeight;
+        root.style.overflow = prevRootOverflow;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
