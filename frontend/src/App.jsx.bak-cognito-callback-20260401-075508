@@ -10231,11 +10231,6 @@ export default function App() {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 8000);
 
-    console.log('[frontend] exchangeCognitoCode start', {
-      codePrefix: String(code || '').trim().slice(0, 12),
-      url: buildBackendUrl('/api/auth/cognito/exchange'),
-    });
-
     let response;
     try {
       response = await fetch(buildBackendUrl('/api/auth/cognito/exchange'), {
@@ -10258,24 +10253,12 @@ export default function App() {
 
     window.clearTimeout(timeoutId);
 
-    console.log('[frontend] exchangeCognitoCode response', {
-      ok: response?.ok,
-      status: response?.status,
-      url: buildBackendUrl('/api/auth/cognito/exchange'),
-    });
-
     let payload = null;
     try {
       payload = await response.json();
     } catch (error) {
       payload = null;
     }
-
-    console.log('[frontend] exchangeCognitoCode payload', {
-      ok: response?.ok,
-      status: response?.status,
-      payload,
-    });
 
     if (!response.ok) {
       throw new Error(payload?.error || `exchange_failed_${response.status}`);
@@ -10287,12 +10270,6 @@ export default function App() {
   async function mapCognitoUserToCrmUser(identity = {}) {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 8000);
-
-    console.log('[frontend] mapCognitoUserToCrmUser start', {
-      email: String(identity?.email || '').trim(),
-      sub: String(identity?.sub || '').trim(),
-      url: buildBackendUrl('/api/auth/cognito/map-user'),
-    });
 
     let response;
     try {
@@ -10324,108 +10301,12 @@ export default function App() {
       payload = null;
     }
 
-    console.log('[frontend] mapCognitoUserToCrmUser payload', {
-      ok: response?.ok,
-      status: response?.status,
-      payload,
-    });
-
     if (!response.ok) {
       throw new Error(payload?.error || `crm_user_map_failed_${response.status}`);
     }
 
     return payload;
   }
-
-
-  useEffect(() => {
-    if (!COGNITO_ENABLED) return;
-    if (!cognitoCallbackState?.code) return;
-    if (cognitoCallbackState?.exchangeStatus === 'loading') return;
-    if (cognitoCallbackState?.exchangeStatus === 'success') return;
-    if (cognitoCallbackState?.exchangeStatus === 'error') return;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        setCognitoCallbackState((prev) => ({
-          ...prev,
-          exchangeStatus: 'loading',
-          exchangeError: '',
-        }));
-
-        const exchangePayload = await exchangeCognitoCode(cognitoCallbackState.code);
-        if (cancelled) return;
-
-        const idClaims = exchangePayload?.data?.id_claims || {};
-        const identity = {
-          email: String(idClaims?.email || '').trim(),
-          sub: String(idClaims?.sub || '').trim(),
-          name: String(idClaims?.name || '').trim(),
-          username: String(idClaims['cognito:username'] || '').trim(),
-        };
-
-        console.log('[frontend] post-exchange identity', {
-          idClaims,
-          identity,
-        });
-
-        setCognitoCallbackState((prev) => ({
-          ...prev,
-          exchangeStatus: 'success',
-          exchangeError: '',
-          exchangePayload,
-        }));
-
-        if (!identity.email) {
-          console.log('[frontend] post-exchange missing email', { idClaims, identity });
-          throw new Error('missing_identity_email');
-        }
-
-        console.log('[frontend] about to start crm map', { identity });
-
-        setCognitoCrmUserState({
-          status: 'loading',
-          error: '',
-          payload: null,
-        });
-
-        const crmPayload = await mapCognitoUserToCrmUser(identity);
-        if (cancelled) return;
-
-        setCognitoCrmUserState({
-          status: 'success',
-          error: '',
-          payload: crmPayload,
-        });
-
-        if (window.location.search) {
-          replacePath(window.location.pathname);
-        }
-      } catch (error) {
-        if (cancelled) return;
-        console.log('[frontend] callback effect catch', {
-          error: String(error?.message || error || 'cognito_callback_failed'),
-          stack: error?.stack || null,
-        });
-        const message = String(error?.message || error || 'cognito_callback_failed');
-        setCognitoCallbackState((prev) => ({
-          ...prev,
-          exchangeStatus: 'error',
-          exchangeError: message,
-        }));
-        setCognitoCrmUserState((prev) => ({
-          ...prev,
-          status: 'error',
-          error: message,
-        }));
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [COGNITO_ENABLED, cognitoCallbackState?.code]);
 
   async function backendFetch(path = '', options = {}) {
     return fetch(buildBackendUrl(path), {
@@ -11067,6 +10948,87 @@ export default function App() {
     setCognitoCallbackState(readCognitoCallbackParams());
   }, [COGNITO_ENABLED, routePath]);
 
+  useEffect(() => {
+    if (!COGNITO_ENABLED) return;
+    if (!cognitoCallbackState.code) return;
+    if (cognitoCallbackState.exchangeStatus === 'success') return;
+    if (cognitoCallbackState.exchangeStatus === 'loading') return;
+
+    let cancelled = false;
+
+    async function runExchange() {
+      setCognitoCallbackState((prev) => ({
+        ...prev,
+        exchangeStatus: 'loading',
+        exchangeError: '',
+      }));
+
+      try {
+        const payload = await exchangeCognitoCode(cognitoCallbackState.code);
+        if (cancelled) return;
+        setCognitoCallbackState((prev) => ({
+          ...prev,
+          exchangeStatus: 'success',
+          exchangeError: '',
+          exchangePayload: payload,
+        }));
+      } catch (error) {
+        if (cancelled) return;
+        setCognitoCallbackState((prev) => ({
+          ...prev,
+          exchangeStatus: 'error',
+          exchangeError: error instanceof Error ? error.message : 'cognito_exchange_unknown_error',
+          exchangePayload: null,
+        }));
+      }
+    }
+
+    runExchange();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [COGNITO_ENABLED, cognitoCallbackState.code, cognitoCallbackState.exchangeStatus]);
+
+  useEffect(() => {
+    if (!COGNITO_ENABLED) return;
+    if (!cognitoAuthenticatedIdentity?.email) return;
+    if (cognitoCrmUserState.status === 'success') return;
+    if (cognitoCrmUserState.status === 'loading') return;
+
+    let cancelled = false;
+
+    async function runCrmMapping() {
+      setCognitoCrmUserState({
+        status: 'loading',
+        error: '',
+        payload: null,
+      });
+
+      try {
+        const payload = await mapCognitoUserToCrmUser(cognitoAuthenticatedIdentity);
+        if (cancelled) return;
+        setCognitoCrmUserState({
+          status: 'success',
+          error: '',
+          payload,
+        });
+      } catch (error) {
+        if (cancelled) return;
+        setCognitoCrmUserState({
+          status: 'error',
+          error: error instanceof Error ? error.message : 'crm_user_map_unknown_error',
+          payload: null,
+        });
+      }
+    }
+
+    runCrmMapping();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [COGNITO_ENABLED, cognitoAuthenticatedIdentity, cognitoCrmUserState.status]);
 
   useEffect(() => {
     if (!COGNITO_ENABLED) {

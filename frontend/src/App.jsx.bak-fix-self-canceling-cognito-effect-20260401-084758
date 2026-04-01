@@ -10425,7 +10425,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [COGNITO_ENABLED, cognitoCallbackState?.code]);
+  }, [COGNITO_ENABLED, cognitoCallbackState?.code, cognitoCallbackState?.exchangeStatus]);
 
   async function backendFetch(path = '', options = {}) {
     return fetch(buildBackendUrl(path), {
