@@ -1805,7 +1805,7 @@ function renderWelcomePage({ onStartNewContact, onStartNewAccount, onStartNewOpp
 
               <div style={{ background: '#071E22', aspectRatio: '16 / 9' }}>
                 <iframe
-                  src="https://player.vimeo.com/video/1173012324?title=0&byline=0&portrait=0"
+                  src="https://player.vimeo.com/video/1179361865?title=0&byline=0&portrait=0"
                   title="Tutorial Video"
                   style={{ display: 'block', width: '100%', height: '100%', border: '0' }}
                   allow="autoplay; fullscreen; picture-in-picture"
