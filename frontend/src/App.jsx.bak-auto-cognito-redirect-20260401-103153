@@ -282,7 +282,7 @@ function getUserInitials(profile = {}) {
   return initials || source.charAt(0).toUpperCase();
 }
 
-function SettingsPage({ userProfile = {}, userAccounts = [], onSaveUserProfile, onSaveUserAccounts, onPersistUserProfile = null, authenticatedUser = null, authState = null, authMode = 'managed', cognitoConfig = null }) {
+function SettingsPage({ userProfile = {}, userAccounts = [], onSaveUserProfile, onSaveUserAccounts, authenticatedUser = null, authState = null, authMode = 'managed', cognitoConfig = null }) {
   const [draftNickname, setDraftNickname] = useState(String(userProfile?.nickname || ''));
   const [draftPhotoDataUrl, setDraftPhotoDataUrl] = useState(String(userProfile?.photoDataUrl || ''));
   const [imageError, setImageError] = useState('');
@@ -365,34 +365,13 @@ function SettingsPage({ userProfile = {}, userAccounts = [], onSaveUserProfile, 
     setImageError('');
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!hasChanges) return;
-
-    let nextProfile = {
+    const nextProfile = {
       ...userProfile,
       nickname: draftNickname.trim(),
       photoDataUrl: draftPhotoDataUrl
     };
-
-    if (typeof onPersistUserProfile === 'function') {
-      try {
-        const persistedProfile = await onPersistUserProfile({
-          nickname: nextProfile.nickname,
-          photoDataUrl: nextProfile.photoDataUrl,
-        });
-
-        if (persistedProfile) {
-          nextProfile = {
-            ...nextProfile,
-            nickname: String(persistedProfile.nickname || '').trim(),
-            photoDataUrl: String(persistedProfile.photoDataUrl || '').trim(),
-          };
-        }
-      } catch (error) {
-        setImageError(error instanceof Error ? error.message : 'Profile could not be saved.');
-        return;
-      }
-    }
 
     try {
       window.localStorage.setItem('naes-crm-user-profile', JSON.stringify(nextProfile));
@@ -10133,10 +10112,6 @@ export default function App() {
     currentUser: null,
     error: '',
   });
-  const [sessionHydrationState, setSessionHydrationState] = useState({
-    checked: false,
-    loading: false,
-  });
   const [cognitoCallbackState, setCognitoCallbackState] = useState({
     code: '',
     error: '',
@@ -10455,7 +10430,6 @@ export default function App() {
   async function backendFetch(path = '', options = {}) {
     return fetch(buildBackendUrl(path), {
       ...options,
-      credentials: 'include',
       headers: buildAuthRequestHeaders(options.headers || {}),
     });
   }
@@ -10999,48 +10973,6 @@ export default function App() {
   const effectiveDevHeaderUserId = authenticatedCurrentUser?.id || selectedDevUser?.headerUserId || 'cmnf3hd990001ija05yot9ct2';
   const effectiveUserRole = authenticatedCurrentUser?.role || selectedDevUser?.role || userProfile?.role || 'Associate';
 
-  async function persistUserProfileToApi(updates = {}) {
-    const currentUserId = String(authenticatedCurrentUser?.id || '').trim();
-    if (!currentUserId) {
-      throw new Error('No authenticated user available for profile save');
-    }
-
-    const response = await backendFetch(`/api/profile/${currentUserId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nickname: updates.nickname ?? null,
-        profilePhotoUrl: updates.photoDataUrl ?? null,
-      }),
-    });
-
-    const payload = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      throw new Error(payload?.error || `Profile save failed: ${response.status}`);
-    }
-
-    const row = payload?.data || null;
-    if (!row) return null;
-
-    const nextProfile = {
-      ...buildDefaultUserProfile(),
-      ...userProfile,
-      fullName: [row.firstName, row.lastName].filter(Boolean).join(' ').trim() || userProfile.fullName,
-      nickname: String(row.nickname || '').trim(),
-      title: String(row.title || userProfile.title || '').trim(),
-      email: String(row.email || userProfile.email || '').trim(),
-      role: String(row.role || userProfile.role || '').trim(),
-      team: String(row.teamName || userProfile.team || '').trim(),
-      status: row.isActive === false ? 'Inactive' : 'Active',
-      authType: COGNITO_ENABLED ? 'Cognito' : (userProfile.authType || 'Managed Identity'),
-      photoDataUrl: String(row.profilePhotoUrl || '').trim(),
-    };
-
-    setUserProfile(nextProfile);
-    return nextProfile;
-  }
-
   async function hydrateCurrentUserAuth() {
     setAuthState((prev) => ({
       ...prev,
@@ -11132,83 +11064,8 @@ export default function App() {
 
   useEffect(() => {
     if (!COGNITO_ENABLED) return;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        setSessionHydrationState({
-          checked: false,
-          loading: true,
-        });
-
-        const response = await backendFetch('/api/auth/me');
-        const payload = await response.json().catch(() => null);
-
-        if (cancelled) return;
-
-        const crmUser = payload?.data || null;
-        if (response.ok && crmUser?.id) {
-          setAuthState({
-            status: 'ready',
-            currentUser: crmUser,
-            error: '',
-          });
-
-          setCognitoCrmUserState({
-            status: 'success',
-            error: '',
-            payload: {
-              ok: true,
-              data: {
-                mapped: true,
-                provisioned: true,
-                cognito: null,
-                crmUser,
-              },
-            },
-          });
-        }
-
-        setSessionHydrationState({
-          checked: true,
-          loading: false,
-        });
-      } catch (_error) {
-        if (cancelled) return;
-        setSessionHydrationState({
-          checked: true,
-          loading: false,
-        });
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [COGNITO_ENABLED]);
-
-  useEffect(() => {
-    if (!COGNITO_ENABLED) return;
     setCognitoCallbackState(readCognitoCallbackParams());
   }, [COGNITO_ENABLED, routePath]);
-
-  useEffect(() => {
-    if (!COGNITO_ENABLED) return;
-    if (!sessionHydrationState.checked) return;
-
-    const callbackState = readCognitoCallbackParams();
-    const hasCallback = Boolean(callbackState?.code || callbackState?.error);
-    const isMapped = Boolean(cognitoCrmUserState?.payload?.data?.mapped && cognitoCrmUserState?.payload?.data?.crmUser?.id);
-
-    if (hasCallback) return;
-    if (isMapped) return;
-
-    const authUrl = buildCognitoAuthorizeUrl();
-    if (!authUrl) return;
-
-    window.location.replace(authUrl);
-  }, [COGNITO_ENABLED, routePath, cognitoCrmUserState, sessionHydrationState.checked]);
 
 
   useEffect(() => {
@@ -12793,7 +12650,6 @@ function openOpportunityDetail(opportunityId) {
                   userAccounts={userAccounts}
                   onSaveUserProfile={setUserProfile}
                   onSaveUserAccounts={setUserAccounts}
-                  onPersistUserProfile={persistUserProfileToApi}
                   authenticatedUser={authenticatedCurrentUser}
                   authState={authState}
                   authMode={AUTH_MODE}
