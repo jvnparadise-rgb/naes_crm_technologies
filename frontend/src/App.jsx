@@ -282,7 +282,7 @@ function getUserInitials(profile = {}) {
   return initials || source.charAt(0).toUpperCase();
 }
 
-function SettingsPage({ userProfile = {}, userAccounts = [], onSaveUserProfile, onSaveUserAccounts }) {
+function SettingsPage({ userProfile = {}, userAccounts = [], onSaveUserProfile, onSaveUserAccounts, authenticatedUser = null, authState = null }) {
   const [draftNickname, setDraftNickname] = useState(String(userProfile?.nickname || ''));
   const [draftPhotoDataUrl, setDraftPhotoDataUrl] = useState(String(userProfile?.photoDataUrl || ''));
   const [imageError, setImageError] = useState('');
@@ -610,6 +610,22 @@ function SettingsPage({ userProfile = {}, userAccounts = [], onSaveUserProfile, 
           {readOnlyRow('Authentication Type', userProfile.authType)}
           {readOnlyRow('Password', userProfile.passwordNote)}
           {readOnlyRow('Last Login', userProfile.lastLogin || '—')}
+        </div>
+      </section>
+
+      <section style={{ ...naesCardStyle(false), padding: '24px' }}>
+        {smallLabel('Authenticated Session')}
+        <div style={{ marginTop: '8px', fontSize: '18px', fontWeight: 700, color: naesTheme.text }}>
+          Backend identity proof
+        </div>
+        <div style={{ marginTop: '10px', display: 'grid' }}>
+          {readOnlyRow('Auth Handshake Status', String(authState?.status || 'unknown'))}
+          {readOnlyRow('Authenticated User ID', String(authenticatedUser?.id || '—'))}
+          {readOnlyRow('Authenticated Email', String(authenticatedUser?.email || '—'))}
+          {readOnlyRow('Authenticated Name', [authenticatedUser?.firstName, authenticatedUser?.lastName].filter(Boolean).join(' ').trim() || '—')}
+          {readOnlyRow('Authenticated Role', String(authenticatedUser?.role || '—'))}
+          {readOnlyRow('Authenticated Team', String(authenticatedUser?.teamName || '—'))}
+          {readOnlyRow('Authenticated Active', authenticatedUser?.isActive === false ? 'Inactive' : authenticatedUser?.id ? 'Active' : '—')}
         </div>
       </section>
 
@@ -10084,6 +10100,11 @@ export default function App() {
 
   const [routePath, setRoutePath] = useState(getInitialPath());
   const [selectedDevUserId, setSelectedDevUserId] = useState(() => 'cmnf3hd900000ija0h5uvlflr');
+  const [authState, setAuthState] = useState({
+    status: 'ready',
+    currentUser: null,
+    error: '',
+  });
 
   const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:4000').replace(/\/$/, '');
   const DEV_USER_OPTIONS = [
@@ -10646,8 +10667,42 @@ export default function App() {
     [selectedDevUserId]
   );
 
-  const effectiveDevHeaderUserId = selectedDevUser?.headerUserId || 'cmnf3hd990001ija05yot9ct2';
-  const effectiveUserRole = selectedDevUser?.role || userProfile?.role || 'Associate';
+  const authenticatedCurrentUser = authState?.currentUser || null;
+  const effectiveDevHeaderUserId = authenticatedCurrentUser?.id || selectedDevUser?.headerUserId || 'cmnf3hd990001ija05yot9ct2';
+  const effectiveUserRole = authenticatedCurrentUser?.role || selectedDevUser?.role || userProfile?.role || 'Associate';
+
+  async function hydrateCurrentUserAuth() {
+    setAuthState((prev) => ({
+      ...prev,
+      status: 'loading',
+      error: '',
+    }));
+
+    try {
+      const response = await fetch(buildBackendUrl('/api/auth/me'), {
+        headers: buildBackendHeaders(selectedDevUser?.headerUserId || selectedDevUserId),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Auth handshake failed: ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const currentUser = payload?.data || null;
+
+      setAuthState({
+        status: 'ready',
+        currentUser,
+        error: currentUser?.id ? '' : 'No authenticated user was returned by /api/auth/me',
+      });
+    } catch (error) {
+      setAuthState({
+        status: 'error',
+        currentUser: null,
+        error: error instanceof Error ? error.message : 'Unknown auth handshake error',
+      });
+    }
+  }
 
   const visibleSidebarSections = useMemo(() => {
     const allowed = new Set(getAllowedPagesForRole(effectiveUserRole));
@@ -10671,6 +10726,23 @@ export default function App() {
       : (visibleFlatItems[0] || 'Welcome');
 
   useEffect(() => {
+    if (!authenticatedCurrentUser?.id) return;
+
+    setUserProfile((prev) => ({
+      ...prev,
+      fullName: [authenticatedCurrentUser.firstName, authenticatedCurrentUser.lastName].filter(Boolean).join(' ').trim() || prev.fullName,
+      nickname: String(prev?.nickname || authenticatedCurrentUser.nickname || '').trim(),
+      title: String(authenticatedCurrentUser.title || prev?.title || '').trim(),
+      email: String(authenticatedCurrentUser.email || prev?.email || '').trim(),
+      role: String(authenticatedCurrentUser.role || prev?.role || '').trim(),
+      team: String(authenticatedCurrentUser.teamName || prev?.team || '').trim(),
+      authType: 'Managed Identity',
+      status: authenticatedCurrentUser.isActive === false ? 'Inactive' : 'Active',
+      photoDataUrl: String(prev?.photoDataUrl || authenticatedCurrentUser.profilePhotoUrl || '').trim(),
+    }));
+  }, [authenticatedCurrentUser]);
+
+  useEffect(() => {
     try {
       window.localStorage.setItem('naes-crm-user-profile', JSON.stringify(userProfile));
     } catch (error) {
@@ -10684,6 +10756,10 @@ export default function App() {
     } catch (error) {
       // ignore local storage persistence issues in preview shell
     }
+  }, [selectedDevUserId]);
+
+  useEffect(() => {
+    hydrateCurrentUserAuth();
   }, [selectedDevUserId]);
 
   useEffect(() => {
@@ -11963,6 +12039,8 @@ function openOpportunityDetail(opportunityId) {
                   userAccounts={userAccounts}
                   onSaveUserProfile={setUserProfile}
                   onSaveUserAccounts={setUserAccounts}
+                  authenticatedUser={authenticatedCurrentUser}
+                  authState={authState}
                 />
               )
               : safeActivePage === 'User Accounts'
