@@ -859,102 +859,7 @@ function buildUserAccountDraft(record = {}) {
   };
 }
 
-
-function frontendUserRoleToBackend(role = '') {
-  const value = String(role || '').trim().toLowerCase();
-  if (value === 'admin') return 'ADMIN';
-  if (value === 'executive') return 'EXECUTIVE';
-  if (value === 'manager' || value === 'sales manager') return 'SALES_MANAGER';
-  return 'SALES_ASSOCIATE';
-}
-
-function backendUserRoleToFrontend(role = '') {
-  const value = String(role || '').trim().toUpperCase();
-  if (value === 'ADMIN') return 'Admin';
-  if (value === 'EXECUTIVE') return 'Executive';
-  if (value === 'SALES_MANAGER') return 'Manager';
-  return 'Associate';
-}
-
-function splitFullName(fullName = '') {
-  const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return { firstName: '', lastName: '' };
-  if (parts.length === 1) return { firstName: parts[0], lastName: '' };
-  return {
-    firstName: parts[0],
-    lastName: parts.slice(1).join(' ')
-  };
-}
-
-function buildUserApiPayload(draftUser = {}, fallbackUser = {}) {
-  const sourceFullName = String(draftUser.fullName || fallbackUser.fullName || '').trim();
-  const split = splitFullName(sourceFullName);
-
-  return {
-    email: String(draftUser.email || fallbackUser.email || '').trim().toLowerCase(),
-    firstName: split.firstName || String(draftUser.firstName || fallbackUser.firstName || '').trim(),
-    lastName: split.lastName || String(draftUser.lastName || fallbackUser.lastName || '').trim(),
-    nickname: String(draftUser.nickname || fallbackUser.nickname || '').trim() || null,
-    title: String(draftUser.title || fallbackUser.title || '').trim() || null,
-    role: frontendUserRoleToBackend(draftUser.role || fallbackUser.role || 'Associate'),
-    teamName: String(draftUser.team || draftUser.teamName || fallbackUser.team || fallbackUser.teamName || '').trim() || null,
-    profilePhotoUrl: String(draftUser.photoDataUrl || fallbackUser.photoDataUrl || '').trim() || null,
-    isActive: String(draftUser.status || fallbackUser.status || 'Active').trim().toLowerCase() !== 'inactive',
-  };
-}
-
-function mapBackendUserToFrontendUserAccount(row = {}, draftUser = {}) {
-  const fullName = [row.firstName, row.lastName].filter(Boolean).join(' ').trim();
-  return buildUserAccountDraft({
-    ...draftUser,
-    id: String(row.id || draftUser.id || ''),
-    fullName: fullName || String(draftUser.fullName || '').trim(),
-    email: String(row.email || draftUser.email || '').trim(),
-    nickname: String(row.nickname || draftUser.nickname || '').trim(),
-    title: String(row.title || draftUser.title || '').trim(),
-    role: backendUserRoleToFrontend(row.role || draftUser.role || ''),
-    team: String(row.teamName || draftUser.team || draftUser.teamName || '').trim(),
-    teamName: String(row.teamName || draftUser.team || draftUser.teamName || '').trim(),
-    status: row.isActive === false ? 'Inactive' : 'Active',
-    photoDataUrl: String(row.profilePhotoUrl || draftUser.photoDataUrl || '').trim(),
-    linkedProfile: Boolean(draftUser.linkedProfile),
-    _backend: row
-  });
-}
-
-async function createUserViaApi(draftUser = {}) {
-  const response = await backendFetch('/api/users', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildUserApiPayload(draftUser)),
-  });
-
-  const payload = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(payload?.error || `User create failed: ${response.status}`);
-  }
-
-  return mapBackendUserToFrontendUserAccount(payload?.data || {}, draftUser);
-}
-
-async function updateUserViaApi(userId, draftUser = {}, fallbackUser = {}) {
-  const response = await backendFetch(`/api/users/${userId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildUserApiPayload(draftUser, fallbackUser)),
-  });
-
-  const payload = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(payload?.error || `User update failed: ${response.status}`);
-  }
-
-  return mapBackendUserToFrontendUserAccount(payload?.data || {}, draftUser);
-}
-
-function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrentUserProfile, onCreateUserAccount = null, onUpdateUserAccount = null }) {
+function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrentUserProfile }) {
   const safeAccounts = Array.isArray(userAccounts) ? userAccounts.map((item) => buildUserAccountDraft(item)) : [];
   const initialSelectedId = safeAccounts[0]?.id || null;
 
@@ -1016,25 +921,13 @@ function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrent
     setDraftUser(buildUserAccountDraft(selectedRecord || {}));
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (isCreatingNew) {
-      let nextUser = {
+      const nextUser = {
         ...draftUser,
         id: draftUser.id || `user-${Date.now()}`,
         linkedProfile: false
       };
-
-
-      try {
-        if (typeof onCreateUserAccount === 'function') {
-          nextUser = await onCreateUserAccount(draftUser);
-        } else {
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error || 'unknown_error');
-        console.warn('Could not create user in backend, using local fallback', error);
-      }
-
       const nextAccounts = [nextUser, ...safeAccounts];
 
       try {
@@ -1052,29 +945,11 @@ function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrent
 
     if (!selectedRecord) return;
 
-    let nextUpdatedRecord = {
-      ...selectedRecord,
-      ...draftUser
-    };
-
-
-    if (selectedRecord.id && !String(selectedRecord.id).startsWith('user-')) {
-      try {
-        if (typeof onUpdateUserAccount === 'function') {
-          nextUpdatedRecord = await onUpdateUserAccount(selectedRecord.id, draftUser, selectedRecord);
-        } else {
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error || 'unknown_error');
-        console.warn('Could not update user in backend, using local fallback', error);
-      }
-    }
-
     const nextAccounts = safeAccounts.map((item) => (
       item.id === selectedRecord.id
         ? {
             ...item,
-            ...nextUpdatedRecord
+            ...draftUser
           }
         : item
     ));
@@ -1089,22 +964,22 @@ function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrent
 
     if (draftUser.linkedProfile) {
       const nextProfile = {
-        fullName: nextUpdatedRecord.fullName,
-        nickname: nextUpdatedRecord.nickname,
-        title: nextUpdatedRecord.title,
-        email: nextUpdatedRecord.email,
-        role: nextUpdatedRecord.role,
-        department: nextUpdatedRecord.department,
-        team: nextUpdatedRecord.team,
-        status: nextUpdatedRecord.status,
-        permissionLevel: nextUpdatedRecord.permissionLevel,
-        businessUnitAccess: nextUpdatedRecord.businessUnitAccess,
-        serviceLineAccess: nextUpdatedRecord.serviceLineAccess,
-        territoryScope: nextUpdatedRecord.territoryScope,
-        authType: nextUpdatedRecord.authType,
-        passwordNote: nextUpdatedRecord.passwordNote,
-        lastLogin: nextUpdatedRecord.lastLogin,
-        photoDataUrl: nextUpdatedRecord.photoDataUrl
+        fullName: draftUser.fullName,
+        nickname: draftUser.nickname,
+        title: draftUser.title,
+        email: draftUser.email,
+        role: draftUser.role,
+        department: draftUser.department,
+        team: draftUser.team,
+        status: draftUser.status,
+        permissionLevel: draftUser.permissionLevel,
+        businessUnitAccess: draftUser.businessUnitAccess,
+        serviceLineAccess: draftUser.serviceLineAccess,
+        territoryScope: draftUser.territoryScope,
+        authType: draftUser.authType,
+        passwordNote: draftUser.passwordNote,
+        lastLogin: draftUser.lastLogin,
+        photoDataUrl: draftUser.photoDataUrl
       };
 
       try {
@@ -11048,38 +10923,6 @@ export default function App() {
     };
   }
 
-  async function createUserViaApiInApp(draftUser = {}) {
-    const response = await backendFetch('/api/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildUserApiPayload(draftUser)),
-    });
-
-    const payload = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      throw new Error(payload?.error || `User create failed: ${response.status}`);
-    }
-
-    return mapBackendUserToFrontendUserAccount(payload?.data || {}, draftUser);
-  }
-
-  async function updateUserViaApiInApp(userId, draftUser = {}, fallbackUser = {}) {
-    const response = await backendFetch(`/api/users/${userId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildUserApiPayload(draftUser, fallbackUser)),
-    });
-
-    const payload = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      throw new Error(payload?.error || `User update failed: ${response.status}`);
-    }
-
-    return mapBackendUserToFrontendUserAccount(payload?.data || {}, draftUser);
-  }
-
   async function fetchActivitiesFromApi() {
     const response = await backendFetch('/api/activities');
     if (!response.ok) {
@@ -12970,8 +12813,6 @@ function openOpportunityDetail(opportunityId) {
                   userAccounts={userAccounts}
                   onSaveUserAccounts={setUserAccounts}
                   onSyncCurrentUserProfile={setUserProfile}
-                  onCreateUserAccount={createUserViaApiInApp}
-                  onUpdateUserAccount={updateUserViaApiInApp}
                 />
               )
               : (

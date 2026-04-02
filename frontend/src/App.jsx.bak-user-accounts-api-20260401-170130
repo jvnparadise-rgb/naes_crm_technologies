@@ -954,7 +954,7 @@ async function updateUserViaApi(userId, draftUser = {}, fallbackUser = {}) {
   return mapBackendUserToFrontendUserAccount(payload?.data || {}, draftUser);
 }
 
-function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrentUserProfile, onCreateUserAccount = null, onUpdateUserAccount = null }) {
+function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrentUserProfile }) {
   const safeAccounts = Array.isArray(userAccounts) ? userAccounts.map((item) => buildUserAccountDraft(item)) : [];
   const initialSelectedId = safeAccounts[0]?.id || null;
 
@@ -1024,14 +1024,9 @@ function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrent
         linkedProfile: false
       };
 
-
       try {
-        if (typeof onCreateUserAccount === 'function') {
-          nextUser = await onCreateUserAccount(draftUser);
-        } else {
-        }
+        nextUser = await createUserViaApi(draftUser);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error || 'unknown_error');
         console.warn('Could not create user in backend, using local fallback', error);
       }
 
@@ -1057,15 +1052,10 @@ function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrent
       ...draftUser
     };
 
-
     if (selectedRecord.id && !String(selectedRecord.id).startsWith('user-')) {
       try {
-        if (typeof onUpdateUserAccount === 'function') {
-          nextUpdatedRecord = await onUpdateUserAccount(selectedRecord.id, draftUser, selectedRecord);
-        } else {
-        }
+        nextUpdatedRecord = await updateUserViaApi(selectedRecord.id, draftUser, selectedRecord);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error || 'unknown_error');
         console.warn('Could not update user in backend, using local fallback', error);
       }
     }
@@ -11048,38 +11038,6 @@ export default function App() {
     };
   }
 
-  async function createUserViaApiInApp(draftUser = {}) {
-    const response = await backendFetch('/api/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildUserApiPayload(draftUser)),
-    });
-
-    const payload = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      throw new Error(payload?.error || `User create failed: ${response.status}`);
-    }
-
-    return mapBackendUserToFrontendUserAccount(payload?.data || {}, draftUser);
-  }
-
-  async function updateUserViaApiInApp(userId, draftUser = {}, fallbackUser = {}) {
-    const response = await backendFetch(`/api/users/${userId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildUserApiPayload(draftUser, fallbackUser)),
-    });
-
-    const payload = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      throw new Error(payload?.error || `User update failed: ${response.status}`);
-    }
-
-    return mapBackendUserToFrontendUserAccount(payload?.data || {}, draftUser);
-  }
-
   async function fetchActivitiesFromApi() {
     const response = await backendFetch('/api/activities');
     if (!response.ok) {
@@ -12970,8 +12928,6 @@ function openOpportunityDetail(opportunityId) {
                   userAccounts={userAccounts}
                   onSaveUserAccounts={setUserAccounts}
                   onSyncCurrentUserProfile={setUserProfile}
-                  onCreateUserAccount={createUserViaApiInApp}
-                  onUpdateUserAccount={updateUserViaApiInApp}
                 />
               )
               : (

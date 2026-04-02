@@ -961,6 +961,7 @@ function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrent
   const [selectedUserId, setSelectedUserId] = useState(initialSelectedId);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [draftUser, setDraftUser] = useState(buildUserAccountDraft(safeAccounts[0] || buildNewUserAccount('Associate')));
+  const [saveDebugMessage, setSaveDebugMessage] = useState('');
 
   useEffect(() => {
     if (isCreatingNew) return;
@@ -1024,14 +1025,19 @@ function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrent
         linkedProfile: false
       };
 
+      setSaveDebugMessage('UI save started');
 
       try {
         if (typeof onCreateUserAccount === 'function') {
+          setSaveDebugMessage('Calling backend create...');
           nextUser = await onCreateUserAccount(draftUser);
+          setSaveDebugMessage(`Backend create success: ${nextUser.email || nextUser.id || 'ok'}`);
         } else {
+          setSaveDebugMessage('Backend create function missing, local fallback used');
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error || 'unknown_error');
+        setSaveDebugMessage(`Backend create failed: ${message}`);
         console.warn('Could not create user in backend, using local fallback', error);
       }
 
@@ -1057,15 +1063,20 @@ function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrent
       ...draftUser
     };
 
+    setSaveDebugMessage('UI update started');
 
     if (selectedRecord.id && !String(selectedRecord.id).startsWith('user-')) {
       try {
         if (typeof onUpdateUserAccount === 'function') {
+          setSaveDebugMessage('Calling backend update...');
           nextUpdatedRecord = await onUpdateUserAccount(selectedRecord.id, draftUser, selectedRecord);
+          setSaveDebugMessage(`Backend update success: ${nextUpdatedRecord.email || nextUpdatedRecord.id || 'ok'}`);
         } else {
+          setSaveDebugMessage('Backend update function missing, local fallback used');
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error || 'unknown_error');
+        setSaveDebugMessage(`Backend update failed: ${message}`);
         console.warn('Could not update user in backend, using local fallback', error);
       }
     }
@@ -1211,6 +1222,20 @@ function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrent
           </div>
 
           <div style={{ display: 'grid', gap: '12px' }}>
+            {saveDebugMessage ? (
+              <div style={{
+                borderRadius: '14px',
+                border: `1px solid ${naesTheme.border}`,
+                background: '#FFF8D6',
+                color: '#5C4B00',
+                padding: '10px 12px',
+                fontSize: '12px',
+                fontWeight: 700,
+                lineHeight: 1.5
+              }}>
+                DEBUG: {saveDebugMessage}
+              </div>
+            ) : null}
             {safeAccounts.map((user) => {
               const isActive = user.id === selectedUserId && !isCreatingNew;
               const displayName = String(user.nickname || user.fullName || 'User').trim() || 'User';

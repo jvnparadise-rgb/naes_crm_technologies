@@ -1024,14 +1024,11 @@ function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrent
         linkedProfile: false
       };
 
-
       try {
         if (typeof onCreateUserAccount === 'function') {
           nextUser = await onCreateUserAccount(draftUser);
-        } else {
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error || 'unknown_error');
         console.warn('Could not create user in backend, using local fallback', error);
       }
 
@@ -1057,15 +1054,12 @@ function UserAccountsPage({ userAccounts = [], onSaveUserAccounts, onSyncCurrent
       ...draftUser
     };
 
-
     if (selectedRecord.id && !String(selectedRecord.id).startsWith('user-')) {
       try {
         if (typeof onUpdateUserAccount === 'function') {
           nextUpdatedRecord = await onUpdateUserAccount(selectedRecord.id, draftUser, selectedRecord);
-        } else {
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error || 'unknown_error');
         console.warn('Could not update user in backend, using local fallback', error);
       }
     }
