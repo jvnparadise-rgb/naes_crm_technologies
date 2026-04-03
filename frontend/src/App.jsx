@@ -10403,6 +10403,7 @@ export default function App() {
       account_id: String(record?.accountId || '').trim(),
       primary_contact_id: String(record?.primaryContactId || '').trim(),
       primary_contact_name: primaryContactName,
+      owner_user_id: String(record?.ownerUserId || record?.owner?.id || '').trim(),
       owner_full_name: ownerFullName,
       owner_team_name: ownerTeamName,
       stage: backendStageToFrontend(record?.stage),
@@ -10436,9 +10437,31 @@ export default function App() {
   }
 
   function buildOpportunityApiPayload(form = {}, fallbackRecord = {}) {
+    const desiredOwnerName = String(
+      form.owner ||
+      fallbackRecord.owner_full_name ||
+      ''
+    ).trim().toLowerCase();
+
+    const matchedOwner = Array.isArray(userAccounts)
+      ? userAccounts.find((user) => {
+          const fullName = String(user?.fullName || '').trim().toLowerCase();
+          const nickname = String(user?.nickname || '').trim().toLowerCase();
+          return desiredOwnerName && (desiredOwnerName === fullName || desiredOwnerName === nickname);
+        }) || null
+      : null;
+
+    const ownerUserId = String(
+      form.ownerUserId ||
+      fallbackRecord.owner_user_id ||
+      matchedOwner?.id ||
+      ''
+    ).trim() || null;
+
     return {
       accountId: String(form.accountId || fallbackRecord.account_id || '').trim() || null,
       primaryContactId: String(form.primaryContactId || fallbackRecord.primary_contact_id || '').trim() || null,
+      ownerUserId,
       name: String(form.name || fallbackRecord.name || 'New Opportunity').trim(),
       serviceLine: String(form.serviceLine || fallbackRecord.service_line || 'Renewables').trim() || null,
       marketSegment: String(
