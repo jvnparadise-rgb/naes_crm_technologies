@@ -9886,7 +9886,7 @@ export default function App() {
   }
 
   const [routePath, setRoutePath] = useState(getInitialPath());
-  const [selectedDevUserId, setSelectedDevUserId] = useState(() => 'cmnf1dl3p0000itfeogbofo8v');
+  const [selectedDevUserId, setSelectedDevUserId] = useState(() => null);
   const [authState, setAuthState] = useState({
     status: 'ready',
     currentUser: null,
@@ -10024,6 +10024,7 @@ export default function App() {
     try {
       response = await fetch(buildBackendUrl('/api/auth/cognito/exchange'), {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
         },
@@ -10082,6 +10083,7 @@ export default function App() {
     try {
       response = await fetch(buildBackendUrl('/api/auth/cognito/map-user'), {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
         },
@@ -10782,8 +10784,12 @@ export default function App() {
   });
 
   const selectedDevUser = useMemo(
-    () => DEV_USER_OPTIONS.find((option) => option.id === selectedDevUserId) || DEV_USER_OPTIONS[0],
-    [selectedDevUserId]
+    () => {
+      const defaultDevUserId = 'cmnf1dl3p0000itfeogbofo8v';
+      const effectiveId = COGNITO_ENABLED ? selectedDevUserId : (selectedDevUserId || defaultDevUserId);
+      return DEV_USER_OPTIONS.find((option) => option.id === effectiveId) || DEV_USER_OPTIONS[0];
+    },
+    [COGNITO_ENABLED, selectedDevUserId]
   );
 
   const authenticatedCurrentUser = authState?.currentUser || null;
@@ -10841,6 +10847,7 @@ export default function App() {
 
     try {
       const response = await fetch(buildBackendUrl('/api/auth/me'), {
+        credentials: 'include',
         headers: COGNITO_ENABLED
           ? buildAuthRequestHeaders()
           : buildBackendHeaders(selectedDevUser?.headerUserId || selectedDevUserId),
@@ -10915,11 +10922,16 @@ export default function App() {
 
   useEffect(() => {
     try {
+      if (COGNITO_ENABLED) {
+        window.localStorage.removeItem('naes-crm-dev-user-id');
+        window.localStorage.removeItem('naes-crm-selected-dev-user-id');
+        return;
+      }
       window.localStorage.setItem('naes-crm-dev-user-id', selectedDevUserId);
     } catch (error) {
       // ignore local storage persistence issues in preview shell
     }
-  }, [selectedDevUserId]);
+  }, [COGNITO_ENABLED, selectedDevUserId]);
 
   useEffect(() => {
     if (!COGNITO_ENABLED) return;
@@ -11158,7 +11170,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [COGNITO_ENABLED, authenticatedCurrentUser?.id]);
 
   React.useEffect(() => {
     try {
@@ -11189,7 +11201,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [COGNITO_ENABLED, authenticatedCurrentUser?.id]);
 
   React.useEffect(() => {
     try {
@@ -11220,7 +11232,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [COGNITO_ENABLED, authenticatedCurrentUser?.id]);
 
   function navigate(nextPage) {
     setActivePage(nextPage);
