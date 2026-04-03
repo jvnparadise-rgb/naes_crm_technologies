@@ -189,6 +189,9 @@ router.get('/', async (req, res, next) => {
     const rows = await prisma.account.findMany({
       where,
       orderBy: [{ name: 'asc' }],
+      include: {
+        owner: true,
+      },
     });
 
     res.json({ ok: true, count: rows.length, data: rows });

@@ -231,7 +231,13 @@ router.get('/', async (req, res, next) => {
     const rows = await prisma.opportunity.findMany({
       where,
       orderBy: [{ createdAt: 'desc' }],
+      include: {
+        owner: true,
+        account: true,
+        primaryContact: true,
+      },
     });
+
 
     res.json({ ok: true, count: rows.length, data: rows });
   } catch (error) {
