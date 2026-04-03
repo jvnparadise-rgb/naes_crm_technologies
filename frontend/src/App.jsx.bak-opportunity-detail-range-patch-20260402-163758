@@ -9255,79 +9255,282 @@ function inputWrap(label, input) {
   );
 }
 
-function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunity, tasks = [], activities = [] }) {
-  const relatedTasks = Array.isArray(tasks)
-    ? tasks.filter((task) => String(task?.opportunityId || '') === String(opportunity?.id || ''))
-    : [];
+function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunity }) {
+  const [serviceLine, setServiceLine] = useState(opportunity?.service_line || 'Both');
+  const [renewablesPortfolioType, setRenewablesPortfolioType] = useState(opportunity?.market_segment === 'StratoSight' ? 'DG' : (opportunity?.market_segment || 'DG'));
+  const [renewablesBasis, setRenewablesBasis] = useState(
+    String(opportunity?.commercial_basis || '').includes('MWAC') ? 'MWAC' : 'MWDC'
+  );
+  const [renewablesSize, setRenewablesSize] = useState(
+    opportunity?.total_mwdc != null ? String(opportunity.total_mwdc) : '16.4'
+  );
+  const [stratoSqft, setStratoSqft] = useState('2450000');
+  const [otherDescription, setOtherDescription] = useState('Auxiliary O&M Services');
+  const [otherBasis, setOtherBasis] = useState('Fixed Total');
+  const [otherQuantity, setOtherQuantity] = useState('1');
+  const [otherTarget, setOtherTarget] = useState('125000');
+  const [otherLow, setOtherLow] = useState('110000');
+  const [otherHigh, setOtherHigh] = useState('140000');
+  const [changeReason, setChangeReason] = useState('');
+  const [revisionHistory, setRevisionHistory] = useState([
+    {
+      version: 1,
+      when: dtNow(),
+      who: 'Jeff Yarbrough',
+      reason: 'Initial commercial setup',
+      summary: 'Created baseline opportunity commercial structure.'
+    }
+  ]);
 
-  const relatedActivities = Array.isArray(activities)
-    ? activities.filter((activity) => String(activity?.opportunityId || '') === String(opportunity?.id || ''))
-    : [];
+  const commercial = useMemo(() => computeOpportunityCommercial({
+    serviceLine,
+    renewablesPortfolioType,
+    renewablesBasis,
+    renewablesSize,
+    stratoSqft,
+    otherDescription,
+    otherBasis,
+    otherQuantity,
+    otherTarget,
+    otherLow,
+    otherHigh
+  }), [
+    serviceLine,
+    renewablesPortfolioType,
+    renewablesBasis,
+    renewablesSize,
+    stratoSqft,
+    otherDescription,
+    otherBasis,
+    otherQuantity,
+    otherTarget,
+    otherLow,
+    otherHigh
+  ]);
 
-  const annualValue = Number(
-    opportunity?.calc_year1_total ??
-    opportunity?.amount_estimated ??
-    opportunity?.calculated_revenue ??
-    0
-  ) || 0;
+  const commercialChangeSnapshot = JSON.stringify({
+    serviceLine,
+    renewablesPortfolioType,
+    renewablesBasis,
+    renewablesSize,
+    stratoSqft,
+    otherDescription,
+    otherBasis,
+    otherQuantity,
+    otherTarget,
+    otherLow,
+    otherHigh,
+    pricingBasis: commercial.pricingBasis,
+    low: commercial.low,
+    target: commercial.target,
+    high: commercial.high,
+    weighted: commercial.weighted
+  });
 
-  const arrValue = Number(opportunity?.calc_arr_total ?? annualValue) || 0;
+  const [lastSavedCommercialSnapshot, setLastSavedCommercialSnapshot] = useState('');
 
-  const totalEstimatedValue = Number(
-    opportunity?.amount_total ??
-    opportunity?.amount_estimated ??
-    annualValue
-  ) || 0;
+  React.useEffect(() => {
+    if (!lastSavedCommercialSnapshot) {
+      setLastSavedCommercialSnapshot(commercialChangeSnapshot);
+    }
+  }, [commercialChangeSnapshot, lastSavedCommercialSnapshot]);
 
-  const weightedValue = Number(
-    opportunity?.weighted_revenue ??
-    (totalEstimatedValue * ((Number(opportunity?.probability || 0) || 0) / 100))
-  ) || 0;
+  const hasCommercialChanges =
+    Boolean(lastSavedCommercialSnapshot) &&
+    lastSavedCommercialSnapshot !== commercialChangeSnapshot;
 
-  const shellCard = {
-    ...naesCardStyle(false),
-    padding: '20px',
-    background: '#FFFFFF'
-  };
+  function saveRevision() {
+    if (!hasCommercialChanges) return;
+    if (!changeReason.trim()) return;
 
-  const summaryCards = [
-    ['Estimated Year 1', money(annualValue)],
-    ['ARR', money(arrValue)],
-    ['Total Estimated', money(totalEstimatedValue)],
-    ['Weighted Revenue', money(weightedValue)]
-  ];
+    const nextRevision = {
+      version: revisionHistory.length + 1,
+      when: dtNow(),
+      who: 'Jeff Yarbrough',
+      reason: changeReason.trim(),
+      summary: `${serviceLine} updated to target ${money(commercial.target)}`
+    };
 
-  const relationshipRows = [
-    ['Linked Account', opportunity?.account || opportunity?.account_name || 'Not linked'],
-    ['Primary Contact', opportunity?.primary_contact_name || 'No primary contact'],
-    ['Account Owner', opportunity?.owner_full_name || 'Unassigned'],
-    ['Team', opportunity?.owner_team_name || 'Not assigned']
-  ];
+    setRevisionHistory((prev) => [nextRevision, ...prev]);
 
-  const storyRows = [
-    ['Service Line', opportunity?.service_line || 'Not set'],
-    ['Opportunity Type', opportunity?.opportunity_type || 'Not set'],
-    ['Market Segment', opportunity?.market_segment || 'Not set'],
-    ['Commercial Basis', opportunity?.commercial_basis || 'Imported record'],
-    ['Expected Close', opportunity?.expected_close_date || 'Not set'],
-    ['Probability', `${Number(opportunity?.probability || 0)}%`]
-  ];
+    if (opportunity?.id && onSaveOpportunity) {
+      const rawForecastCategory = String(opportunity?.forecast_category || 'Pipeline').trim();
+      const nextForecastCategory =
+        rawForecastCategory === 'Best Case' ? 'BestCase' : rawForecastCategory;
+      const nextProbability = Number(opportunity?.probability || 0);
+      const weightedRevenue =
+        Number(commercial.target || 0) * (
+          nextForecastCategory === 'Commit'
+            ? 0.9
+            : nextForecastCategory === 'BestCase'
+            ? 0.6
+            : nextForecastCategory === 'Pipeline'
+            ? 0.3
+            : nextForecastCategory === 'Closed'
+            ? 1
+            : nextProbability > 0
+            ? nextProbability / 100
+            : 0.5
+        );
 
-  const governanceRows = [
-    ['Stage', opportunity?.stage || 'Not set'],
-    ['Forecast Category', opportunity?.forecast_category || 'Not set'],
-    ['Expected Close', opportunity?.expected_close_date || 'Not set'],
-    ['Last Activity', opportunity?.last_activity_date || 'No activity yet'],
-    ['Staleness', opportunity?.staleness_flag || 'Unknown'],
-    ['Forecast Hygiene', opportunity?.forecast_hygiene_status || 'Not set']
-  ];
+      onSaveOpportunity(opportunity.id, {
+        service_line: serviceLine,
+        market_segment: serviceLine === 'StratoSight'
+          ? 'StratoSight'
+          : serviceLine === 'Other O&M'
+          ? 'Other O&M'
+          : renewablesPortfolioType,
+        commercial_basis: commercial.pricingBasis || serviceLine,
+        total_mwac: derivedMwac,
+        total_mwdc: derivedMwdc,
+        estimated_square_footage:
+          serviceLine === 'StratoSight' || serviceLine === 'Both'
+            ? Number(stratoSqft || 0)
+            : null,
+        calculated_revenue: Number(commercial.target || 0),
+        amount_estimated: Number(commercial.target || 0),
+        calc_year1_total: Number(commercial.target || 0),
+        calc_arr_total: Number(commercial.target || 0),
+        amount_total: Number(commercial.target || 0),
+        weighted_revenue: weightedRevenue,
+        estimated_cts_pct: Number(commercial.cts || 0),
+        estimated_earnings_pct: Number(commercial.earnings || 0),
+        probability: nextProbability || opportunity?.probability || 0,
+        forecast_category: nextForecastCategory,
+        expected_close_date: opportunity?.expected_close_date || '',
+        staleness_flag: opportunity?.staleness_flag || false
+      });
+    }
 
-  const commercialRows = [
-    ['Service Line', opportunity?.service_line || 'Not set'],
-    ['Market Segment', opportunity?.market_segment || 'Not set'],
-    ['Commercial Basis', opportunity?.commercial_basis || 'Imported record'],
-    ['CTS %', `${Number(opportunity?.estimated_cts_pct || 0)}%`],
-    ['Earnings %', `${Number(opportunity?.estimated_earnings_pct || 0)}%`]
+    setLastSavedCommercialSnapshot(commercialChangeSnapshot);
+    setChangeReason('');
+  }
+
+  const derivedMwac = serviceLine === 'Renewables' || serviceLine === 'Both'
+    ? (renewablesBasis === 'MWAC' ? Number(renewablesSize || 0) : Number(renewablesSize || 0) / 1.25)
+    : null;
+
+  const derivedMwdc = serviceLine === 'Renewables' || serviceLine === 'Both'
+    ? (renewablesBasis === 'MWDC' ? Number(renewablesSize || 0) : Number(renewablesSize || 0) * 1.25)
+    : null;
+
+  const opportunityPills = useMemo(() => buildOpportunityPills({
+    service_line: serviceLine,
+    market_segment: serviceLine === 'StratoSight'
+      ? 'StratoSight'
+      : serviceLine === 'Other O&M'
+      ? 'Other O&M'
+      : renewablesPortfolioType,
+    opportunity_type: 'New customer / bundled services',
+    stage: '3 Solution Fit',
+    forecast_category: 'Best Case',
+    total_mwac: derivedMwac,
+    total_mwdc: derivedMwdc,
+    site_count: 14,
+    commercial_basis: commercial.pricingBasis || serviceLine,
+    pricing_band: 'Mid',
+    calculated_revenue: commercial.target,
+    estimated_cts_pct: 63,
+    estimated_earnings_pct: 37,
+    follow_up_status: 'DueSoon',
+    forecast_hygiene_status: 'AtRisk',
+    owner_full_name: 'Jeff Yarbrough',
+    expected_close_date: '2026-06-30',
+    scope_type: serviceLine === 'Both' ? 'Bundled Renewables + StratoSight' : serviceLine,
+    geographic_scope: 'National, multi-site',
+    driver_summary: 'Bundled commercial structure with reporting support'
+  }), [
+    serviceLine,
+    renewablesPortfolioType,
+    renewablesBasis,
+    renewablesSize,
+    commercial.pricingBasis,
+    commercial.target
+  ]);
+
+  const pricingFootnote =
+    serviceLine === 'Renewables'
+      ? 'Internal Renewables guidance uses DG / USS logic with MWDC or MWAC basis.'
+      : serviceLine === 'StratoSight'
+      ? 'Internal StratoSight guidance follows sqft-based commercial ranges.'
+      : serviceLine === 'Both'
+      ? 'Bundled logic combines Renewables and StratoSight commercial paths.'
+      : 'Other O&M uses manual commercial entry with no automatic pricing formula.';
+
+  const opportunitySnapshotCards = [
+    {
+      id: 'opp-ashley',
+      name: 'Ashley Furniture MSA',
+      account: 'Ashley Furniture Industries',
+      service_line: serviceLine,
+      market_segment: serviceLine === 'StratoSight' ? 'StratoSight' : renewablesPortfolioType,
+      opportunity_type: 'New customer / bundled services',
+      stage: '3 Solution Fit',
+      forecast_category: 'Best Case',
+      total_mwac: derivedMwac,
+      total_mwdc: derivedMwdc,
+      site_count: 14,
+      commercial_basis: commercial.pricingBasis || serviceLine,
+      pricing_band: 'Mid',
+      calculated_revenue: commercial.target,
+      estimated_cts_pct: 63,
+      estimated_earnings_pct: 37,
+      follow_up_status: 'DueSoon',
+      forecast_hygiene_status: 'AtRisk',
+      owner_full_name: 'Jeff Yarbrough',
+      expected_close_date: '2026-06-30',
+      scope_type: serviceLine === 'Both' ? 'Bundled Renewables + StratoSight' : serviceLine,
+      geographic_scope: 'National, multi-site',
+      driver_summary: 'Bundled commercial structure with reporting support'
+    },
+    {
+      id: 'opp-onyx',
+      name: 'Onyx DG Portfolio',
+      account: 'Onyx Renewables',
+      service_line: 'Renewables',
+      market_segment: 'DG',
+      opportunity_type: 'Renewal',
+      stage: '4 Commercials',
+      forecast_category: 'Commit',
+      total_mwac: 12,
+      total_mwdc: 15,
+      site_count: 33,
+      commercial_basis: 'DG MWAC annual',
+      pricing_band: 'High',
+      calculated_revenue: 192000,
+      estimated_cts_pct: 58,
+      estimated_earnings_pct: 29,
+      follow_up_status: 'Current',
+      forecast_hygiene_status: 'Healthy',
+      owner_full_name: 'Jeff Yarbrough',
+      expected_close_date: '2026-04-30',
+      scope_type: 'Full Scope O&M',
+      geographic_scope: 'Arizona',
+      driver_summary: 'Portfolio renewal with staffing and PM coverage'
+    },
+    {
+      id: 'opp-scan',
+      name: 'Retail Roof Scan Program',
+      account: 'National Retail Group',
+      service_line: 'StratoSight',
+      market_segment: 'StratoSight',
+      opportunity_type: 'Expansion',
+      stage: '2 Discovery',
+      forecast_category: 'Pipeline',
+      site_count: 21,
+      commercial_basis: 'Square footage',
+      pricing_band: 'Low',
+      calculated_revenue: 425000,
+      estimated_cts_pct: 49,
+      estimated_earnings_pct: 34,
+      follow_up_status: 'Overdue',
+      forecast_hygiene_status: 'Warning',
+      owner_full_name: 'Jeff Yarbrough',
+      expected_close_date: '2026-07-15',
+      scope_type: 'Thermal + RGB',
+      geographic_scope: 'Multi-state',
+      driver_summary: 'Roof scan expansion tied to annual reporting cadence'
+    }
   ];
 
   return (
@@ -9349,7 +9552,6 @@ function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunit
           ← Back to Opportunities Overview
         </button>
       </div>
-
       <section style={shellCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
@@ -9362,18 +9564,26 @@ function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunit
               <span style={{ borderRadius: '999px', background: '#FFF3DE', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#9B6A11' }}>
                 {opportunity?.expected_close_date || 'No Close Date'}
               </span>
-              <span style={{ borderRadius: '999px', background: '#F2F5F2', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
-                {opportunity?.stage || 'Not set'}
+              <span style={{ borderRadius: '999px', background: '#FBE8E4', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#B25547' }}>
+                {opportunity?.staleness_flag || 'Current'}
               </span>
             </div>
-
             <p style={{ marginTop: '12px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: '#475569' }}>
-              {(opportunity?.name || 'Opportunity') + ' detail view based on the saved CRM record and related data.'}
+              {(opportunity?.name || 'Opportunity') + ' commercial summary tied to the saved opportunity record, forecast, and linked account.'}
             </p>
+
+            <div style={{ marginTop: '14px', display: 'flex', flexWrap: 'wrap', gap: '8px', rowGap: '8px', alignItems: 'flex-start', minWidth: 0, maxWidth: '900px' }}>
+              {opportunityPills.map((pill) => renderOpportunityPill(pill))}
+            </div>
           </div>
 
           <div style={{ display: 'grid', gap: '12px', minWidth: '320px', gridTemplateColumns: '1fr' }}>
-            {summaryCards.map(([label, value]) => (
+            {[
+              ['Estimated Year 1', money(opportunity?.calculated_revenue ?? opportunity?.amount_total ?? opportunity?.calc_year1_total ?? opportunity?.amount_estimated ?? commercial.target)],
+              ['Weighted Revenue', money(opportunity?.weighted_revenue ?? commercial.weighted)],
+              ['Expected Close', opportunity?.expected_close_date || 'No Close Date'],
+              ['Forecast', opportunity?.forecast_category || 'Pipeline']
+            ].map(([label, value]) => (
               <div key={label} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px' }}>
                 <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>{label}</div>
                 <div style={{ marginTop: '8px', fontSize: '18px', fontWeight: 600 }}>{value}</div>
@@ -9389,7 +9599,12 @@ function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunit
             {smallLabel('Relationships')}
             <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Account and contacts</h3>
             <div style={{ marginTop: '20px', display: 'grid', gap: '12px' }}>
-              {relationshipRows.map(([label, value]) => (
+              {[
+                ['Linked Account', 'Ashley Furniture Industries'],
+                ['Primary Contact', 'Megan Smethurst'],
+                ['Additional Contacts', '3 linked stakeholders'],
+                ['Account Owner', 'Jeff Yarbrough']
+              ].map(([label, value]) => (
                 <div key={label} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px' }}>
                   <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>{label}</div>
                   <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>{value}</div>
@@ -9401,53 +9616,41 @@ function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunit
           <section style={shellCard}>
             {smallLabel('Tasks')}
             <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>What needs to happen next</h3>
-            <div style={{ marginTop: '18px' }}>
-              {relatedTasks.length ? (
-                <div style={{ display: 'grid', gap: '12px' }}>
-                  {relatedTasks.slice(0, 8).map((task) => (
-                    <div key={task.id} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>{task.title || 'Task'}</div>
-                        <div style={{ marginTop: '4px', fontSize: '13px', color: '#64748b' }}>
-                          {task.dueDate ? `Due ${task.dueDate}` : 'No due date'}
-                        </div>
-                      </div>
-                      <div style={{ borderRadius: '999px', background: '#EEF4EE', color: '#45624C', padding: '4px 10px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                        {task.priority || 'Medium'}
-                      </div>
-                    </div>
-                  ))}
+            <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
+              {[
+                ['Proposal review with Paul', 'Due tomorrow', 'High'],
+                ['Confirm final sqft scope', 'Due in 2 days', 'High'],
+                ['Draft bundled quote line items', 'Due in 3 days', 'Medium'],
+                ['Schedule customer commercial call', 'Due next week', 'Medium']
+              ].map(([title, due, priority]) => (
+                <div key={title} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>{title}</div>
+                    <div style={{ marginTop: '4px', fontSize: '13px', color: '#64748b' }}>{due}</div>
+                  </div>
+                  <div style={{ borderRadius: '999px', background: priority === 'High' ? '#FBE8E4' : '#FFF3DE', color: priority === 'High' ? '#B25547' : '#9B6A11', padding: '4px 10px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                    {priority}
+                  </div>
                 </div>
-              ) : (
-                <div style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px', fontSize: '14px', color: '#64748b' }}>
-                  No tasks yet.
-                </div>
-              )}
+              ))}
             </div>
           </section>
 
           <section style={shellCard}>
             {smallLabel('Activities')}
             <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Recent deal movement</h3>
-            <div style={{ marginTop: '18px' }}>
-              {relatedActivities.length ? (
-                <div style={{ display: 'grid', gap: '12px' }}>
-                  {relatedActivities.slice(0, 8).map((activity) => (
-                    <div key={activity.id} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>
-                        {activity.subject || activity.activityType || 'Activity'}
-                      </div>
-                      <div style={{ marginTop: '4px', fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>
-                        {activity.notes || activity.activityDateTime || 'No activity notes'}
-                      </div>
-                    </div>
-                  ))}
+            <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
+              {[
+                ['Customer call completed', 'Discussed bundled commercial structure and timing'],
+                ['Internal pricing review', 'Reviewed DG pricing range and StratoSight subtotal'],
+                ['Contact update', 'Primary stakeholder list expanded by 3 names'],
+                ['Forecast note added', 'Close date likely holds if quote goes out this week']
+              ].map(([title, desc]) => (
+                <div key={title} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>{title}</div>
+                  <div style={{ marginTop: '4px', fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>{desc}</div>
                 </div>
-              ) : (
-                <div style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px', fontSize: '14px', color: '#64748b' }}>
-                  No activities yet.
-                </div>
-              )}
+              ))}
             </div>
           </section>
         </div>
@@ -9457,44 +9660,141 @@ function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunit
             {smallLabel('Deal Story')}
             <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>What this deal is, quickly</h3>
             <div style={{ marginTop: '18px', display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-              {storyRows.map(([label, value]) => (
+              {[
+                ['Service Line', serviceLine],
+                ['Opportunity Type', 'New customer / bundled services'],
+                ['Account', 'Ashley Furniture Industries'],
+                ['Primary Contact', 'Megan Smethurst'],
+                ['Region', 'National, multi-site'],
+                ['Quote Readiness', 'Nearly ready, awaiting final itemization']
+              ].map(([label, value]) => (
                 <div key={label} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px' }}>
                   <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>{label}</div>
                   <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>{value}</div>
                 </div>
               ))}
             </div>
-
             <div style={{ marginTop: '16px', borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px' }}>
               <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>Narrative</div>
               <div style={{ marginTop: '8px', fontSize: '14px', lineHeight: 1.65, color: '#475569' }}>
-                {opportunity?.service_line || 'Opportunity'} opportunity for {opportunity?.account || opportunity?.account_name || 'unlinked account'}.
-                {opportunity?.market_segment ? ` Market segment: ${opportunity.market_segment}.` : ''}
-                {opportunity?.primary_contact_name ? ` Primary contact: ${opportunity.primary_contact_name}.` : ''}
-                {opportunity?.expected_close_date ? ` Expected close: ${opportunity.expected_close_date}.` : ''}
+                Ashley Furniture is evaluating a bundled engagement that combines renewables scope with StratoSight scanning and related reporting support. The deal is strategically meaningful because it can lead to recurring operational work beyond the initial engagement.
+              </div>
+            </div>
+          </section>
+
+          <section style={shellCard}>
+            {smallLabel('Internal Calculator')}
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', marginTop: '8px', flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Pricing and service selection</h3>
+              <span style={{ borderRadius: '999px', background: '#E8F2EA', padding: '4px 12px', fontSize: '12px', fontWeight: 700, color: '#2F6B4F' }}>Simple, fast, quote-ready</span>
+            </div>
+
+            <div style={{ marginTop: '18px', display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+              {['Renewables', 'StratoSight', 'Both', 'Other O&M'].map((option) => (
+                <button key={option} onClick={() => setServiceLine(option)} style={buttonStyle(serviceLine === option)}>
+                  <div style={{ fontSize: '14px' }}>{option}</div>
+                </button>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '14px', fontSize: '12px', color: '#6B7280', lineHeight: 1.55 }}>
+              {pricingFootnote}
+            </div>
+
+            {serviceLine === 'Renewables' || serviceLine === 'Both' ? (
+              <div style={{ marginTop: '20px', display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                {inputWrap('Portfolio Type', selectInput(renewablesPortfolioType, (e) => setRenewablesPortfolioType(e.target.value), ['DG', 'USS']))}
+                {inputWrap('Capacity Basis', selectInput(renewablesBasis, (e) => setRenewablesBasis(e.target.value), ['MWDC', 'MWAC']))}
+                {inputWrap('Size', textInput(renewablesSize, (e) => setRenewablesSize(e.target.value), { placeholder: '16.4' }))}
+              </div>
+            ) : null}
+
+            {serviceLine === 'StratoSight' || serviceLine === 'Both' ? (
+              <div style={{ marginTop: '20px', display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                {inputWrap('Square Footage', textInput(stratoSqft, (e) => setStratoSqft(e.target.value), { placeholder: '2450000' }))}
+                {inputWrap('Report Scope', textInput('Thermal + RGB', () => {}, { disabled: true }))}
+              </div>
+            ) : null}
+
+            {serviceLine === 'Other O&M' ? (
+              <div style={{ marginTop: '20px', borderRadius: '20px', border: '1px solid #DCE7DD', background: '#FBFCFB', padding: '18px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#54745D' }}>Other O&M manual mode</div>
+                <div style={{ marginTop: '14px', display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                  {inputWrap('Service Description', textInput(otherDescription, (e) => setOtherDescription(e.target.value)))}
+                  {inputWrap('Pricing Basis', selectInput(otherBasis, (e) => setOtherBasis(e.target.value), ['Fixed Total', 'Per Site', 'Per Unit', 'T&M', 'Custom']))}
+                  {inputWrap('Quantity', textInput(otherQuantity, (e) => setOtherQuantity(e.target.value)))}
+                  {inputWrap('Low', textInput(otherLow, (e) => setOtherLow(e.target.value)))}
+                  {inputWrap('Target', textInput(otherTarget, (e) => setOtherTarget(e.target.value)))}
+                  {inputWrap('High', textInput(otherHigh, (e) => setOtherHigh(e.target.value)))}
+                </div>
+              </div>
+            ) : null}
+
+            <div style={{ marginTop: '18px', borderRadius: '18px', border: hasCommercialChanges ? '1px solid #BFD7C4' : '1px solid #DCE7DD', background: hasCommercialChanges ? '#F7FBF8' : '#FBFCFB', padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#54745D' }}>
+                    Commercial Change Approval
+                  </div>
+                  <div style={{ marginTop: '6px', fontSize: '14px', lineHeight: 1.55, color: '#475569' }}>
+                    Save commercial changes from this calculator here. Saved changes flow into Commercial History and the opportunity roll-up.
+                  </div>
+                </div>
+
+                <div style={{ borderRadius: '999px', background: hasCommercialChanges ? '#FFF7EA' : '#EDF8F1', color: hasCommercialChanges ? '#8B5E12' : '#1F6B44', padding: '6px 10px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                  {hasCommercialChanges ? 'Unsaved changes' : 'No pending changes'}
+                </div>
+              </div>
+
+              <div style={{ marginTop: '14px', display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'end' }}>
+                <div>
+                  {inputWrap('Reason for update', textInput(changeReason, (e) => setChangeReason(e.target.value), { placeholder: 'Customer added MW, pricing changed, scope revised, etc.' }))}
+                </div>
+
+                <div>
+                  <button
+                    onClick={saveRevision}
+                    disabled={!hasCommercialChanges || !changeReason.trim()}
+                    style={{
+                      borderRadius: '18px',
+                      border: '1px solid #0B6771',
+                      background: !hasCommercialChanges || !changeReason.trim() ? '#C8D6D8' : '#0B6771',
+                      color: '#fff',
+                      padding: '10px 16px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: !hasCommercialChanges || !changeReason.trim() ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Save Commercial Change
+                  </button>
+                </div>
               </div>
             </div>
           </section>
 
           <section style={shellCard}>
             {smallLabel('Commercial Summary')}
-            <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Imported revenue profile</h3>
+            <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Low, target, high and selected value</h3>
             <div style={{ marginTop: '18px', display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
               {[
-                ['Annual', money(annualValue)],
-                ['ARR', money(arrValue)],
-                ['Total Estimated', money(totalEstimatedValue)],
-                ['Weighted', money(weightedValue)]
+                ['Low', money(commercial.low)],
+                ['Target', money(commercial.target)],
+                ['High', money(commercial.high)],
+                ['Weighted', money(commercial.weighted)]
               ].map(([label, value]) => (
-                <div key={label} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '16px' }}>
+                <div key={label} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: label === 'Target' ? '#EDF7F4' : '#FBFCFB', padding: '16px' }}>
                   <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#64748b' }}>{label}</div>
-                  <div style={{ marginTop: '8px', fontSize: '22px', fontWeight: 700, color: '#111827' }}>{value}</div>
+                  <div style={{ marginTop: '8px', fontSize: '22px', fontWeight: 700, color: label === 'Target' ? '#0B6771' : '#111827' }}>{value}</div>
                 </div>
               ))}
             </div>
-
             <div style={{ marginTop: '16px', display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-              {commercialRows.map(([label, value]) => (
+              {[
+                ['Pricing Basis', commercial.pricingBasis || 'Not set'],
+                ['Selected Commercial Basis', serviceLine],
+                ['Override Status', serviceLine === 'Other O&M' ? 'Manual entry path' : 'No manual override']
+              ].map(([label, value]) => (
                 <div key={label} style={{ borderRadius: '16px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px' }}>
                   <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#64748b' }}>{label}</div>
                   <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 600 }}>{value}</div>
@@ -9507,15 +9807,81 @@ function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunit
             {smallLabel('Forecast and Governance')}
             <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Stage, risk and close discipline</h3>
             <div style={{ marginTop: '18px', display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-              {governanceRows.map(([label, value]) => (
+              {[
+                ['Stage', '3 Solution Fit'],
+                ['Forecast Category', 'Best Case'],
+                ['Expected Close', 'Jun 30, 2026'],
+                ['Days in Stage', '18'],
+                ['Last Activity', '3 days ago'],
+                ['Quote Readiness', 'Almost ready']
+              ].map(([label, value]) => (
                 <div key={label} style={{ borderRadius: '16px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px' }}>
                   <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#64748b' }}>{label}</div>
                   <div style={{ marginTop: '6px', fontSize: '14px', fontWeight: 600 }}>{value}</div>
                 </div>
               ))}
             </div>
+
+            <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {workflowStages.map((stage, idx) => (
+                <span
+                  key={stage}
+                  style={{
+                    borderRadius: '999px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    background: idx === 3 ? '#0B6771' : '#F2F5F2',
+                    color: idx === 3 ? '#fff' : '#334155'
+                  }}
+                >
+                  {stage}
+                </span>
+              ))}
+            </div>
           </section>
         </div>
+      </section>
+
+      <section style={{ display: 'grid', gap: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+        <section style={shellCard}>
+          {smallLabel('Quote Builder')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Itemized line items</h3>
+          <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
+            {commercial.lineItems.map((line) => (
+              <div key={line.item} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>{line.item}</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#0B6771' }}>{money(line.amount)}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {['Create Quote', 'Preview PDF', 'Send Quote', 'Version History'].map((action) => (
+              <button key={action} style={{ borderRadius: '18px', border: '1px solid #DCE7DD', background: action === 'Create Quote' ? '#0B6771' : '#FBFCFB', color: action === 'Create Quote' ? '#fff' : '#334155', padding: '10px 16px', fontSize: '14px', fontWeight: 600 }}>
+                {action}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section style={shellCard}>
+          {smallLabel('Commercial History')}
+          <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 600 }}>Revision timeline with why it changed</h3>
+
+          <div style={{ marginTop: '18px', display: 'grid', gap: '12px' }}>
+            {revisionHistory.map((rev) => (
+              <div key={`${rev.version}-${rev.when}`} style={{ borderRadius: '18px', border: '1px solid #E5ECE5', background: '#FBFCFB', padding: '14px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#1f2937' }}>Version {rev.version}</div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>{rev.when}</div>
+                </div>
+                <div style={{ marginTop: '6px', fontSize: '13px', color: '#334155' }}><strong>Who:</strong> {rev.who}</div>
+                <div style={{ marginTop: '4px', fontSize: '13px', color: '#334155' }}><strong>Why:</strong> {rev.reason}</div>
+                <div style={{ marginTop: '4px', fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>{rev.summary}</div>
+              </div>
+            ))}
+          </div>
+        </section>
       </section>
     </div>
   );

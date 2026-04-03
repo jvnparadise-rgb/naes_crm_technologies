@@ -1,0 +1,62 @@
+[
+  {
+    "linked_account_name": "ONYX",
+    "first_name": "Matthew",
+    "last_name": "Wessman",
+    "job_title": "Technical Asset Manager",
+    "email": "mwessman@onyxrenewables.com",
+    "mobile_phone": "520.490.6599",
+    "office_phone": "",
+    "preferred_contact_method": "Email",
+    "role_in_buying_process": "Influencer / Operational Lead",
+    "decision_maker": false,
+    "influencer_or_champion": true,
+    "primary_contact": false,
+    "notes": "Best matched external contact from source export. Additional matched contacts: Sean McCormick, Technical Asset Manager, smccormick@onyxrenewables.com; Carson McLean, cmclean@onyxrenewables.com, office (678) 491-5777; Enrique Salcedo, esalcedo@onyxrenewables.com; Pierce Gendron, Project Developer, info@onyxrenewables.com, office 6462170713. Source company match: Onyx Renewables."
+  },
+  {
+    "linked_account_name": "CLEANCAPITAL",
+    "first_name": "Tommy",
+    "last_name": "Golder",
+    "job_title": "Vice President, Asset Management",
+    "email": "tgolder@cleancapital.com",
+    "mobile_phone": "",
+    "office_phone": "(704) 237-0497",
+    "preferred_contact_method": "Email",
+    "role_in_buying_process": "Economic Buyer / Executive Sponsor",
+    "decision_maker": true,
+    "influencer_or_champion": false,
+    "primary_contact": true,
+    "notes": "Best matched external contact from source export. Additional matched contact: Jaden Brown, jbrown@cleancapital.com. Source company match: CleanCapital Holdings LLC."
+  },
+  {
+    "linked_account_name": "HANWHA",
+    "first_name": "Mark",
+    "last_name": "Behm",
+    "job_title": "O&M Director",
+    "email": "mark.behm@174powerglobal.com",
+    "mobile_phone": "",
+    "office_phone": "432-2903110",
+    "preferred_contact_method": "Email",
+    "role_in_buying_process": "Decision Maker",
+    "decision_maker": true,
+    "influencer_or_champion": false,
+    "primary_contact": true,
+    "notes": "Best matched external contact from source export. Source company match: Hanwha Renewables."
+  },
+  {
+    "linked_account_name": "NAUTILUS SOLAR",
+    "first_name": "Abby",
+    "last_name": "Broedlin",
+    "job_title": "Executive Director, Asset Management",
+    "email": "abby@nautilussolar.com",
+    "mobile_phone": "",
+    "office_phone": "",
+    "preferred_contact_method": "Email",
+    "role_in_buying_process": "Decision Maker",
+    "decision_maker": true,
+    "influencer_or_champion": false,
+    "primary_contact": true,
+    "notes": "Best matched external contact from source export. Additional matched contact: Steven Santillan, Portfolio Operations Manager, steven@nautilussolar.com, mobile 480-205-4422. Source company match: Nautilus Solar Energy, LLC."
+  }
+]
