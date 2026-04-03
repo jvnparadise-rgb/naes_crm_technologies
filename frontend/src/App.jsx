@@ -10376,15 +10376,35 @@ export default function App() {
     const oneTime = Number(record?.oneTimeRevenue ?? Math.max(estimated - arr, 0)) || 0;
     const probability = Number(record?.forecastProbability ?? 0) || 0;
 
+    const ownerFullName = String(
+      record?.owner?.fullName ||
+      [record?.owner?.firstName, record?.owner?.lastName].filter(Boolean).join(' ') ||
+      ''
+    ).trim();
+
+    const ownerTeamName = String(
+      record?.owner?.teamName || ''
+    ).trim();
+
+    const accountName = String(
+      record?.account?.name || ''
+    ).trim();
+
+    const primaryContactName = String(
+      record?.primaryContact?.fullName ||
+      [record?.primaryContact?.firstName, record?.primaryContact?.lastName].filter(Boolean).join(' ') ||
+      ''
+    ).trim();
+
     return {
       id: String(record?.id || ''),
       name: String(record?.name || 'New Opportunity').trim(),
-      account: '',
+      account: accountName,
       account_id: String(record?.accountId || '').trim(),
       primary_contact_id: String(record?.primaryContactId || '').trim(),
-      primary_contact_name: '',
-      owner_full_name: '',
-      owner_team_name: '',
+      primary_contact_name: primaryContactName,
+      owner_full_name: ownerFullName,
+      owner_team_name: ownerTeamName,
       stage: backendStageToFrontend(record?.stage),
       forecast_category: backendForecastToFrontend(record?.forecastCategory),
       probability,
@@ -10406,7 +10426,7 @@ export default function App() {
       calculated_revenue: estimated,
       estimated_earnings_pct: Number(record?.marginPercent ?? 0) || 0,
       estimated_cts_pct: Number(record?.ctsPercent ?? 0) || 0,
-      account_name: '',
+      account_name: accountName,
       last_activity_date: '',
       staleness_flag: 'Current',
       created_at: String(record?.createdAt || dtNow()),
