@@ -1437,7 +1437,7 @@ function renderExecutiveDashboard({ accounts = [], contacts = [], opportunities 
   }
 
   function ownerFor(item) {
-    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+    return resolveOpportunityOwnerName(item, (typeof userAccounts !== 'undefined' ? userAccounts : []));
   }
 
   function monthKey(dateText) {
@@ -2055,7 +2055,7 @@ function renderMyPipelinePage({ opportunities = [], taskList = [], onOpenOpportu
   }
 
   function ownerFor(item) {
-    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+    return resolveOpportunityOwnerName(item, (typeof userAccounts !== 'undefined' ? userAccounts : []));
   }
 
   function isClosedWon(item) {
@@ -2400,7 +2400,29 @@ const accountRecords = [];
 
 const contactRecords = [];
 
-function renderPipelineRollupPage({ opportunities = [], onOpenOpportunity } = {}) {
+function resolveOpportunityOwnerName(item = {}, userAccounts = []) {
+  const directFullName = String(item?.owner_full_name || '').trim();
+  if (directFullName) return directFullName;
+
+  const backendFirst = String(item?._backend?.owner?.firstName || '').trim();
+  const backendLast = String(item?._backend?.owner?.lastName || '').trim();
+  const backendFull = [backendFirst, backendLast].filter(Boolean).join(' ').trim();
+  if (backendFull) return backendFull;
+
+  const ownerUserId = String(item?.owner_user_id || item?.ownerUserId || item?._backend?.ownerUserId || '').trim();
+  if (ownerUserId && Array.isArray(userAccounts)) {
+    const matched = userAccounts.find((u) => String(u?.id || '').trim() === ownerUserId);
+    const matchedName = String(matched?.fullName || '').trim();
+    if (matchedName) return matchedName;
+  }
+
+  const legacyOwner = String(item?.owner || '').trim();
+  if (legacyOwner) return legacyOwner;
+
+  return 'Unassigned';
+}
+
+function renderPipelineRollupPage({ opportunities = [], onOpenOpportunity, userAccounts = [] } = {}) {
   function normalizeText(value) {
     return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
   }
@@ -2458,7 +2480,7 @@ function renderPipelineRollupPage({ opportunities = [], onOpenOpportunity } = {}
   }
 
   function ownerFor(item) {
-    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+    return resolveOpportunityOwnerName(item, (typeof userAccounts !== 'undefined' ? userAccounts : []));
   }
 
   function isClosedWon(item) {
@@ -2924,7 +2946,7 @@ function renderHorizontalBarChart(rows = [], valueFormatter = (value) => String(
   );
 }
 
-function renderRevenueCommandCenterPage({ opportunities = [], onOpenOpportunity } = {}) {
+function renderRevenueCommandCenterPage({ opportunities = [], onOpenOpportunity, userAccounts = [] } = {}) {
   function normalizeText(value) {
     return String(value || '').trim().toLowerCase().replace(/\s+/g, '');
   }
@@ -2982,7 +3004,7 @@ function renderRevenueCommandCenterPage({ opportunities = [], onOpenOpportunity 
   }
 
   function ownerFor(item) {
-    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+    return resolveOpportunityOwnerName(item, (typeof userAccounts !== 'undefined' ? userAccounts : []));
   }
 
   function serviceLineFor(item) {
@@ -3369,7 +3391,7 @@ function renderForecastDashboardPage({ opportunities = [], onOpenOpportunity } =
   }
 
   function ownerFor(item) {
-    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+    return resolveOpportunityOwnerName(item, (typeof userAccounts !== 'undefined' ? userAccounts : []));
   }
 
   function isClosedWon(item) {
@@ -3721,7 +3743,7 @@ function renderForecastIntegrityPage({ opportunities = [], onOpenOpportunity } =
   }
 
   function ownerFor(item) {
-    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+    return resolveOpportunityOwnerName(item, (typeof userAccounts !== 'undefined' ? userAccounts : []));
   }
 
   function hygieneStatusFor(item) {
@@ -4102,7 +4124,7 @@ function renderPeriodControlPage({ opportunities = [], onOpenOpportunity } = {})
   }
 
   function ownerFor(item) {
-    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+    return resolveOpportunityOwnerName(item, (typeof userAccounts !== 'undefined' ? userAccounts : []));
   }
 
   function hygieneStatusFor(item) {
@@ -4487,7 +4509,7 @@ function BusinessReviewsPage({ opportunities = [], accounts = [], contacts = [],
   }
 
   function ownerFor(item) {
-    return String(item?.owner_full_name ?? item?.owner ?? 'Unassigned').trim() || 'Unassigned';
+    return resolveOpportunityOwnerName(item, (typeof userAccounts !== 'undefined' ? userAccounts : []));
   }
 
   function serviceLineFor(item) {
@@ -5737,7 +5759,7 @@ function buildTaskFormFromRecord(record = {}) {
     accountId: record.accountId || '',
     contactId: record.contactId || '',
     opportunityId: record.opportunityId || '',
-    owner: record.owner || 'Jeff Yarbrough',
+    owner: String(record.owner_full_name || record.owner || '').trim(),
     dueDate: record.dueDate || '',
     priority: record.priority || 'Medium',
     status: record.status || 'Not Started',
@@ -7474,8 +7496,8 @@ function buildOpportunityFormFromRecord(opportunity = {}) {
     name: String(opportunity.name || ''),
     accountId: String(opportunity.account_id || opportunity.accountId || ''),
     primaryContactId: String(opportunity.primary_contact_id || opportunity.primaryContactId || ''),
-    owner: String(opportunity.owner_full_name || opportunity.owner || 'Jeff Yarbrough'),
-    team: String(opportunity.owner_team_name || opportunity.team || 'NAES'),
+    owner: String(opportunity.owner_full_name || opportunity.owner || ''),
+    team: String(opportunity.owner_team_name || opportunity.team || ''),
     stage: String(opportunity.stage || '0 Prospecting'),
     forecastCategory: String(opportunity.forecast_category || opportunity.forecastCategory || 'Pipeline'),
     probability: String(opportunity.probability ?? '10'),
@@ -9255,7 +9277,7 @@ function inputWrap(label, input) {
   );
 }
 
-function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunity, tasks = [], activities = [] }) {
+function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunity, onEditOpportunity, tasks = [], activities = [] }) {
   const relatedTasks = Array.isArray(tasks)
     ? tasks.filter((task) => String(task?.opportunityId || '') === String(opportunity?.id || ''))
     : [];
@@ -9332,7 +9354,7 @@ function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunit
 
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '24px' }}>
-      <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
         <button
           onClick={onBackToOverview}
           style={{
@@ -9348,6 +9370,25 @@ function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunit
         >
           ← Back to Opportunities Overview
         </button>
+
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={() => onEditOpportunity && onEditOpportunity(opportunity)}
+            style={{
+              borderRadius: '16px',
+              border: '1px solid #D8E2D7',
+              background: '#DDE9DF',
+              color: '#2F7A55',
+              padding: '10px 14px',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Edit Opportunity
+          </button>
+        </div>
       </div>
 
       <section style={shellCard}>
@@ -9755,6 +9796,7 @@ export default function App() {
 
   const [contactDetailId, setContactDetailId] = useState(null);
   const [showNewOpportunityForm, setShowNewOpportunityForm] = useState(false);
+  const [showEditOpportunityForm, setShowEditOpportunityForm] = useState(false);
   const [newOpportunityForm, setNewOpportunityForm] = useState(buildOpportunityFormFromRecord());
   const [contactList, setContactList] = useState(() => {
     try {
@@ -10759,6 +10801,18 @@ export default function App() {
     return mapBackendUserToFrontendUserAccount(payload?.data || {}, draftUser);
   }
 
+  async function fetchUsersFromApiInApp() {
+    const response = await backendFetch('/api/users');
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(payload?.error || `Users fetch failed: ${response.status}`);
+    }
+
+    const rows = Array.isArray(payload?.data) ? payload.data : [];
+    return rows.map((row) => mapBackendUserToFrontendUserAccount(row, {}));
+  }
+
   async function fetchActivitiesFromApi() {
     const response = await backendFetch('/api/activities');
     if (!response.ok) {
@@ -11092,6 +11146,36 @@ export default function App() {
     if (!COGNITO_ENABLED) return;
   }, [selectedDevUserId]);
 
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem('naes-crm-user-accounts', JSON.stringify(userAccounts));
+    } catch (error) {
+      console.warn('Could not persist user accounts', error);
+    }
+  }, [userAccounts]);
+
+  React.useEffect(() => {
+    if (COGNITO_ENABLED && !authenticatedCurrentUser?.id) return;
+
+    let cancelled = false;
+
+    async function hydrateUsersFromBackend() {
+      try {
+        const backendUsers = await fetchUsersFromApiInApp();
+        if (!cancelled && Array.isArray(backendUsers) && backendUsers.length) {
+          setUserAccounts(backendUsers.map((item) => buildUserAccountDraft(item)));
+        }
+      } catch (error) {
+        console.warn('Could not hydrate users from backend', error);
+      }
+    }
+
+    hydrateUsersFromBackend();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [COGNITO_ENABLED, authenticatedCurrentUser?.id]);
 
   useEffect(() => {
     const allowed = getAllowedPagesForRole(effectiveUserRole);
@@ -11879,6 +11963,17 @@ function cancelNewOpportunity() {
   setNewOpportunityForm(buildOpportunityFormFromRecord());
 }
 
+function startEditOpportunity(opportunity = null) {
+  if (!opportunity) return;
+  setNewOpportunityForm(buildOpportunityFormFromRecord(opportunity));
+  setShowEditOpportunityForm(true);
+}
+
+function cancelEditOpportunity() {
+  setShowEditOpportunityForm(false);
+  setNewOpportunityForm(buildOpportunityFormFromRecord());
+}
+
 function updateNewOpportunityField(field, value) {
   setNewOpportunityForm((current) => ({ ...current, [field]: value }));
 }
@@ -12013,8 +12108,8 @@ async function saveNewOpportunity() {
         ? (newOpportunityForm.primaryContactName || '')
         : (contact?.fullName || contact?.name || '')
     ).trim(),
-    owner_full_name: String(newOpportunityForm.owner || 'Jeff Yarbrough').trim(),
-    owner_team_name: String(newOpportunityForm.team || 'NAES').trim(),
+    owner_full_name: String(newOpportunityForm.owner || '').trim(),
+    owner_team_name: String(newOpportunityForm.team || '').trim(),
     stage: String(newOpportunityForm.stage || '0 Prospecting').trim(),
     forecast_category: forecastCategory,
     probability: Number(newOpportunityForm.probability || 10),
@@ -12050,10 +12145,12 @@ async function saveNewOpportunity() {
     nextOpportunity = {
       ...newOpportunity,
       ...backendOpportunity,
-      account: account?.name || newOpportunity.account,
-      account_name: account?.name || newOpportunity.account_name,
+      account: backendOpportunity.account || account?.name || '',
+      account_name: backendOpportunity.account_name || account?.name || '',
       primary_contact_name:
-        newOpportunity.primary_contact_name || backendOpportunity.primary_contact_name || '',
+        backendOpportunity.primary_contact_name || newOpportunity.primary_contact_name || '',
+      owner_full_name: backendOpportunity.owner_full_name || newOpportunity.owner_full_name || '',
+      owner_team_name: backendOpportunity.owner_team_name || newOpportunity.owner_team_name || '',
     };
   } catch (error) {
     console.warn('Could not create opportunity in backend, using local fallback', error);
@@ -12063,6 +12160,171 @@ async function saveNewOpportunity() {
   setShowNewOpportunityForm(false);
   setNewOpportunityForm(buildOpportunityFormFromRecord());
   openOpportunityDetail(nextOpportunity.id);
+}
+
+async function saveEditedOpportunity() {
+  if (!routeInfo.detailId) return;
+
+  const currentOpportunity = opportunities.find((item) => item.id === routeInfo.detailId) || null;
+  if (!currentOpportunity) return;
+
+  const serviceLine = String(newOpportunityForm.serviceLine || currentOpportunity.service_line || 'Renewables').trim();
+  const renewablesSegment = String(newOpportunityForm.renewablesSegment || newOpportunityForm.marketSegment || currentOpportunity.market_segment || 'DG').trim();
+  const renewablesSize = Number(newOpportunityForm.renewablesSize || newOpportunityForm.sizingValue || currentOpportunity.total_mwdc || currentOpportunity.total_mwac || 0);
+  const stratoSqftTotal = Number(newOpportunityForm.stratoSqftTotal || currentOpportunity.estimated_square_footage || 0);
+  const otherQty = Number(newOpportunityForm.otherOmQuantity || 0);
+  const otherLowRate = Number(newOpportunityForm.otherOmLowRate || 0);
+  const otherSelectedRate = Number(newOpportunityForm.otherOmSelectedRate || 0);
+  const otherHighRate = Number(newOpportunityForm.otherOmHighRate || 0);
+
+  const account = newOpportunityForm.accountId
+    ? getAccountById(newOpportunityForm.accountId, accountList)
+    : null;
+
+  const contact = newOpportunityForm.primaryContactId
+    ? contactList.find((item) => item.id === newOpportunityForm.primaryContactId) || null
+    : null;
+
+  function getStratoSightBand(sqft) {
+    if (sqft <= 25000) return { low: 0.09, selected: 0.11, high: 0.13 };
+    if (sqft <= 100000) return { low: 0.08, selected: 0.095, high: 0.11 };
+    if (sqft <= 500000) return { low: 0.06, selected: 0.075, high: 0.09 };
+    if (sqft <= 2000000) return { low: 0.05, selected: 0.06, high: 0.075 };
+    if (sqft <= 10000000) return { low: 0.04, selected: 0.05, high: 0.06 };
+    if (sqft <= 50000000) return { low: 0.035, selected: 0.04, high: 0.05 };
+    return { low: 0.03, selected: 0.035, high: 0.04 };
+  }
+
+  function getDgBand(mwdc) {
+    if (mwdc <= 1) return { low: 21000, selected: 24000, high: 27000 };
+    if (mwdc <= 3) return { low: 19000, selected: 22000, high: 25000 };
+    if (mwdc <= 5) return { low: 18000, selected: 21000, high: 24000 };
+    if (mwdc <= 10) return { low: 17000, selected: 19500, high: 22000 };
+    if (mwdc <= 15) return { low: 16000, selected: 18000, high: 20000 };
+    return { low: 15000, selected: 16500, high: 18000 };
+  }
+
+  function getUssBand(mwac) {
+    if (mwac <= 50) return { low: 13000, selected: 16000, high: 18000 };
+    if (mwac <= 100) return { low: 11000, selected: 14000, high: 16000 };
+    if (mwac <= 250) return { low: 9500, selected: 12000, high: 14000 };
+    if (mwac <= 500) return { low: 8500, selected: 10500, high: 12500 };
+    if (mwac <= 1000) return { low: 7500, selected: 9000, high: 10500 };
+    if (mwac <= 2000) return { low: 7000, selected: 8000, high: 9000 };
+    return { low: 6500, selected: 7000, high: 8000 };
+  }
+
+  const renewablesBand = renewablesSegment === 'USS'
+    ? getUssBand(renewablesSize)
+    : getDgBand(renewablesSize);
+
+  const renewablesLow = renewablesSize * renewablesBand.low;
+  const renewablesSelected = renewablesSize * renewablesBand.selected;
+  const renewablesHigh = renewablesSize * renewablesBand.high;
+
+  const stratoBand = getStratoSightBand(stratoSqftTotal);
+  const stratoLow = stratoSqftTotal * stratoBand.low;
+  const stratoSelected = stratoSqftTotal * stratoBand.selected;
+  const stratoHigh = stratoSqftTotal * stratoBand.high;
+
+  const otherLow = otherQty * otherLowRate;
+  const otherSelected = otherQty * otherSelectedRate;
+  const otherHigh = otherQty * otherHighRate;
+
+  let lowValue = 0;
+  let selectedValue = 0;
+  let highValue = 0;
+  let commercialBasis = '';
+  let marketSegment = '';
+  let totalMwac = null;
+  let totalMwdc = null;
+  let estimatedSquareFootage = null;
+
+  if (serviceLine === 'Renewables') {
+    lowValue = renewablesLow;
+    selectedValue = renewablesSelected;
+    highValue = renewablesHigh;
+    marketSegment = renewablesSegment;
+    commercialBasis = renewablesSegment === 'USS' ? 'MWAC annual' : 'MWDC annual';
+    totalMwac = renewablesSegment === 'USS' ? renewablesSize : null;
+    totalMwdc = renewablesSegment === 'DG' ? renewablesSize : null;
+  } else if (serviceLine === 'StratoSight') {
+    lowValue = stratoLow;
+    selectedValue = stratoSelected;
+    highValue = stratoHigh;
+    marketSegment = 'StratoSight';
+    commercialBasis = 'Square footage';
+    estimatedSquareFootage = stratoSqftTotal;
+  } else if (serviceLine === 'Both') {
+    lowValue = renewablesLow + stratoLow;
+    selectedValue = renewablesSelected + stratoSelected;
+    highValue = renewablesHigh + stratoHigh;
+    marketSegment = `${renewablesSegment} + StratoSight`;
+    commercialBasis = `${renewablesSegment === 'USS' ? 'MWAC annual' : 'MWDC annual'} + Square footage`;
+    totalMwac = renewablesSegment === 'USS' ? renewablesSize : null;
+    totalMwdc = renewablesSegment === 'DG' ? renewablesSize : null;
+    estimatedSquareFootage = stratoSqftTotal;
+  } else {
+    lowValue = otherLow;
+    selectedValue = otherSelected;
+    highValue = otherHigh;
+    marketSegment = 'Other O&M';
+    commercialBasis = 'Custom';
+  }
+
+  const forecastCategory = String(newOpportunityForm.forecastCategory || currentOpportunity.forecast_category || 'Pipeline').trim();
+  const weightedPct = forecastCategory === 'Commit'
+    ? 0.9
+    : forecastCategory === 'Best Case'
+    ? 0.6
+    : forecastCategory === 'Pipeline'
+    ? 0.3
+    : 0.5;
+
+  const estimatedEarningsPct = serviceLine === 'Other O&M' ? 30 : 37;
+  const estimatedCtsPct = 100 - estimatedEarningsPct;
+
+  const patch = {
+    __allowCommercialUpdate: true,
+    name: String(newOpportunityForm.name || currentOpportunity.name || 'Opportunity').trim(),
+    account: account?.name || currentOpportunity.account || currentOpportunity.account_name || '',
+    account_id: String(newOpportunityForm.accountId || currentOpportunity.account_id || '').trim(),
+    primary_contact_id: String(newOpportunityForm.primaryContactId || currentOpportunity.primary_contact_id || '').trim(),
+    primary_contact_name: String(
+      newOpportunityForm.primaryContactMode === 'freeform'
+        ? (newOpportunityForm.primaryContactName || '')
+        : (contact?.fullName || contact?.name || currentOpportunity.primary_contact_name || '')
+    ).trim(),
+    owner_full_name: String(newOpportunityForm.owner || currentOpportunity.owner_full_name || '').trim(),
+    owner_team_name: String(newOpportunityForm.team || currentOpportunity.owner_team_name || '').trim(),
+    stage: String(newOpportunityForm.stage || currentOpportunity.stage || '0 Prospecting').trim(),
+    forecast_category: forecastCategory,
+    probability: Number(newOpportunityForm.probability || currentOpportunity.probability || 10),
+    expected_close_date: String(newOpportunityForm.expectedCloseDate || currentOpportunity.expected_close_date || '').trim(),
+    opportunity_type: String(newOpportunityForm.opportunityType || currentOpportunity.opportunity_type || 'New Customer').trim(),
+    service_line: serviceLine,
+    market_segment: marketSegment,
+    commercial_basis: commercialBasis,
+    total_mwdc: totalMwdc,
+    total_mwac: totalMwac,
+    estimated_square_footage: estimatedSquareFootage,
+    amount_estimated: selectedValue,
+    calc_year1_total: selectedValue,
+    calc_arr_total: selectedValue,
+    amount_total: selectedValue,
+    low_estimate: lowValue,
+    high_estimate: highValue,
+    weighted_revenue: selectedValue * weightedPct,
+    calculated_revenue: selectedValue,
+    estimated_earnings_pct: estimatedEarningsPct,
+    estimated_cts_pct: estimatedCtsPct,
+    account_name: account?.name || currentOpportunity.account_name || currentOpportunity.account || '',
+    updated_at: dtNow(),
+  };
+
+  await saveOpportunityPatch(routeInfo.detailId, patch);
+  setShowEditOpportunityForm(false);
+  setNewOpportunityForm(buildOpportunityFormFromRecord());
 }
 
 function openOpportunityDetail(opportunityId) {
@@ -12082,18 +12344,70 @@ function openOpportunityDetail(opportunityId) {
     const currentRecord = opportunities.find((item) => item.id === opportunityId) || null;
     if (!currentRecord) return;
 
-    const fallbackRecord = { ...currentRecord, ...patch };
+    const COMMERCIAL_FIELDS = [
+      'calculated_revenue',
+      'estimated_revenue',
+      'amount',
+      'amount_estimated',
+      'amount_total',
+      'calc_year1_total',
+      'calc_arr_total',
+      'weighted_revenue',
+      'weighted_value',
+      'pricing_band',
+      'commercial_basis',
+      'estimated_cts_pct',
+      'estimated_earnings_pct',
+      'total_mwac',
+      'total_mwdc',
+      'site_count',
+      'low',
+      'target',
+      'high',
+      'low_estimate',
+      'high_estimate',
+      'commercial_low',
+      'commercial_target',
+      'commercial_high',
+    ];
+
+    const isCommercialUpdate = patch?.__allowCommercialUpdate === true;
+    const { __allowCommercialUpdate, ...cleanPatch } = patch || {};
+
+    const safePatch = { ...cleanPatch };
+
+    if (!isCommercialUpdate) {
+      for (const key of COMMERCIAL_FIELDS) {
+        if (key in safePatch) delete safePatch[key];
+      }
+    }
+
+    const fallbackRecord = {
+      ...currentRecord,
+      ...safePatch,
+    };
+
     let nextRecord = fallbackRecord;
 
     try {
-      const backendRecord = await updateOpportunityViaApi(opportunityId, patch, fallbackRecord);
+      const backendRecord = await updateOpportunityViaApi(opportunityId, safePatch, fallbackRecord);
       nextRecord = {
         ...fallbackRecord,
         ...backendRecord,
-        account: currentRecord.account || backendRecord.account || '',
-        account_name: currentRecord.account_name || backendRecord.account_name || '',
-        primary_contact_name: currentRecord.primary_contact_name || backendRecord.primary_contact_name || '',
+        account: backendRecord.account || fallbackRecord.account || currentRecord.account || '',
+        account_name: backendRecord.account_name || fallbackRecord.account_name || currentRecord.account_name || '',
+        primary_contact_name: backendRecord.primary_contact_name || fallbackRecord.primary_contact_name || currentRecord.primary_contact_name || '',
+        owner_full_name: backendRecord.owner_full_name || fallbackRecord.owner_full_name || currentRecord.owner_full_name || '',
+        owner_team_name: backendRecord.owner_team_name || fallbackRecord.owner_team_name || currentRecord.owner_team_name || '',
       };
+
+      if (!isCommercialUpdate) {
+        for (const key of COMMERCIAL_FIELDS) {
+          if (Object.prototype.hasOwnProperty.call(currentRecord, key)) {
+            nextRecord[key] = currentRecord[key];
+          }
+        }
+      }
     } catch (error) {
       console.warn('Could not save opportunity patch to backend, using local fallback', error);
     }
@@ -12542,9 +12856,9 @@ function openOpportunityDetail(opportunityId) {
               : safeActivePage === 'My Pipeline'
               ? renderMyPipelinePage({ opportunities, taskList, onOpenOpportunity: openOpportunityDetail })
               : safeActivePage === 'Pipeline Rollup'
-              ? renderPipelineRollupPage({ opportunities, onOpenOpportunity: openOpportunityDetail })
+              ? renderPipelineRollupPage({ opportunities, onOpenOpportunity: openOpportunityDetail, userAccounts })
               : safeActivePage === 'Revenue Command Center'
-              ? renderRevenueCommandCenterPage({ opportunities, onOpenOpportunity: openOpportunityDetail })
+              ? renderRevenueCommandCenterPage({ opportunities, onOpenOpportunity: openOpportunityDetail, userAccounts })
               : safeActivePage === 'Forecast Dashboard'
               ? renderForecastDashboardPage({ opportunities, onOpenOpportunity: openOpportunityDetail })
               : safeActivePage === 'Forecast Integrity'
@@ -12566,8 +12880,22 @@ function openOpportunityDetail(opportunityId) {
                       onSaveNewOpportunity={saveNewOpportunity}
                       onCancelNewOpportunity={cancelNewOpportunity}
                     />
+                  : showEditOpportunityForm
+                  ? <NewOpportunityPage
+                      newOpportunityForm={newOpportunityForm}
+                      accountOptions={accountList}
+                      contactOptions={contactList}
+                      onChangeNewOpportunityField={updateNewOpportunityField}
+                      onSaveNewOpportunity={saveEditedOpportunity}
+                      onCancelNewOpportunity={cancelEditOpportunity}
+                    />
                   : routeInfo.detailId
-                  ? <OpportunityDetailPage onBackToOverview={returnToOpportunitiesOverview} opportunity={selectedOpportunity} onSaveOpportunity={saveOpportunityPatch} />
+                  ? <OpportunityDetailPage
+                      onBackToOverview={returnToOpportunitiesOverview}
+                      opportunity={selectedOpportunity}
+                      onSaveOpportunity={saveOpportunityPatch}
+                      onEditOpportunity={startEditOpportunity}
+                    />
                   : <OpportunitiesOverviewPage onOpenOpportunity={openOpportunityDetail} onStartNewOpportunity={startNewOpportunity} opportunities={opportunities} />
               )
               : safeActivePage === 'Tasks'
