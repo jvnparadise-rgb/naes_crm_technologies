@@ -5721,7 +5721,6 @@ function isLegacyDemoContact(record = {}) {
     id === 'contact-megan' ||
     id === 'contact-cathy' ||
     id === 'contact-amy' ||
-    fullName === 'megan smethurst' ||
     fullName === 'cathy example' ||
     fullName === 'amy example'
   );
@@ -7496,6 +7495,7 @@ function buildOpportunityFormFromRecord(opportunity = {}) {
     name: String(opportunity.name || ''),
     accountId: String(opportunity.account_id || opportunity.accountId || ''),
     primaryContactId: String(opportunity.primary_contact_id || opportunity.primaryContactId || ''),
+    ownerUserId: String(opportunity.owner_user_id || opportunity.ownerUserId || ''),
     owner: String(opportunity.owner_full_name || opportunity.owner || ''),
     team: String(opportunity.owner_team_name || opportunity.team || ''),
     stage: String(opportunity.stage || '0 Prospecting'),
@@ -7755,7 +7755,24 @@ function NewOpportunityPage({
 
           <div>
             <div style={labelStyle}>NAES Opportunity Owner</div>
-            <input style={fieldStyle} value={newOpportunityForm.owner || ''} onChange={(e) => onChangeNewOpportunityField('owner', e.target.value)} />
+            <select
+              style={fieldStyle}
+              value={newOpportunityForm.ownerUserId || ''}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const selectedUser = (userAccounts || []).find((u) => String(u.id) === String(selectedId)) || null;
+                onChangeNewOpportunityField('ownerUserId', selectedId);
+                onChangeNewOpportunityField('owner', selectedUser?.fullName || '');
+                onChangeNewOpportunityField('team', selectedUser?.teamName || selectedUser?.team || '');
+              }}
+            >
+              <option value="">Select Owner</option>
+              {(userAccounts || []).map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.fullName || user.nickname || user.email || user.id}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -8267,7 +8284,7 @@ function OpportunitiesOverviewPage({ onOpenOpportunity, onStartNewOpportunity, o
 
 
 
-function NewAccountPage({ newAccountForm = {}, onChangeNewAccountField, onSaveNewAccount, onCancelNewAccount }) {
+function NewAccountPage({ newAccountForm = {}, userAccounts = [], onChangeNewAccountField, onSaveNewAccount, onCancelNewAccount }) {
   const serviceOptions = [
     'Renewables O&M',
     'StratoSight',
@@ -8325,6 +8342,34 @@ function NewAccountPage({ newAccountForm = {}, onChangeNewAccountField, onSaveNe
         <p style={{ marginTop: '10px', maxWidth: '620px', fontSize: '13px', lineHeight: 1.6, color: naesTheme.textMuted }}>
           Create a company profile. Keep this page focused on who the company is, how to reach them, and what services they are interested in.
         </p>
+      </section>
+
+      <section style={sectionStyle}>
+        {smallLabel('NAES Ownership')}
+        <h3 style={{ margin: '8px 0 0 0', fontSize: '18px', fontWeight: 800, color: naesTheme.text }}>
+          NAES Associate Account Owner
+        </h3>
+
+        <div style={stackedGrid}>
+          <div>
+            <div style={fieldLabelStyle}>Primary NAES Owner</div>
+            <select
+              style={inputStyle}
+              value={newAccountForm.primaryAccountOwner ?? ''}
+              onChange={(e) => onChangeNewAccountField('primaryAccountOwner', e.target.value)}
+            >
+              <option value="">Select Owner</option>
+              {(userAccounts || []).map((user) => {
+                const label = user.fullName || user.nickname || user.email || user.id;
+                return (
+                  <option key={user.id} value={label}>
+                    {label}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
       </section>
 
       <section style={sectionStyle}>
@@ -8857,6 +8902,9 @@ function AccountDetailPage({ accountId, accounts = accountRecords, contacts = co
         <h2 style={{ margin: '12px 0 0 0', fontSize: '24px', fontWeight: 800, color: naesTheme.text }}>
           {account.name || 'Account'}
         </h2>
+        <div style={{ marginTop: '8px', fontSize: '13px', fontWeight: 700, color: naesTheme.text }}>
+          NAES Associate Account Owner: {account.primaryAccountOwner || '—'}
+        </div>
         <p style={{ marginTop: '10px', maxWidth: '760px', fontSize: '14px', lineHeight: 1.6, color: naesTheme.textMuted }}>
           Saved company profile with service interest, company information, and connected CRM records.
         </p>
@@ -10266,35 +10314,44 @@ export default function App() {
   function mapBackendAccountToFrontend(record = {}) {
     const mainAddress = [record?.address1, record?.address2].filter(Boolean).join(', ');
 
+    const ownerFullName = String(
+      record?.owner?.fullName ||
+      [record?.owner?.firstName, record?.owner?.lastName].filter(Boolean).join(' ') ||
+      record?.primaryAccountOwner ||
+      record?.primary_account_owner ||
+      ''
+    ).trim();
+
     return {
       id: String(record?.id || ''),
       name: String(record?.name || '').trim(),
-      legalBusinessName: '',
-      businessType: String(record?.accountType || record?.industry || '').trim(),
+      legalBusinessName: String(record?.legalBusinessName || '').trim(),
+      businessType: String(record?.businessType || record?.accountType || record?.industry || '').trim(),
       website: String(record?.website || '').trim(),
-      linkedin: '',
-      mainPhone: String(record?.phone || '').trim(),
-      generalEmail: String(record?.email || '').trim(),
+      linkedin: String(record?.linkedin || '').trim(),
+      mainPhone: String(record?.phone || record?.mainPhone || '').trim(),
+      generalEmail: String(record?.email || record?.generalEmail || '').trim(),
       mainAddress,
       city: String(record?.city || '').trim(),
       state: String(record?.state || '').trim(),
-      zip: String(record?.postalCode || '').trim(),
+      zip: String(record?.postalCode || record?.zip || '').trim(),
       country: String(record?.country || '').trim(),
-      primaryAccountOwner: '',
-      interestedServices: '',
-      totalMw: '',
-      portfolioType: '',
-      generalFootprintRegion: '',
-      estimatedBuildingCount: '',
-      estimatedSquareFootage: '',
-      generalSiteType: '',
+      primaryAccountOwner: ownerFullName,
+      interestedServices: String(record?.interestedServices || '').trim(),
+      totalMw: String(record?.totalMw || '').trim(),
+      portfolioType: String(record?.portfolioType || '').trim(),
+      generalFootprintRegion: String(record?.generalFootprintRegion || '').trim(),
+      estimatedBuildingCount: String(record?.estimatedBuildingCount || '').trim(),
+      estimatedSquareFootage: String(record?.estimatedSquareFootage || '').trim(),
+      generalSiteType: String(record?.generalSiteType || '').trim(),
       notes: String(record?.notes || '').trim(),
       primaryContactName: '',
-      email: String(record?.email || '').trim(),
-      phone: String(record?.phone || '').trim(),
+      email: String(record?.email || record?.generalEmail || '').trim(),
+      phone: String(record?.phone || record?.mainPhone || '').trim(),
       segment: String(record?.marketSegment || '').trim(),
-      region: String(record?.state || record?.country || '').trim(),
-      owner: '',
+      region: String(record?.generalFootprintRegion || record?.state || record?.country || '').trim(),
+      owner: ownerFullName,
+      owner_user_id: String(record?.ownerUserId || record?.owner?.id || '').trim(),
       arr: 0,
       annualRevenue: 0,
       ctsPercent: 0,
@@ -10306,23 +10363,32 @@ export default function App() {
   }
 
   function buildAccountApiPayload(form = {}) {
-    return {
-      name: String(form.name || '').trim(),
-      accountType: String(form.businessType || '').trim() || null,
-      marketSegment: String(form.segment || '').trim() || null,
-      website: String(form.website || '').trim() || null,
-      phone: String(form.mainPhone || form.phone || '').trim() || null,
-      email: String(form.generalEmail || form.email || '').trim() || null,
-      address1: String(form.mainAddress || '').trim() || null,
-      city: String(form.city || '').trim() || null,
-      state: String(form.state || '').trim() || null,
-      postalCode: String(form.zip || '').trim() || null,
-      country: String(form.country || '').trim() || null,
-      notes: String(form.notes || '').trim() || null,
-    };
-  }
+  return {
+    name: String(form.name || '').trim(),
+    legalBusinessName: String(form.legalBusinessName || '').trim() || null,
+    businessType: String(form.businessType || '').trim() || null,
+    website: String(form.website || '').trim() || null,
+    linkedin: String(form.linkedin || '').trim() || null,
+    mainPhone: String(form.mainPhone || '').trim() || null,
+    generalEmail: String(form.generalEmail || '').trim() || null,
+    mainAddress: String(form.mainAddress || '').trim() || null,
+    city: String(form.city || '').trim() || null,
+    state: String(form.state || '').trim() || null,
+    zip: String(form.zip || '').trim() || null,
+    country: String(form.country || '').trim() || null,
+    primaryAccountOwner: String(form.primaryAccountOwner || '').trim() || null,
+    interestedServices: String(form.interestedServices || '').trim() || null,
+    totalMw: String(form.totalMw || '').trim() || null,
+    portfolioType: String(form.portfolioType || '').trim() || null,
+    generalFootprintRegion: String(form.generalFootprintRegion || '').trim() || null,
+    estimatedBuildingCount: String(form.estimatedBuildingCount || '').trim() || null,
+    estimatedSquareFootage: String(form.estimatedSquareFootage || '').trim() || null,
+    generalSiteType: String(form.generalSiteType || '').trim() || null,
+    notes: String(form.notes || '').trim() || null
+  };
+}
 
-  async function fetchAccountsFromApi() {
+async function fetchAccountsFromApi() {
     const response = await backendFetch('/api/accounts');
     if (!response.ok) {
       throw new Error(`Accounts fetch failed: ${response.status}`);
@@ -11471,7 +11537,11 @@ export default function App() {
     let nextRecord = fallbackUpdatedRecord;
 
     try {
-      nextRecord = await updateAccountViaApi(accountDetailId, newAccountForm);
+      const backendRecord = await updateAccountViaApi(accountDetailId, newAccountForm);
+      nextRecord = {
+        ...fallbackUpdatedRecord,
+        ...backendRecord,
+      };
     } catch (error) {
       console.warn('Could not save edited account to backend, using local fallback', error);
     }
@@ -12789,6 +12859,7 @@ function openOpportunityDetail(opportunityId) {
                 showNewAccountForm
                   ? <NewAccountPage
                       newAccountForm={newAccountForm}
+                      userAccounts={userAccounts}
                       onChangeNewAccountField={updateNewAccountField}
                       onSaveNewAccount={saveNewAccount}
                       onCancelNewAccount={cancelNewAccount}
@@ -12796,6 +12867,7 @@ function openOpportunityDetail(opportunityId) {
                   : showEditAccountForm
                   ? <NewAccountPage
                       newAccountForm={newAccountForm}
+                      userAccounts={userAccounts}
                       onChangeNewAccountField={updateNewAccountField}
                       onSaveNewAccount={saveEditedAccount}
                       onCancelNewAccount={cancelEditAccount}

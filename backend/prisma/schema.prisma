@@ -98,37 +98,49 @@ model User {
 }
 
 model Account {
-  id               String     @id @default(cuid())
-  name             String
-  accountType      String?
-  industry         String?
-  marketSegment    String?
-  website          String?
-  phone            String?
-  email            String?
-  address1         String?
-  address2         String?
-  city             String?
-  state            String?
-  postalCode       String?
-  country          String?
-  notes            String?
+  id                       String     @id @default(cuid())
+  name                     String
+  accountType              String?
+  industry                 String?
+  marketSegment            String?
+  website                  String?
+  phone                    String?
+  email                    String?
+  address1                 String?
+  address2                 String?
+  city                     String?
+  state                    String?
+  postalCode               String?
+  country                  String?
+  notes                    String?
 
-  ownerUserId      String?
-  createdByUserId  String?
-  updatedByUserId  String?
+  legalBusinessName        String?
+  businessType             String?
+  linkedin                 String?
+  primaryAccountOwner      String?
+  interestedServices       String?
+  totalMw                  String?
+  portfolioType            String?
+  generalFootprintRegion   String?
+  estimatedBuildingCount   String?
+  estimatedSquareFootage   String?
+  generalSiteType          String?
 
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  ownerUserId              String?
+  createdByUserId          String?
+  updatedByUserId          String?
 
-  owner            User?      @relation("AccountOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
-  createdBy        User?      @relation("AccountCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  updatedBy        User?      @relation("AccountUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
 
-  contacts         Contact[]
-  opportunities    Opportunity[]
-  tasks            Task[]
-  activities       Activity[]
+  owner                    User?      @relation("AccountOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy                User?      @relation("AccountCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy                User?      @relation("AccountUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  contacts                 Contact[]
+  opportunities            Opportunity[]
+  tasks                    Task[]
+  activities               Activity[]
 
   @@map("accounts")
 }
