@@ -1,0 +1,7 @@
+repo: /Users/jeffyarbrough/workspace/naes-crm-backend
+branch: main
+head: 0bb7b0c14be4efc9e87cce1649ce4f87dfb7ace7
+head_short: 0bb7b0c
+tag: prod-promotion-anchor-20260402-172725
+built_at_utc: 2026-04-03T00:33:07Z
+build_archive: frontend-dist-20260402-173306.tgz
