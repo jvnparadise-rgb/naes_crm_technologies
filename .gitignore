@@ -14,3 +14,11 @@ global-bundle.pem
 frontend/src/*.bak.*
 
 backups/
+
+# backups / artifacts
+*.bak
+*.bak-*
+archive/
+.prod-promotion-stage/
+*.tgz
+
