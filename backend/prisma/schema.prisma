@@ -1,0 +1,311 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  EXECUTIVE
+  SALES_MANAGER
+  SALES_ASSOCIATE
+}
+
+enum OpportunityStage {
+  PROSPECTING
+  QUALIFIED
+  DISCOVERY
+  SOLUTION_FIT
+  COMMERCIALS
+  SECURITY_LEGAL
+  COMMIT
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum ForecastCategory {
+  PIPELINE
+  BEST_CASE
+  COMMIT
+  CLOSED
+  OMITTED
+}
+
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  MEETING
+  NOTE
+  TASK_UPDATE
+  OTHER
+}
+
+model User {
+  id                  String                    @id @default(cuid())
+  email               String                    @unique
+  firstName           String
+  lastName            String
+  nickname            String?
+  title               String?
+  role                UserRole
+  teamName            String?
+  profilePhotoUrl     String?
+  isActive            Boolean                   @default(true)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  ownedAccounts       Account[]                 @relation("AccountOwner")
+  createdAccounts     Account[]                 @relation("AccountCreatedBy")
+  updatedAccounts     Account[]                 @relation("AccountUpdatedBy")
+
+  ownedContacts       Contact[]                 @relation("ContactOwner")
+  createdContacts     Contact[]                 @relation("ContactCreatedBy")
+  updatedContacts     Contact[]                 @relation("ContactUpdatedBy")
+
+  ownedOpportunities  Opportunity[]             @relation("OpportunityOwner")
+  createdOpportunities Opportunity[]            @relation("OpportunityCreatedBy")
+  updatedOpportunities Opportunity[]            @relation("OpportunityUpdatedBy")
+
+  ownedTasks          Task[]                    @relation("TaskOwner")
+  createdTasks        Task[]                    @relation("TaskCreatedBy")
+  updatedTasks        Task[]                    @relation("TaskUpdatedBy")
+
+  ownedActivities     Activity[]                @relation("ActivityOwner")
+  createdActivities   Activity[]                @relation("ActivityCreatedBy")
+  updatedActivities   Activity[]                @relation("ActivityUpdatedBy")
+
+  stageChanges        OpportunityStageHistory[]
+
+  @@map("users")
+}
+
+model Account {
+  id                       String     @id @default(cuid())
+  name                     String
+  accountType              String?
+  industry                 String?
+  marketSegment            String?
+  website                  String?
+  phone                    String?
+  email                    String?
+  address1                 String?
+  address2                 String?
+  city                     String?
+  state                    String?
+  postalCode               String?
+  country                  String?
+  notes                    String?
+
+  legalBusinessName        String?
+  businessType             String?
+  linkedin                 String?
+  primaryAccountOwner      String?
+  interestedServices       String?
+  totalMw                  String?
+  portfolioType            String?
+  generalFootprintRegion   String?
+  estimatedBuildingCount   String?
+  estimatedSquareFootage   String?
+  generalSiteType          String?
+  strategicAccount        String?
+  relationshipStatus      String?
+  decisionComplexity      String?
+  procurementType         String?
+  customerDifficulty      String?
+  geographicSpread        String?
+  accountStatus           String?
+
+
+  ownerUserId              String?
+  createdByUserId          String?
+  updatedByUserId          String?
+
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
+
+  owner                    User?      @relation("AccountOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy                User?      @relation("AccountCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy                User?      @relation("AccountUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  contacts                 Contact[]
+  opportunities            Opportunity[]
+  tasks                    Task[]
+  activities               Activity[]
+
+  @@map("accounts")
+}
+
+model Contact {
+  id                    String       @id @default(cuid())
+  accountId             String?
+  firstName             String
+  lastName              String
+  fullName              String?
+  jobTitle              String?
+  email                 String?
+  phone                 String?
+  mobile                String?
+  address               String?
+  city                  String?
+  state                 String?
+  zip                   String?
+  linkedin              String?
+  website               String?
+  preferredContactMethod String?
+  roleInBuyingProcess   String?
+  decisionMaker         Boolean      @default(false)
+  champion              Boolean      @default(false)
+  primaryContact        Boolean      @default(false)
+  notes                 String?
+
+  ownerUserId           String?
+  createdByUserId       String?
+  updatedByUserId       String?
+
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  account               Account?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  owner                 User?        @relation("ContactOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy             User?        @relation("ContactCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy             User?        @relation("ContactUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  opportunities         Opportunity[]
+  tasks                 Task[]
+  activities            Activity[]
+
+  @@map("contacts")
+}
+
+model Opportunity {
+  id                    String                  @id @default(cuid())
+  accountId             String?
+  primaryContactId      String?
+  name                  String
+  serviceLine           String?
+  marketSegment         String?
+  opportunityType       String?
+  stage                 OpportunityStage        @default(PROSPECTING)
+  forecastCategory      ForecastCategory        @default(PIPELINE)
+  forecastProbability   Int?
+  forecastPeriod        String?
+  expectedCloseDate     DateTime?
+  annualRevenue         Decimal?                @db.Decimal(14, 2)
+  arr                   Decimal?                @db.Decimal(14, 2)
+  oneTimeRevenue        Decimal?                @db.Decimal(14, 2)
+  totalEstimatedRevenue Decimal?                @db.Decimal(14, 2)
+  ctsPercent            Decimal?                @db.Decimal(5, 2)
+  marginPercent         Decimal?                @db.Decimal(5, 2)
+  notes                 String?
+
+  ownerUserId           String?
+  createdByUserId       String?
+  updatedByUserId       String?
+
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  account               Account?                @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  primaryContact        Contact?                @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
+
+  owner                 User?                   @relation("OpportunityOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy             User?                   @relation("OpportunityCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy             User?                   @relation("OpportunityUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  stageHistory          OpportunityStageHistory[]
+  tasks                 Task[]
+  activities            Activity[]
+
+  @@map("opportunities")
+}
+
+model OpportunityStageHistory {
+  id               String            @id @default(cuid())
+  opportunityId    String
+  fromStage        OpportunityStage?
+  toStage          OpportunityStage
+  changeReason     String?
+  changedByUserId  String?
+  changedAt        DateTime          @default(now())
+
+  opportunity      Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  changedBy        User?             @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@map("opportunity_stage_history")
+}
+
+model Task {
+  id               String        @id @default(cuid())
+  accountId        String?
+  contactId        String?
+  opportunityId    String?
+  title            String
+  description      String?
+  status           TaskStatus    @default(NOT_STARTED)
+  priority         TaskPriority  @default(MEDIUM)
+  dueDate          DateTime?
+  completedAt      DateTime?
+
+  ownerUserId      String?
+  createdByUserId  String?
+  updatedByUserId  String?
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  account          Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  contact          Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  opportunity      Opportunity?  @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  owner            User?         @relation("TaskOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy        User?         @relation("TaskCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy        User?         @relation("TaskUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@map("tasks")
+}
+
+model Activity {
+  id               String        @id @default(cuid())
+  accountId        String?
+  contactId        String?
+  opportunityId    String?
+  activityType     ActivityType  @default(OTHER)
+  subject          String
+  description      String?
+  activityDate     DateTime      @default(now())
+
+  ownerUserId      String?
+  createdByUserId  String?
+  updatedByUserId  String?
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  account          Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  contact          Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  opportunity      Opportunity?  @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  owner            User?         @relation("ActivityOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy        User?         @relation("ActivityCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy        User?         @relation("ActivityUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@map("activities")
+}

@@ -1,0 +1,21 @@
+export const pageStatusRegistry = {
+  opportunities: 'priority-first',
+  accounts: 'priority-first',
+  contacts: 'priority-first',
+  welcome: 'planned',
+  'revenue-command-center': 'planned',
+  'executive-dashboard': 'planned',
+  'my-pipeline': 'planned',
+  'pipeline-rollup': 'planned',
+  'forecast-dashboard': 'planned',
+  'forecast-integrity': 'planned',
+  'forecast-period-control': 'planned',
+  tasks: 'planned',
+  activities: 'planned',
+  settings: 'planned',
+  'user-access': 'planned',
+  'business-reviews': 'planned',
+  'revenue-intelligence': 'planned',
+  'training-user-guide': 'planned',
+  'client-reports': 'planned'
+};

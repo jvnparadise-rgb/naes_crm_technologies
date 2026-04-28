@@ -1,0 +1,291 @@
+import React, { useMemo, useState } from 'react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
+
+function money(value) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(value || 0));
+}
+
+function compactMoney(value) {
+  const n = Number(value || 0);
+  if (Math.abs(n) >= 1000000) return `$${(n / 1000000).toFixed(1)}M`;
+  if (Math.abs(n) >= 1000) return `$${(n / 1000).toFixed(0)}K`;
+  return money(n);
+}
+
+function getAmount(opp) {
+  return Number(opp?.weighted_revenue ?? opp?.calculated_revenue ?? opp?.amount_total ?? opp?.amount_estimated ?? 0);
+}
+
+function getRawAmount(opp) {
+  return Number(opp?.calculated_revenue ?? opp?.amount_total ?? opp?.amount_estimated ?? opp?.weighted_revenue ?? 0);
+}
+
+function getStage(opp) {
+  return String(opp?.stage || 'Unstaged');
+}
+
+function getService(opp) {
+  return String(opp?.service_line || opp?.market_segment || 'Other');
+}
+
+function getOwner(opp) {
+  return String(opp?.owner_full_name || opp?.ownerName || opp?.owner || 'Unassigned');
+}
+
+function getQuarter(dateString) {
+  if (!dateString) return 'No Date';
+  const d = new Date(dateString);
+  if (Number.isNaN(d.getTime())) return 'No Date';
+  return `${d.getFullYear()} Q${Math.floor(d.getMonth() / 3) + 1}`;
+}
+
+function groupSum(rows, keyFn, valueFn = getAmount) {
+  const map = new Map();
+  rows.forEach((row) => {
+    const key = keyFn(row);
+    map.set(key, (map.get(key) || 0) + valueFn(row));
+  });
+  return Array.from(map.entries()).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
+}
+
+function ChartCard({ title, subtitle, children }) {
+  return (
+    <section style={{ border: '1px solid #DCE7DD', borderRadius: 18, background: '#fff', padding: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 12 }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#18342a' }}>{title}</h3>
+          {subtitle ? <div style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>{subtitle}</div> : null}
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button style={smallButton}>Expand</button>
+          <button style={smallButton}>Copy</button>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+const smallButton = {
+  border: '1px solid #DCE7DD',
+  borderRadius: 999,
+  background: '#FBFCFB',
+  color: '#334155',
+  padding: '6px 9px',
+  fontSize: 11,
+  fontWeight: 800,
+  cursor: 'pointer',
+};
+
+function Metric({ label, value, sub }) {
+  return (
+    <div style={{ border: '1px solid #E5ECE5', borderRadius: 16, padding: 14, background: '#FBFCFB' }}>
+      <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b' }}>{label}</div>
+      <div style={{ marginTop: 7, fontSize: 22, fontWeight: 950, color: '#111827' }}>{value}</div>
+      {sub ? <div style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>{sub}</div> : null}
+    </div>
+  );
+}
+
+function SimpleBarChart({ rows, valueFormatter = money }) {
+  const max = Math.max(...rows.map((r) => Number(r.value || 0)), 1);
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
+      {rows.slice(0, 8).map((row) => (
+        <div key={row.label}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, fontWeight: 800, color: '#334155' }}>
+            <span>{row.label}</span>
+            <span>{valueFormatter(row.value)}</span>
+          </div>
+          <div style={{ marginTop: 5, height: 10, borderRadius: 999, background: '#EEF4EF', overflow: 'hidden' }}>
+            <div style={{ width: `${Math.max(4, (Number(row.value || 0) / max) * 100)}%`, height: '100%', borderRadius: 999, background: '#0B6771' }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FunnelChart({ rows }) {
+  const max = Math.max(...rows.map((r) => Number(r.value || 0)), 1);
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      {rows.slice(0, 7).map((row, idx) => (
+        <div key={row.label} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 110px', gap: 10, alignItems: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#334155' }}>{row.label}</div>
+          <div style={{ height: 24, borderRadius: 999, background: '#EEF4EF', overflow: 'hidden' }}>
+            <div style={{
+              width: `${Math.max(8, (Number(row.value || 0) / max) * 100)}%`,
+              height: '100%',
+              background: idx < 2 ? '#7FB3D5' : idx < 5 ? '#0B6771' : '#2F7552',
+              borderRadius: 999,
+            }} />
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 900, color: '#111827', textAlign: 'right' }}>{money(row.value)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function OpportunitiesV2({ opportunities = [], onOpenOpportunity, onStartNewDeal }) {
+  const [search, setSearch] = useState('');
+  const [serviceFilter, setServiceFilter] = useState('All');
+  const [stageFilter, setStageFilter] = useState('All');
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (opportunities || []).filter((opp) => {
+      const text = `${opp?.name || ''} ${opp?.account_name || ''} ${getOwner(opp)} ${getService(opp)} ${getStage(opp)}`.toLowerCase();
+      if (q && !text.includes(q)) return false;
+      if (serviceFilter !== 'All' && getService(opp) !== serviceFilter) return false;
+      if (stageFilter !== 'All' && getStage(opp) !== stageFilter) return false;
+      return true;
+    });
+  }, [opportunities, search, serviceFilter, stageFilter]);
+
+  const services = ['All', ...Array.from(new Set((opportunities || []).map(getService))).sort()];
+  const stages = ['All', ...Array.from(new Set((opportunities || []).map(getStage))).sort()];
+
+  const rawTotal = filtered.reduce((sum, opp) => sum + getRawAmount(opp), 0);
+  const weightedTotal = filtered.reduce((sum, opp) => sum + getAmount(opp), 0);
+  const pipelineOverTimeRows = buildPipelineOverTime(filtered);
+  const stageRows = groupSum(filtered, getStage);
+  const quarterRows = groupSum(filtered, (opp) => getQuarter(opp?.expected_close_date));
+  const serviceRows = groupSum(filtered, getService);
+  const ownerRows = groupSum(filtered, getOwner);
+  const topDeals = [...filtered].sort((a, b) => getAmount(b) - getAmount(a)).slice(0, 12);
+
+  return (
+    <div style={{ maxWidth: 1360, margin: '0 auto', display: 'grid', gap: 16, color: '#18342a' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 950, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#54745D' }}>Opportunities V2</div>
+          <h1 style={{ margin: '6px 0 0 0', fontSize: 26 }}>BD Command Center</h1>
+          <div style={{ marginTop: 4, fontSize: 13, color: '#64748b' }}>Graph-first pipeline view, compact deal table, and export-ready insights.</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={onStartNewDeal} style={{ border: 0, borderRadius: 14, background: '#0B6771', color: '#fff', padding: '11px 14px', fontWeight: 900, cursor: 'pointer' }}>+ New Deal</button>
+          <button style={smallButton}>Export Dashboard</button>
+          <button style={smallButton}>Presentation Mode</button>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+        <Metric label="Raw Pipeline" value={money(rawTotal)} sub={`${filtered.length} deals`} />
+        <Metric label="Weighted Pipeline" value={money(weightedTotal)} sub="Risk adjusted" />
+        <Metric label="Compression" value={`${rawTotal ? Math.round((1 - weightedTotal / rawTotal) * 100) : 0}%`} sub="Risk removed from forecast" />
+        <Metric label="Top Deal" value={topDeals[0]?.name || '—'} sub={topDeals[0] ? money(getAmount(topDeals[0])) : ''} />
+      </div>
+
+      <section style={{ border: '1px solid #DCE7DD', borderRadius: 18, background: '#fff', padding: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 220px 220px', gap: 10 }}>
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search deals, accounts, owners..." style={inputStyle} />
+          <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)} style={inputStyle}>{services.map((s) => <option key={s}>{s}</option>)}</select>
+          <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} style={inputStyle}>{stages.map((s) => <option key={s}>{s}</option>)}</select>
+        </div>
+      </section>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
+        <ChartCard title="Pipeline Over Time" subtitle="Raw, weighted, and commit forecast by expected close month.">
+          <div style={{ height: 320 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={pipelineOverTimeRows}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={compactMoney} />
+                <Tooltip formatter={(value) => compactMoney(value)} />
+                <Legend />
+                <Line type="monotone" dataKey="raw" name="Raw Pipeline" stroke="#7FB3D5" strokeWidth={3} dot={false} />
+                <Line type="monotone" dataKey="weighted" name="Weighted Pipeline" stroke="#0B6771" strokeWidth={3} dot={false} />
+                <Line type="monotone" dataKey="commit" name="Commit" stroke="#2F7552" strokeWidth={3} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
+        <ChartCard title="Quarterly Weighted Forecast" subtitle="Close-date-weighted revenue timing.">
+          <SimpleBarChart rows={quarterRows} />
+        </ChartCard>
+
+        <ChartCard title="Pipeline Funnel" subtitle="Stage compression and risk-adjusted funnel health.">
+          <FunnelChart rows={stageRows} />
+        </ChartCard>
+
+        <ChartCard title="Pipeline by Service Line" subtitle="PV, StratoSight, Infrastructure, and Other O&M mix.">
+          <SimpleBarChart rows={serviceRows} />
+        </ChartCard>
+
+        <ChartCard title="Owner Performance" subtitle="Weighted pipeline by owner.">
+          <SimpleBarChart rows={ownerRows} />
+        </ChartCard>
+
+        <ChartCard title="Raw vs Weighted" subtitle="Forecast realism check.">
+          <SimpleBarChart rows={[{ label: 'Raw', value: rawTotal }, { label: 'Weighted', value: weightedTotal }]} />
+        </ChartCard>
+      </div>
+
+      <section style={{ border: '1px solid #DCE7DD', borderRadius: 18, background: '#fff', overflow: 'hidden' }}>
+        <div style={{ padding: 14, display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900 }}>Compact Deal Table</h3>
+            <div style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>No more scrolling cards. Sort/filter/search, then open the deal.</div>
+          </div>
+          <button style={smallButton}>Download CSV</button>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead style={{ position: 'sticky', top: 0, background: '#F8FBF8' }}>
+              <tr>
+                {['Deal', 'Service', 'Stage', 'Owner', 'Close', 'Raw', 'Weighted', 'Action'].map((h) => (
+                  <th key={h} style={{ textAlign: 'left', padding: '10px 12px', borderTop: '1px solid #E5ECE5', borderBottom: '1px solid #E5ECE5', color: '#64748b', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {topDeals.map((opp) => (
+                <tr key={opp.id} style={{ borderBottom: '1px solid #EEF2F7' }}>
+                  <td style={td}><strong>{opp.name || 'Untitled Deal'}</strong><div style={{ color: '#64748b', fontSize: 12 }}>{opp.account_name || opp.account || ''}</div></td>
+                  <td style={td}>{getService(opp)}</td>
+                  <td style={td}>{getStage(opp)}</td>
+                  <td style={td}>{getOwner(opp)}</td>
+                  <td style={td}>{opp.expected_close_date || '—'}</td>
+                  <td style={td}>{money(getRawAmount(opp))}</td>
+                  <td style={td}><strong>{money(getAmount(opp))}</strong></td>
+                  <td style={td}><button onClick={() => onOpenOpportunity?.(opp.id)} style={smallButton}>Open</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+const inputStyle = {
+  width: '100%',
+  border: '1px solid #D8E2D9',
+  borderRadius: 12,
+  background: '#fff',
+  padding: '10px 12px',
+  fontSize: 13,
+  color: '#0f172a',
+  boxSizing: 'border-box',
+};
+
+const td = {
+  padding: '10px 12px',
+  verticalAlign: 'top',
+  color: '#18342a',
+};

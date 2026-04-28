@@ -1,0 +1,18 @@
+[Unit]
+Description=NAES CRM Backend
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ec2-user/naes-crm-backend/backend
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm run start:prod
+Restart=always
+RestartSec=5
+User=ec2-user
+EnvironmentFile=-/home/ec2-user/naes-crm-backend/backend/.env
+StandardOutput=append:/var/log/naes-crm-backend.log
+StandardError=append:/var/log/naes-crm-backend.log
+
+[Install]
+WantedBy=multi-user.target
