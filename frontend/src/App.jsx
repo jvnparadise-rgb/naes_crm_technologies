@@ -1,9 +1,70 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ResponsiveContainer as RechartsResponsiveContainer,
+  ComposedChart as RechartsComposedChart,
+  AreaChart as RechartsAreaChart,
+  BarChart as RechartsBarChart,
+  Bar as RechartsBar,
+  Area as RechartsArea,
+  Line as RechartsLine,
+  XAxis as RechartsXAxis,
+  YAxis as RechartsYAxis,
+  CartesianGrid as RechartsCartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend as RechartsLegend
+} from 'recharts';
+
 import OpportunityDetailV2 from './v2/opportunities/OpportunityDetailV2.jsx';
 import NewDealV2 from './v2/opportunities/NewDealV2.jsx';
 import OpportunitiesV2 from './v2/opportunities/OpportunitiesV2.jsx';
 import AccountsV2, { NewAccountPanel } from './v2/accounts/AccountsV2.jsx';
 import ContactsV2 from './v2/contacts/ContactsV2.jsx';
+
+class SignalChartErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error) {
+    console.warn('Signal chart render failed', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', borderRadius: '14px', padding: '14px', fontSize: '13px', fontWeight: 800 }}>
+          Signal analytics chart failed to render. The rest of Signal Outreach is still available.
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+class SignalMiniChartBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error) {
+    console.warn('Signal mini chart failed', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return <div style={{ border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', borderRadius: '14px', padding: '14px', fontSize: '13px', fontWeight: 800 }}>Signal chart unavailable.</div>;
+    }
+    return this.props.children;
+  }
+}
 
 const sidebarSections = [
   {
@@ -13,7 +74,7 @@ const sidebarSections = [
   
   {
     title: 'CRM',
-    items: ['Contacts', 'New Deal Intake', 'Account Intelligence', 'Opportunities & Analytics', 'Tasks', 'Activities', 'Client Reports']
+    items: ['Contacts', 'New Deal Intake', 'Account Intelligence', 'Opportunities & Analytics', 'Signal Outreach', 'Tasks', 'Activities', 'Client Reports']
   },
   {
     title: 'Admin',
@@ -8478,7 +8539,53 @@ function OpportunityDetailPage({ onBackToOverview, opportunity, onSaveOpportunit
 
   const [lastSavedCommercialSnapshot, setLastSavedCommercialSnapshot] = useState('');
 
+  
+  // === NAES SIGNAL PREFILL ===
   React.useEffect(() => {
+    try {
+      const seedRaw = window.localStorage.getItem('naesSignalIntakeSeed')
+      if (!seedRaw) return
+
+      const seed = JSON.parse(seedRaw)
+
+      // ACCOUNT PREFILL
+      if (seed.account && typeof setNewAccountForm === 'function') {
+        setNewAccountForm(prev => ({
+          ...prev,
+          name: seed.account.name || '',
+          businessType: seed.account.industry || '',
+          state: seed.account.region || '',
+          generalFootprintRegion: seed.account.region || '',
+          totalMw: seed.account.totalMw || '',
+          estimatedSquareFootage: seed.account.estimatedSquareFootage || '',
+          estimatedBuildingCount: seed.account.estimatedSites || '',
+          interestedServices: seed.account.serviceFit || '',
+          notes: seed.account.signalInsight || ''
+        }))
+      }
+
+      // OPPORTUNITY PREFILL
+      if (seed.opportunity && typeof setNewOpportunityForm === 'function') {
+        setNewOpportunityForm(prev => ({
+          ...prev,
+          name: seed.opportunity.name || '',
+          serviceLine: seed.opportunity.serviceLine || 'Renewables',
+          marketSegment: seed.opportunity.marketSegment || '',
+          stage: '0 Prospecting',
+          forecastCategory: 'Pipeline',
+          probability: 30,
+          notes: seed.opportunity.notes || ''
+        }))
+      }
+
+      console.log('Signal seed applied')
+
+    } catch (err) {
+      console.warn('Signal seed failed', err)
+    }
+  }, [])
+
+React.useEffect(() => {
     if (!lastSavedCommercialSnapshot) {
       setLastSavedCommercialSnapshot(commercialChangeSnapshot);
     }
@@ -9246,6 +9353,443 @@ export default function App() {
   }, []);
 
   const [activePage, setActivePage] = useState('Welcome');
+  const [signalOutreachTab, setSignalOutreachTab] = useState('Dashboard');
+  const [signalSearchTerm, setSignalSearchTerm] = useState('');
+  const [signalRegionFilter, setSignalRegionFilter] = useState('All');
+  const [signalServiceFilter, setSignalServiceFilter] = useState('All');
+  const [signalPriorityFilter, setSignalPriorityFilter] = useState('All');
+  const [signalSelectedProspect, setSignalSelectedProspect] = useState(null);
+  const [signalQueue, setSignalQueue] = useState([]);
+  
+  const clearSignalQueue = () => {
+    setSignalQueue([]);
+  };
+
+
+  const [signalSortField, setSignalSortField] = useState('score');
+  const [signalSortDirection, setSignalSortDirection] = useState('desc');
+  const [signalPage, setSignalPage] = useState(1);
+  const signalPageSize = 5;
+  const signalProspects = [
+    {
+      name: 'Summit Logistics Properties',
+      industry: 'Logistics',
+      region: 'TX',
+      sqft: 1200000,
+      mw: 0,
+      sites: 14,
+      ownership: 'PE-backed',
+      serviceFit: ['Both'],
+      marketSegment: 'Commercial / Industrial',
+      status: 'Staged'
+    },
+    {
+      name: 'Desert Solar Holdings',
+      industry: 'Renewable Energy',
+      region: 'AZ',
+      sqft: 0,
+      mw: 42,
+      sites: 9,
+      ownership: 'Independent Power Producer',
+      serviceFit: ['Renewables'],
+      marketSegment: 'Renewables',
+      status: 'Staged'
+    },
+    {
+      name: 'Western Manufacturing Group',
+      industry: 'Manufacturing',
+      region: 'CA',
+      sqft: 850000,
+      mw: 0,
+      sites: 6,
+      ownership: 'Privately Held',
+      serviceFit: ['Both'],
+      marketSegment: 'Industrial',
+      status: 'Staged'
+    },
+    {
+      name: 'Mountain View Cold Storage',
+      industry: 'Cold Storage',
+      region: 'NV',
+      sqft: 540000,
+      mw: 0,
+      sites: 4,
+      ownership: 'Portfolio Operator',
+      serviceFit: ['StratoSight'],
+      marketSegment: 'Commercial / Industrial',
+      status: 'Review'
+    },
+    {
+      name: 'Rio Grande Solar Partners',
+      industry: 'Renewable Energy',
+      region: 'NM',
+      sqft: 0,
+      mw: 26,
+      sites: 5,
+      ownership: 'Asset Owner',
+      serviceFit: ['Renewables'],
+      marketSegment: 'Renewables',
+      status: 'Review'
+    }
+  ];
+
+  const scoreSignalProspect = (prospect = {}) => {
+    let score = 30;
+
+    if (Number(prospect.sqft || 0) >= 1000000) score += 18;
+    else if (Number(prospect.sqft || 0) >= 500000) score += 13;
+    else if (Number(prospect.sqft || 0) >= 250000) score += 8;
+
+    if (Number(prospect.mw || 0) >= 40) score += 18;
+    else if (Number(prospect.mw || 0) >= 20) score += 13;
+    else if (Number(prospect.mw || 0) >= 10) score += 8;
+
+    if (Number(prospect.sites || 0) >= 10) score += 16;
+    else if (Number(prospect.sites || 0) >= 5) score += 11;
+    else if (Number(prospect.sites || 0) >= 3) score += 7;
+
+    if ((prospect.serviceFit || []).includes('StratoSight') || (prospect.serviceFit || []).includes('Both')) score += 13;
+    if ((prospect.serviceFit || []).includes('Renewables') || (prospect.serviceFit || []).includes('Both')) score += 13;
+    if ((prospect.serviceFit || []).includes('Other O&M') || (prospect.serviceFit || []).includes('Both')) score += 10;
+
+    if (String(prospect.ownership || '').toLowerCase().includes('pe')) score += 8;
+    if (['AZ', 'TX', 'CA', 'NV', 'NM'].includes(prospect.region)) score += 5;
+
+    return Math.min(score, 100);
+  };
+
+  const getSignalPriority = (score) => {
+    if (score >= 88) return 'Strategic';
+    if (score >= 75) return 'High';
+    if (score >= 60) return 'Qualified';
+    return 'Watch';
+  };
+
+  const getSignalInsight = (prospect = {}) => {
+    const notes = [];
+
+    if (Number(prospect.sqft || 0) >= 500000) notes.push('large rooftop footprint');
+    if (Number(prospect.mw || 0) >= 20) notes.push('meaningful renewables portfolio');
+    if (Number(prospect.sites || 0) >= 5) notes.push('multi-site complexity');
+    if ((prospect.serviceFit || []).includes('StratoSight') || (prospect.serviceFit || []).includes('Both')) notes.push('StratoSight inspection fit');
+    if ((prospect.serviceFit || []).includes('Renewables') || (prospect.serviceFit || []).includes('Both')) notes.push('renewables O&M fit');
+    if ((prospect.serviceFit || []).includes('Other O&M') || (prospect.serviceFit || []).includes('Both')) notes.push('maintenance expansion fit');
+    if (String(prospect.ownership || '').toLowerCase().includes('pe')) notes.push('PE-backed ownership');
+    if (['AZ', 'TX', 'CA', 'NV', 'NM'].includes(prospect.region)) notes.push('priority geography');
+
+    return notes.length
+      ? `${notes.map((n, i) => i === 0 ? n.charAt(0).toUpperCase() + n.slice(1) : n).join(', ')}.`
+      : 'Needs additional enrichment before outreach prioritization.';
+  };
+
+  const scoredSignalProspects = signalProspects
+    .map((prospect) => {
+      const score = scoreSignalProspect(prospect);
+      return {
+        ...prospect,
+        score,
+        priority: getSignalPriority(score),
+        signalInsight: getSignalInsight(prospect)
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const signalAverageScore = Math.round(
+    scoredSignalProspects.reduce((sum, prospect) => sum + prospect.score, 0) / Math.max(scoredSignalProspects.length, 1)
+  );
+
+  const signalRegionOptions = ['All', ...Array.from(new Set(scoredSignalProspects.map((prospect) => prospect.region).filter(Boolean)))];
+  const signalServiceOptions = ['All', 'Renewables', 'StratoSight', 'Both', 'Other O&M'];
+  const signalPriorityOptions = ['All', 'Strategic', 'High', 'Qualified', 'Watch'];
+
+  const filteredSignalProspects = scoredSignalProspects.filter((prospect) => {
+    const search = signalSearchTerm.trim().toLowerCase();
+    const matchesSearch = !search
+      || String(prospect.name || '').toLowerCase().includes(search)
+      || String(prospect.industry || '').toLowerCase().includes(search)
+      || String(prospect.region || '').toLowerCase().includes(search)
+      || String(prospect.signalInsight || '').toLowerCase().includes(search)
+      || (prospect.serviceFit || []).join(' ').toLowerCase().includes(search);
+
+    const matchesRegion = signalRegionFilter === 'All' || prospect.region === signalRegionFilter;
+    const matchesService = signalServiceFilter === 'All' || (prospect.serviceFit || []).includes(signalServiceFilter);
+    const matchesPriority = signalPriorityFilter === 'All' || prospect.priority === signalPriorityFilter;
+
+    return matchesSearch && matchesRegion && matchesService && matchesPriority;
+  });
+
+  const signalStrategicCount = scoredSignalProspects.filter((prospect) => prospect.priority === 'Strategic').length;
+  const signalQueuedCount = signalQueue.length;
+
+  const signalMoneyAxis = (value) => {
+    const n = Number(value || 0);
+    if (Math.abs(n) >= 1000000) return `$${(n / 1000000).toFixed(1)}M`;
+    if (Math.abs(n) >= 1000) return `$${Math.round(n / 1000)}K`;
+    return `$${n}`;
+  };
+
+  const signalRevenuePotentialByProspect = (prospect = {}) => {
+    const sqft = Number(prospect.sqft || 0);
+    const mw = Number(prospect.mw || 0);
+    const sites = Number(prospect.sites || 0);
+    const services = prospect.serviceFit || [];
+
+    return {
+      Renewables: services.includes('Renewables') || services.includes('Both') ? Math.round((mw * 14500) + (sites * 8500)) : 0,
+      StratoSight: services.includes('StratoSight') || services.includes('Both') ? Math.round((sqft * 0.075) + (sites * 4200)) : 0,
+      OtherOM: services.includes('Other O&M') || services.includes('Both') ? Math.round((sqft * 0.018) + (mw * 5500) + (sites * 6000)) : 0
+    };
+  };
+
+  const signalRevenueByServiceRows = Object.entries(
+    scoredSignalProspects.reduce((acc, prospect) => {
+      const revenue = signalRevenuePotentialByProspect(prospect);
+      acc.Renewables += revenue.Renewables;
+      acc.StratoSight += revenue.StratoSight;
+      acc['Other O&M'] += revenue.OtherOM;
+      return acc;
+    }, { Renewables: 0, StratoSight: 0, 'Other O&M': 0 })
+  ).map(([service, revenue]) => ({ service, revenue }));
+
+
+  const signalRevenueByService = scoredSignalProspects.reduce((acc, prospect) => {
+    const revenue = signalRevenuePotentialByProspect(prospect);
+    acc.Renewables += revenue.Renewables;
+    acc.StratoSight += revenue.StratoSight;
+    acc.OtherOM += revenue.OtherOM;
+    return acc;
+  }, { Renewables: 0, StratoSight: 0, OtherOM: 0 });
+
+  const signalRevenueTimelineRows = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].map((month, index) => {
+    const ramp = [0.18, 0.34, 0.52, 0.70, 0.86, 1][index];
+    return {
+      month,
+      Renewables: Math.round(signalRevenueByService.Renewables * ramp),
+      StratoSight: Math.round(signalRevenueByService.StratoSight * ramp),
+      OtherOM: Math.round(signalRevenueByService.OtherOM * ramp),
+      Total: Math.round((signalRevenueByService.Renewables + signalRevenueByService.StratoSight + signalRevenueByService.OtherOM) * ramp)
+    };
+  });
+
+  const signalServiceRevenueRows = [
+    { service: 'Renewables', revenue: signalRevenueByService.Renewables },
+    { service: 'StratoSight', revenue: signalRevenueByService.StratoSight },
+    { service: 'Other O&M', revenue: signalRevenueByService.OtherOM }
+  ];
+
+  const signalPriorityRows = ['Strategic', 'High', 'Qualified', 'Watch'].map((level) => ({
+    label: level,
+    value: scoredSignalProspects.filter((prospect) => prospect.priority === level).length
+  }));
+
+  
+
+  const signalExtendedTimeline = ['May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((month, i) => {
+    const ramp = Math.min(1, (i + 1) / 8);
+    return {
+      month,
+      Total: Math.round((signalRevenueByServiceRows.reduce((a,b)=>a+b.revenue,0)) * ramp)
+    };
+  });
+
+  const queuedRevenue = signalQueue.reduce((sum, prospect) => {
+    const r = signalRevenuePotentialByProspect(prospect);
+    return sum + r.Renewables + r.StratoSight + r.OtherOM;
+  }, 0);
+
+  const totalSignalRevenue = signalRevenueByServiceRows.reduce((sum, r) => sum + r.revenue, 0);
+
+  const signalQueueImpactRows = [
+    { label: 'Queued', value: queuedRevenue },
+    { label: 'Remaining', value: totalSignalRevenue - queuedRevenue }
+  ];
+
+const signalTopScoreRows = scoredSignalProspects.slice(0, 6).map((prospect) => ({
+    label: prospect.name,
+    score: prospect.score
+  }));
+
+  const signalExecutiveChartCard = {
+    border: '1px solid #d7e4d8',
+    borderRadius: '18px',
+    background: '#ffffff',
+    padding: '16px',
+    boxShadow: '0 14px 32px rgba(16,24,40,0.05)',
+    overflow: 'hidden'
+  };
+
+  const signalExtendedTimelineRows = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => {
+    const totalRevenue = signalRevenueByServiceRows.reduce((sum, row) => sum + Number(row.revenue || 0), 0);
+    const ramp = [0.12, 0.24, 0.38, 0.52, 0.67, 0.80, 0.92, 1][index];
+    return {
+      month,
+      revenue: Math.round(totalRevenue * ramp)
+    };
+  });
+
+  const signalQueuedRevenue = signalQueue.reduce((sum, prospect) => {
+    const revenue = signalRevenuePotentialByProspect(prospect);
+    return sum + Number(revenue.Renewables || 0) + Number(revenue.StratoSight || 0) + Number(revenue.OtherOM || 0);
+  }, 0);
+
+  const signalTotalRevenue = signalRevenueByServiceRows.reduce((sum, row) => sum + Number(row.revenue || 0), 0);
+
+  const signalSortValue = (prospect = {}, field = '') => {
+    if (field === 'size') return Number(prospect.sqft || prospect.mw || 0);
+    if (field === 'serviceFit') return (prospect.serviceFit || []).join(', ');
+    return prospect[field] ?? '';
+  };
+
+  const sortedSignalProspects = [...filteredSignalProspects].sort((a, b) => {
+    let valueA = signalSortValue(a, signalSortField);
+    let valueB = signalSortValue(b, signalSortField);
+
+    if (typeof valueA === 'string') valueA = valueA.toLowerCase();
+    if (typeof valueB === 'string') valueB = valueB.toLowerCase();
+
+    if (valueA < valueB) return signalSortDirection === 'asc' ? -1 : 1;
+    if (valueA > valueB) return signalSortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const signalTotalPages = Math.max(1, Math.ceil(sortedSignalProspects.length / signalPageSize));
+  const safeSignalPage = Math.min(signalPage, signalTotalPages);
+  const pagedSignalProspects = sortedSignalProspects.slice((safeSignalPage - 1) * signalPageSize, safeSignalPage * signalPageSize);
+
+  const handleSignalSort = (field) => {
+    setSignalSortField((currentField) => {
+      setSignalSortDirection((currentDirection) => (
+        currentField === field ? (currentDirection === 'asc' ? 'desc' : 'asc') : 'asc'
+      ));
+      return field;
+    });
+    setSignalPage(1);
+  };
+
+  const getSignalSizeLabel = (prospect = {}) => (
+    prospect.mw ? `${prospect.mw} MWdc / ${prospect.sites} sites` : `${Number(prospect.sqft || 0).toLocaleString()} sqft / ${prospect.sites} sites`
+  );
+
+  const getSignalScoreBreakdown = (prospect = {}) => {
+    const serviceScore =
+      ((prospect.serviceFit || []).includes('Both') ? 36 : 0)
+      || ((prospect.serviceFit || []).includes('Renewables') ? 13 : 0)
+      || ((prospect.serviceFit || []).includes('StratoSight') ? 13 : 0)
+      || ((prospect.serviceFit || []).includes('Other O&M') ? 10 : 0);
+
+    const assetScore = Number(prospect.sqft || 0) >= 1000000 || Number(prospect.mw || 0) >= 40 ? 18
+      : Number(prospect.sqft || 0) >= 500000 || Number(prospect.mw || 0) >= 20 ? 13
+      : Number(prospect.sqft || 0) >= 250000 || Number(prospect.mw || 0) >= 10 ? 8
+      : 0;
+
+    const siteScore = Number(prospect.sites || 0) >= 10 ? 16
+      : Number(prospect.sites || 0) >= 5 ? 11
+      : Number(prospect.sites || 0) >= 3 ? 7
+      : 0;
+
+    return [
+      ['Base Fit', 30],
+      ['Service Fit', serviceScore],
+      ['Asset Size', assetScore],
+      ['Site Count', siteScore],
+      ['Geography', ['AZ', 'TX', 'CA', 'NV', 'NM'].includes(prospect.region) ? 5 : 0],
+      ['Ownership', String(prospect.ownership || '').toLowerCase().includes('pe') ? 8 : 0]
+    ];
+  };
+
+  const seedSignalAccountIntake = (prospect = {}) => {
+    setNewAccountForm((prev) => ({
+      ...prev,
+      name: prospect.name || '',
+      businessType: prospect.industry || '',
+      state: prospect.region || '',
+      generalFootprintRegion: prospect.region || '',
+      totalMw: prospect.mw ? String(prospect.mw) : '',
+      estimatedSquareFootage: prospect.sqft ? String(prospect.sqft) : '',
+      estimatedBuildingCount: prospect.sites ? String(prospect.sites) : '',
+      interestedServices: (prospect.serviceFit || []).join(', '),
+      notes: [
+        `Signal Score: ${prospect.score}`,
+        `Signal Priority: ${prospect.priority}`,
+        `Signal Insight: ${prospect.signalInsight}`,
+        `Ownership: ${prospect.ownership || 'Unknown'}`,
+        `Market Segment: ${prospect.marketSegment || 'Unknown'}`
+      ].join('\n')
+    }));
+
+    setShowEditAccountForm(false);
+    setAccountDetailId(null);
+    setShowNewAccountForm(true);
+    setActivePage('Account Intelligence');
+  };
+
+  const seedSignalDealIntake = (prospect = {}) => {
+    const serviceLine = (prospect.serviceFit || []).includes('Both')
+      ? 'Both'
+      : (prospect.serviceFit || []).includes('Renewables')
+      ? 'Renewables'
+      : (prospect.serviceFit || []).includes('StratoSight')
+      ? 'StratoSight'
+      : 'Other O&M';
+
+    setNewOpportunityForm((prev) => ({
+      ...prev,
+      name: `${prospect.name || 'Signal Prospect'} - ${serviceLine} Opportunity`,
+      accountName: prospect.name || '',
+      serviceLine,
+      marketSegment: prospect.marketSegment || prospect.industry || '',
+      stage: '0 Prospecting',
+      forecastCategory: 'Pipeline',
+      probability: 30,
+      renewablesSize: prospect.mw ? String(prospect.mw) : '',
+      stratoSqft: prospect.sqft ? String(prospect.sqft) : '',
+      notes: [
+        `Seeded from Signal Outreach.`,
+        `Signal Score: ${prospect.score}`,
+        `Signal Priority: ${prospect.priority}`,
+        `Signal Insight: ${prospect.signalInsight}`,
+        `Region: ${prospect.region || 'Unknown'}`,
+        `Service Fit: ${(prospect.serviceFit || []).join(', ')}`
+      ].join('\n')
+    }));
+
+    setShowNewOpportunityForm(true);
+    setActivePage('New Deal Intake');
+  };
+
+  const seedSignalContactIntake = (prospect = {}) => {
+    setNewContactForm((prev) => ({
+      ...prev,
+      firstName: '',
+      lastName: '',
+      jobTitle: 'Operations / Facilities Contact',
+      accountId: '',
+      email: '',
+      mobilePhone: '',
+      officePhone: '',
+      website: '',
+      preferredContactMethod: 'Email',
+      roleInBuyingProcess: 'Target Contact / Evaluator',
+      state: prospect.region || '',
+      decisionMaker: false,
+      champion: false,
+      primaryContact: false,
+      notes: [
+        'Seeded from Signal Outreach.',
+        `Target Account: ${prospect.name || 'Unknown'}`,
+        `Industry: ${prospect.industry || 'Unknown'}`,
+        `Region: ${prospect.region || 'Unknown'}`,
+        `Service Fit: ${(prospect.serviceFit || []).join(', ')}`,
+        `Signal Score: ${prospect.score}`,
+        `Signal Priority: ${prospect.priority}`,
+        `Signal Insight: ${prospect.signalInsight}`
+      ].join('\n')
+    }));
+
+    setContactDetailId(null);
+    setShowNewContactForm(true);
+    setActivePage('Contacts');
+  };
   const [pageHistory, setPageHistory] = useState(['Welcome']);
   const [accountDetailId, setAccountDetailId] = useState(null);
   const [accountList, setAccountList] = useState(() => {
@@ -11732,7 +12276,583 @@ function openOpportunityDetail(opportunityId) {
                   onStartNewContact={openWelcomeNewContact}
                 />
               )
-              : safeActivePage === 'Tasks'
+              
+                : safeActivePage === 'Signal Outreach'
+                ? (
+                  <div style={{ display: 'grid', gap: '18px' }}>
+                    <div style={{
+                      border: '1px solid #d7e4d8',
+                      borderRadius: '22px',
+                      background: '#ffffff',
+                      padding: '22px',
+                      boxShadow: '0 14px 32px rgba(16,24,40,0.06)'
+                    }}>
+                      <div style={{ fontSize: '11px', fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#0B6771' }}>
+                        Revenue Intelligence Engine
+                      </div>
+                      <h2 style={{ margin: '8px 0 0', fontSize: '28px', fontWeight: 850, color: '#18342a' }}>
+                        Signal Outreach
+                      </h2>
+                      <p style={{ margin: '8px 0 0', color: '#5e786d', maxWidth: '900px', lineHeight: 1.5 }}>
+                        Prospect discovery, account scoring, outreach prioritization, and staged intake preparation. Current mode is production-safe UI staging only. No CRM records are created from this page.
+                      </p>
+
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '18px' }}>
+                        {['Dashboard', 'Find New Customers', 'Prospect Lists', 'Import CSV', 'Intake Queue'].map((tab) => {
+                          const active = signalOutreachTab === tab;
+                          return (
+                            <button
+                              key={tab}
+                              type="button"
+                              onClick={() => setSignalOutreachTab(tab)}
+                              style={{
+                                border: active ? '1px solid #0B6771' : '1px solid #d7e4d8',
+                                background: active ? '#0B6771' : '#f8fbf8',
+                                color: active ? '#ffffff' : '#315348',
+                                borderRadius: '999px',
+                                padding: '9px 13px',
+                                fontSize: '12px',
+                                fontWeight: 850,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {tab}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {signalOutreachTab === 'Dashboard' ? (
+                      <>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1.4fr repeat(4, minmax(140px, 1fr))',
+                          gap: '14px'
+                        }}>
+                          <div style={{ border: '1px solid #d7e4d8', borderRadius: '18px', background: '#fff', padding: '18px' }}>
+                            <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76' }}>Signal Score v1</div>
+                            <h3 style={{ margin: '8px 0 0', color: '#111827', fontSize: '18px' }}>
+                              Score accounts by service fit, size, geography, ownership, and multi-site complexity.
+                            </h3>
+                            <p style={{ margin: '8px 0 0', color: '#5e786d', fontSize: '14px' }}>
+                              Current mode: UI staging only. Intake wiring remains disabled until we are ready for rollback-controlled integration.
+                            </p>
+                          </div>
+
+                          {[
+                            ['Prospects', String(filteredSignalProspects.length), `${scoredSignalProspects.length} total`],
+                            ['Avg Score', String(signalAverageScore), 'computed model'],
+                            ['Strategic', String(signalStrategicCount), '88+ score'],
+                            ['Queued', String(signalQueuedCount), 'not wired yet']
+                          ].map(([label, value, sub]) => (
+                            <div key={label} style={{ border: '1px solid #d7e4d8', borderRadius: '18px', background: '#fff', padding: '18px', display: 'grid', alignContent: 'space-between', minHeight: '120px' }}>
+                              <span style={{ color: '#5e786d', fontSize: '13px' }}>{label}</span>
+                              <strong style={{ fontSize: '28px', color: '#111827' }}>{value}</strong>
+                              <small style={{ color: '#7f958b' }}>{sub}</small>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div style={{ border: '1px solid #d7e4d8', borderRadius: '22px', background: '#ffffff', padding: '18px', boxShadow: '0 14px 32px rgba(16,24,40,0.05)' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76' }}>Signal-ranked prospects</div>
+                          <h3 style={{ margin: '5px 0 14px', color: '#111827' }}>Top target accounts</h3>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr repeat(3, minmax(145px, 0.7fr))', gap: '10px', marginBottom: '10px' }}>
+                            <input
+                              value={signalSearchTerm}
+                              onChange={(event) => { setSignalSearchTerm(event.target.value); setSignalPage(1); }}
+                              placeholder="Search company, industry, region, service fit, or insight..."
+                              style={{ border: '1px solid #d7e4d8', borderRadius: '12px', padding: '10px 12px', fontSize: '13px', color: '#111827' }}
+                            />
+                            <select
+                              value={signalRegionFilter}
+                              onChange={(event) => { setSignalRegionFilter(event.target.value); setSignalPage(1); }}
+                              style={{ border: '1px solid #d7e4d8', borderRadius: '12px', padding: '10px 12px', fontSize: '13px', color: '#111827', background: '#fff' }}
+                            >
+                              {signalRegionOptions.map((option) => <option key={option} value={option}>{option === 'All' ? 'All Regions' : option}</option>)}
+                            </select>
+                            <select
+                              value={signalServiceFilter}
+                              onChange={(event) => { setSignalServiceFilter(event.target.value); setSignalPage(1); }}
+                              style={{ border: '1px solid #d7e4d8', borderRadius: '12px', padding: '10px 12px', fontSize: '13px', color: '#111827', background: '#fff' }}
+                            >
+                              {signalServiceOptions.map((option) => <option key={option} value={option}>{option === 'All' ? 'All Services' : option}</option>)}
+                            </select>
+                            <select
+                              value={signalPriorityFilter}
+                              onChange={(event) => { setSignalPriorityFilter(event.target.value); setSignalPage(1); }}
+                              style={{ border: '1px solid #d7e4d8', borderRadius: '12px', padding: '10px 12px', fontSize: '13px', color: '#111827', background: '#fff' }}
+                            >
+                              {signalPriorityOptions.map((option) => <option key={option} value={option}>{option === 'All' ? 'All Priorities' : option}</option>)}
+                            </select>
+                          </div>
+
+                          <SignalChartErrorBoundary>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '18px', marginBottom: '18px' }}>
+                              <div style={signalExecutiveChartCard}>
+                                <h4 style={{ margin: 0, color: '#123B42', fontSize: '16px', fontWeight: 850 }}>ZoomInfo Revenue Potential by Service</h4>
+                                <p style={{ margin: '4px 0 14px', color: '#5F6F72', fontSize: '12px' }}>Modeled potential revenue by service type across imported Signal targets.</p>
+                                <div style={{ height: '310px' }}>
+                                  <RechartsResponsiveContainer width="100%" height="100%">
+                                    <RechartsComposedChart data={signalRevenueTimelineRows} margin={{ top: 10, right: 18, left: 4, bottom: 8 }}>
+                                      <RechartsCartesianGrid stroke="#e7eff0" strokeDasharray="3 3" />
+                                      <RechartsXAxis dataKey="month" tick={{ fontSize: 11, fill: '#465A69' }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsYAxis tickFormatter={signalMoneyAxis} tick={{ fontSize: 11, fill: '#465A69' }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsTooltip formatter={(value) => signalMoneyAxis(value)} />
+                                      <RechartsLegend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                                      <RechartsArea type="monotone" dataKey="Renewables" stackId="1" stroke="#76B58B" fill="#76B58B" fillOpacity={0.58} />
+                                      <RechartsArea type="monotone" dataKey="StratoSight" stackId="1" stroke="#0B6771" fill="#0B6771" fillOpacity={0.58} />
+                                      <RechartsArea type="monotone" dataKey="OtherOM" name="Other O&M" stackId="1" stroke="#F5A623" fill="#F5A623" fillOpacity={0.48} />
+                                      <RechartsLine type="monotone" dataKey="Total" stroke="#0A4B5F" strokeWidth={3} dot={{ r: 3 }} />
+                                    </RechartsComposedChart>
+                                  </RechartsResponsiveContainer>
+                                </div>
+                              </div>
+
+                              <div style={signalExecutiveChartCard}>
+                                <h4 style={{ margin: 0, color: '#123B42', fontSize: '16px', fontWeight: 850 }}>Service-Line Revenue Mix</h4>
+                                <p style={{ margin: '4px 0 14px', color: '#5F6F72', fontSize: '12px' }}>Estimated commercial value by CRM service fit.</p>
+                                <div style={{ height: '310px' }}>
+                                  <RechartsResponsiveContainer width="100%" height="100%">
+                                    <RechartsBarChart data={signalServiceRevenueRows} layout="vertical" margin={{ top: 10, right: 28, left: 20, bottom: 8 }}>
+                                      <RechartsCartesianGrid stroke="#e7eff0" strokeDasharray="3 3" />
+                                      <RechartsXAxis type="number" tickFormatter={signalMoneyAxis} tick={{ fontSize: 11, fill: '#465A69' }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsYAxis type="category" dataKey="service" width={86} tick={{ fontSize: 11, fill: '#123B42', fontWeight: 700 }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsTooltip formatter={(value) => signalMoneyAxis(value)} />
+                                      <RechartsBar dataKey="revenue" fill="#0B6771" radius={[0, 10, 10, 0]} barSize={34} />
+                                    </RechartsBarChart>
+                                  </RechartsResponsiveContainer>
+                                </div>
+                              </div>
+
+                              <div style={signalExecutiveChartCard}>
+                                <h4 style={{ margin: 0, color: '#123B42', fontSize: '16px', fontWeight: 850 }}>Priority Funnel</h4>
+                                <p style={{ margin: '4px 0 14px', color: '#5F6F72', fontSize: '12px' }}>Target count by Signal qualification tier.</p>
+                                <div style={{ height: '280px' }}>
+                                  <RechartsResponsiveContainer width="100%" height="100%">
+                                    <RechartsComposedChart data={signalPriorityRows} margin={{ top: 10, right: 18, left: 0, bottom: 8 }}>
+                                      <RechartsCartesianGrid stroke="#e7eff0" strokeDasharray="3 3" />
+                                      <RechartsXAxis dataKey="label" tick={{ fontSize: 11, fill: '#465A69' }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsYAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#465A69' }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsTooltip />
+                                      <RechartsBar dataKey="value" fill="#0B6771" radius={[10, 10, 0, 0]} barSize={42} />
+                                      <RechartsLine type="monotone" dataKey="value" stroke="#F5A623" strokeWidth={3} dot={{ r: 4 }} />
+                                    </RechartsComposedChart>
+                                  </RechartsResponsiveContainer>
+                                </div>
+                              </div>
+
+                              <div style={signalExecutiveChartCard}>
+                                <h4 style={{ margin: 0, color: '#123B42', fontSize: '16px', fontWeight: 850 }}>
+
+                            
+
+                            
+
+Top Signal Targets</h4>
+                                <p style={{ margin: '4px 0 14px', color: '#5F6F72', fontSize: '12px' }}>Highest-ranked accounts by computed Signal Score.</p>
+                                <div style={{ height: '280px' }}>
+                                  <RechartsResponsiveContainer width="100%" height="100%">
+                                    <RechartsBarChart data={signalTopScoreRows} layout="vertical" margin={{ top: 10, right: 24, left: 52, bottom: 8 }}>
+                                      <RechartsCartesianGrid stroke="#e7eff0" strokeDasharray="3 3" />
+                                      <RechartsXAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: '#465A69' }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsYAxis type="category" dataKey="label" width={140} tick={{ fontSize: 10, fill: '#123B42', fontWeight: 700 }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsTooltip />
+                                      <RechartsBar dataKey="score" fill="#0B6771" radius={[0, 10, 10, 0]} barSize={24} />
+                                    </RechartsBarChart>
+                                  </RechartsResponsiveContainer>
+                                </div>
+                              </div>
+                            </div>
+                          </SignalChartErrorBoundary>
+
+                          <SignalMiniChartBoundary>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 0.9fr', gap: '18px', marginBottom: '18px' }}>
+                              <div style={signalExecutiveChartCard}>
+                                <h4 style={{ margin: 0, color: '#123B42', fontSize: '16px', fontWeight: 850 }}>Revenue Build Over Time</h4>
+                                <p style={{ margin: '4px 0 14px', color: '#5F6F72', fontSize: '12px' }}>Projected Signal revenue build from imported targets over the modeled campaign period.</p>
+                                <div style={{ height: '300px' }}>
+                                  <RechartsResponsiveContainer width="100%" height="100%">
+                                    <RechartsBarChart data={signalExtendedTimelineRows} margin={{ top: 10, right: 24, left: 10, bottom: 8 }}>
+                                      <RechartsCartesianGrid stroke="#e7eff0" strokeDasharray="3 3" />
+                                      <RechartsXAxis dataKey="month" tick={{ fontSize: 11, fill: '#465A69' }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsYAxis tickFormatter={signalMoneyAxis} tick={{ fontSize: 11, fill: '#465A69' }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsTooltip formatter={(value) => signalMoneyAxis(value)} />
+                                      <RechartsBar dataKey="revenue" fill="#0B6771" radius={[10, 10, 0, 0]} barSize={42} />
+                                    </RechartsBarChart>
+                                  </RechartsResponsiveContainer>
+                                </div>
+                              </div>
+
+                              <div style={signalExecutiveChartCard}>
+                                <h4 style={{ margin: 0, color: '#123B42', fontSize: '16px', fontWeight: 850 }}>Queue Revenue Impact</h4>
+                                <p style={{ margin: '4px 0 14px', color: '#5F6F72', fontSize: '12px' }}>Revenue value already moved into the controlled intake queue versus remaining Signal potential.</p>
+                                <div style={{ height: '300px' }}>
+                                  <RechartsResponsiveContainer width="100%" height="100%">
+                                    <RechartsBarChart data={signalQueueImpactRows} margin={{ top: 10, right: 24, left: 10, bottom: 8 }}>
+                                      <RechartsCartesianGrid stroke="#e7eff0" strokeDasharray="3 3" />
+                                      <RechartsXAxis dataKey="label" tick={{ fontSize: 11, fill: '#465A69' }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsYAxis tickFormatter={signalMoneyAxis} tick={{ fontSize: 11, fill: '#465A69' }} axisLine={{ stroke: '#9CA3AF' }} tickLine={false} />
+                                      <RechartsTooltip formatter={(value) => signalMoneyAxis(value)} />
+                                      <RechartsBar dataKey="value" fill="#3F8F66" radius={[10, 10, 0, 0]} barSize={54} />
+                                    </RechartsBarChart>
+                                  </RechartsResponsiveContainer>
+                                </div>
+                              </div>
+                            </div>
+                          </SignalMiniChartBoundary>
+
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                              <thead>
+                                <tr style={{ color: '#64748b', textAlign: 'left', borderBottom: '1px solid #d7e4d8' }}>
+                                  {[
+                                    ['Company', 'name'],
+                                    ['Industry', 'industry'],
+                                    ['Region', 'region'],
+                                    ['Size', 'size'],
+                                    ['Service Fit', 'serviceFit'],
+                                    ['Signal Insight', 'signalInsight'],
+                                    ['Score', 'score'],
+                                    ['Priority', 'priority'],
+                                    ['Status', 'status'],
+                                    ['Actions', null]
+                                  ].map(([label, field]) => (
+                                    <th
+                                      key={label}
+                                      onClick={field ? () => handleSignalSort(field) : undefined}
+                                      style={{
+                                        padding: '10px 8px',
+                                        fontSize: '11px',
+                                        letterSpacing: '0.06em',
+                                        cursor: field ? 'pointer' : 'default',
+                                        userSelect: 'none',
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                    >
+                                      {label}
+                                      {field && signalSortField === field ? (
+                                        <span style={{ marginLeft: '6px', fontSize: '10px' }}>{signalSortDirection === 'asc' ? '▲' : '▼'}</span>
+                                      ) : null}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pagedSignalProspects.map((prospect) => (
+                                  <tr
+                                    key={prospect.name}
+                                    onClick={() => setSignalSelectedProspect(prospect)}
+                                    style={{ borderBottom: '1px solid #edf2ee', cursor: 'pointer' }}
+                                  >
+                                    <td style={{ padding: '13px 8px', fontWeight: 800, color: '#111827' }}>{prospect.name}</td>
+                                    <td style={{ padding: '13px 8px' }}>{prospect.industry}</td>
+                                    <td style={{ padding: '13px 8px' }}>{prospect.region}</td>
+                                    <td style={{ padding: '13px 8px' }}>
+                                      {getSignalSizeLabel(prospect)}
+                                    </td>
+                                    <td style={{ padding: '13px 8px', fontWeight: 700 }}>{(prospect.serviceFit || []).join(' + ')}</td>
+                                    <td style={{ padding: '13px 8px', color: '#475569', maxWidth: '300px' }}>{prospect.signalInsight}</td>
+                                    <td style={{ padding: '13px 8px' }}><span style={{ background: '#e0f2fe', color: '#0369a1', borderRadius: '8px', padding: '4px 8px', fontWeight: 800 }}>{prospect.score}</span></td>
+                                    <td style={{ padding: '13px 8px' }}><span style={{ background: '#f1f5f9', color: '#334155', borderRadius: '8px', padding: '4px 8px', fontWeight: 800 }}>{prospect.priority}</span></td>
+                                    <td style={{ padding: '13px 8px' }}><span style={{ border: '1px solid #bae6fd', color: '#075985', background: '#f0f9ff', borderRadius: '999px', padding: '4px 8px', fontWeight: 800 }}>{prospect.status}</span></td>
+                                    <td style={{ padding: '13px 8px' }}>
+                                      <button
+                                        type="button"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          setSignalSelectedProspect(prospect);
+                                        }}
+                                        style={{
+                                          border: '1px solid #0B6771',
+                                          background: '#0B6771',
+                                          color: '#fff',
+                                          borderRadius: '999px',
+                                          padding: '6px 10px',
+                                          fontSize: '11px',
+                                          fontWeight: 850,
+                                          cursor: 'pointer',
+                                          whiteSpace: 'nowrap'
+                                        }}
+                                      >
+                                        Review
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            {filteredSignalProspects.length === 0 ? (
+                              <div style={{ padding: '22px', textAlign: 'center', color: '#64748b', fontWeight: 750 }}>
+                                No prospects match the current Signal filters.
+                              </div>
+                            ) : null}
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', paddingTop: '14px', color: '#64748b', fontSize: '12px', fontWeight: 750 }}>
+                              <span>
+                                Showing {filteredSignalProspects.length === 0 ? 0 : ((safeSignalPage - 1) * signalPageSize) + 1}
+                                -{Math.min(safeSignalPage * signalPageSize, filteredSignalProspects.length)} of {filteredSignalProspects.length}
+                              </span>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                  type="button"
+                                  disabled={safeSignalPage <= 1}
+                                  onClick={() => setSignalPage((page) => Math.max(1, page - 1))}
+                                  style={{ border: '1px solid #d7e4d8', background: safeSignalPage <= 1 ? '#f1f5f9' : '#fff', color: '#315348', borderRadius: '999px', padding: '7px 11px', fontWeight: 850, cursor: safeSignalPage <= 1 ? 'not-allowed' : 'pointer' }}
+                                >
+                                  Previous
+                                </button>
+                                <span style={{ alignSelf: 'center' }}>Page {safeSignalPage} of {signalTotalPages}</span>
+                                <button
+                                  type="button"
+                                  disabled={safeSignalPage >= signalTotalPages}
+                                  onClick={() => setSignalPage((page) => Math.min(signalTotalPages, page + 1))}
+                                  style={{ border: '1px solid #d7e4d8', background: safeSignalPage >= signalTotalPages ? '#f1f5f9' : '#fff', color: '#315348', borderRadius: '999px', padding: '7px 11px', fontWeight: 850, cursor: safeSignalPage >= signalTotalPages ? 'not-allowed' : 'pointer' }}
+                                >
+                                  Next
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {signalSelectedProspect ? (
+                          <div
+                            style={{
+                              position: 'fixed',
+                              top: 0,
+                              right: 0,
+                              width: '440px',
+                              maxWidth: '92vw',
+                              height: '100vh',
+                              background: '#ffffff',
+                              borderLeft: '1px solid #d7e4d8',
+                              boxShadow: '-18px 0 42px rgba(15,23,42,0.18)',
+                              zIndex: 9999,
+                              padding: '14px 14px 72px',
+                              overflowY: 'auto'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', borderBottom: '1px solid #edf2ee', paddingBottom: '14px', marginBottom: '10px' }}>
+                              <div>
+                                <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76' }}>Prospect Review</div>
+                                <h3 style={{ margin: '4px 0 0', color: '#111827', fontSize: '18px' }}>{signalSelectedProspect.name}</h3>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setSignalSelectedProspect(null)}
+                                style={{ border: '1px solid #d7e4d8', background: '#f8fafc', color: '#0f172a', borderRadius: '10px', width: '32px', height: '32px', fontSize: '18px', cursor: 'pointer' }}
+                              >
+                                ×
+                              </button>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                              <div style={{ border: '1px solid #d7e4d8', background: '#f8fbf8', borderRadius: '14px', padding: '10px' }}>
+                                <div style={{ color: '#64748b', fontSize: '12px' }}>Signal Score</div>
+                                <strong style={{ color: '#111827', fontSize: '24px' }}>{signalSelectedProspect.score}</strong>
+                              </div>
+                              <div style={{ border: '1px solid #d7e4d8', background: '#f8fbf8', borderRadius: '14px', padding: '10px' }}>
+                                <div style={{ color: '#64748b', fontSize: '12px' }}>Priority</div>
+                                <strong style={{ color: '#111827', fontSize: '20px' }}>{signalSelectedProspect.priority}</strong>
+                              </div>
+                            </div>
+
+                            {[
+                              ['Signal Insight', signalSelectedProspect.signalInsight],
+                              ['Recommended Motion', `Start with ${signalSelectedProspect.serviceFit?.includes('Both') ? 'combined Renewables / StratoSight positioning' : (signalSelectedProspect.serviceFit || ['service']).join(', ')}. Prioritize executive discovery, asset footprint validation, and operational pain-point qualification.`],
+                              ['Suggested Outreach Angle', `${signalSelectedProspect.name} appears to be a strong fit based on ${getSignalSizeLabel(signalSelectedProspect).toLowerCase()}, ${signalSelectedProspect.region || 'regional'} presence, and ${signalSelectedProspect.industry || 'industry'} operating profile.`]
+                            ].map(([title, body]) => (
+                              <div key={title} style={{ border: '1px solid #d7e4d8', borderRadius: '14px', padding: '10px', marginBottom: '10px' }}>
+                                <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76', marginBottom: '8px' }}>{title}</div>
+                                <p style={{ margin: 0, color: '#334155', fontSize: '13px', lineHeight: 1.45 }}>{body}</p>
+                              </div>
+                            ))}
+
+                            <div style={{ border: '1px solid #d7e4d8', borderRadius: '14px', padding: '10px', marginBottom: '10px' }}>
+                              <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76', marginBottom: '8px' }}>Account Profile</div>
+                              {[
+                                ['Industry', signalSelectedProspect.industry],
+                                ['Region', signalSelectedProspect.region],
+                                ['Size', getSignalSizeLabel(signalSelectedProspect)],
+                                ['Service Fit', (signalSelectedProspect.serviceFit || []).join(', ')],
+                                ['Ownership', signalSelectedProspect.ownership],
+                                ['Market Segment', signalSelectedProspect.marketSegment],
+                                ['Status', signalSelectedProspect.status]
+                              ].map(([label, value]) => (
+                                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', borderTop: '1px solid #edf2ee', padding: '6px 0', fontSize: '13px' }}>
+                                  <span style={{ color: '#64748b' }}>{label}</span>
+                                  <strong style={{ color: '#111827', textAlign: 'right' }}>{value || 'Unknown'}</strong>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div style={{ border: '1px solid #d7e4d8', borderRadius: '14px', padding: '10px', marginBottom: '10px' }}>
+                              <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76', marginBottom: '8px' }}>Score Breakdown</div>
+                              {getSignalScoreBreakdown(signalSelectedProspect).map(([label, value]) => (
+                                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', borderTop: '1px solid #edf2ee', padding: '5px 0', fontSize: '13px' }}>
+                                  <span style={{ color: '#64748b' }}>{label}</span>
+                                  <strong style={{ color: '#0369a1' }}>{value}</strong>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div style={{
+                              position: 'fixed',
+                              right: 0,
+                              bottom: 0,
+                              width: '440px',
+                              maxWidth: '92vw',
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                              gap: '7px',
+                              padding: '10px 14px',
+                              background: '#ffffff',
+                              borderTop: '1px solid #d7e4d8',
+                              boxShadow: '0 -10px 24px rgba(15,23,42,0.08)',
+                              zIndex: 10000
+                            }}>
+                              <button type="button" onClick={() => addSignalProspectToQueue(signalSelectedProspect)} style={{ border: '1px solid #0B6771', background: isSignalProspectQueued(signalSelectedProspect) ? '#e0f2fe' : '#0B6771', color: isSignalProspectQueued(signalSelectedProspect) ? '#075985' : '#fff', borderRadius: '10px', padding: '8px 6px', fontSize: '11px', fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                {isSignalProspectQueued(signalSelectedProspect) ? 'Queued' : 'Queue'}
+                              </button>
+                              <button type="button" onClick={() => seedSignalAccountIntake(signalSelectedProspect)} style={{ border: '1px solid #d7e4d8', background: '#f8fbf8', color: '#315348', borderRadius: '10px', padding: '8px 6px', fontSize: '11px', fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                Account
+                              </button>
+                              <button type="button" onClick={() => seedSignalContactIntake(signalSelectedProspect)} style={{ border: '1px solid #d7e4d8', background: '#f8fbf8', color: '#315348', borderRadius: '10px', padding: '8px 6px', fontSize: '11px', fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                Contact
+                              </button>
+                              <button type="button" onClick={() => seedSignalDealIntake(signalSelectedProspect)} style={{ border: '1px solid #d7e4d8', background: '#f8fbf8', color: '#315348', borderRadius: '10px', padding: '8px 6px', fontSize: '11px', fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                Deal
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </>
+                    ) : signalOutreachTab === 'Find New Customers' ? (
+                      <div style={{ border: '1px solid #d7e4d8', borderRadius: '22px', background: '#fff', padding: '20px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76' }}>Discovery Workspace</div>
+                        <h3 style={{ margin: '6px 0 12px', color: '#111827' }}>Find New Customers</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(160px, 1fr))', gap: '12px' }}>
+                          {['Industry', 'Region', 'Service Fit', 'Minimum Score'].map((label) => (
+                            <label key={label} style={{ display: 'grid', gap: '6px', color: '#445f54', fontSize: '12px', fontWeight: 800 }}>
+                              {label}
+                              <input disabled placeholder="Coming next" style={{ border: '1px solid #d7e4d8', borderRadius: '12px', padding: '10px', background: '#f8fafc' }} />
+                            </label>
+                          ))}
+                        </div>
+                        <p style={{ margin: '14px 0 0', color: '#5e786d' }}>
+                          This tab will become the prospect search and scoring workbench. For now, it is intentionally disabled so no production data is touched.
+                        </p>
+                      </div>
+                    ) : signalOutreachTab === 'Prospect Lists' ? (
+                      <div style={{ border: '1px solid #d7e4d8', borderRadius: '22px', background: '#fff', padding: '20px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76' }}>List Management</div>
+                        <h3 style={{ margin: '6px 0 12px', color: '#111827' }}>Prospect Lists</h3>
+                        {['Strategic Rooftop Targets', 'Renewables Expansion Targets', 'Industrial O&M Prospects'].map((list, idx) => (
+                          <div key={list} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', borderTop: idx ? '1px solid #edf2ee' : '0', padding: '13px 0' }}>
+                            <div>
+                              <strong style={{ color: '#111827' }}>{list}</strong>
+                              <div style={{ color: '#64748b', fontSize: '13px', marginTop: '3px' }}>Sample list, UI only</div>
+                            </div>
+                            <span style={{ border: '1px solid #d7e4d8', borderRadius: '999px', padding: '5px 10px', color: '#445f54', fontWeight: 800, fontSize: '12px' }}>{idx + 3} accounts</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : signalOutreachTab === 'Import CSV' ? (
+                      <div style={{ border: '1px solid #d7e4d8', borderRadius: '22px', background: '#fff', padding: '20px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76' }}>CSV Intake</div>
+                        <h3 style={{ margin: '6px 0 12px', color: '#111827' }}>Import CSV</h3>
+                        <div style={{ border: '1px dashed #9fb9ad', borderRadius: '18px', background: '#f8fbf8', padding: '28px', textAlign: 'center', color: '#445f54', fontWeight: 800 }}>
+                          CSV upload placeholder. Parser will be added after the page shell is approved.
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ border: '1px solid #d7e4d8', borderRadius: '22px', background: '#fff', padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', marginBottom: '14px' }}>
+                          <div>
+                            <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76' }}>Controlled CRM Hand-Off</div>
+                            <h3 style={{ margin: '6px 0 4px', color: '#111827' }}>Intake Queue</h3>
+                            <p style={{ margin: 0, color: '#5e786d' }}>
+                              Review queued Signal prospects before seeding Account, Contact, or Deal intake. No backend records are created until the existing CRM intake forms are saved.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={signalQueue.length === 0}
+                            onClick={clearSignalQueue}
+                            style={{
+                              border: '1px solid #d7e4d8',
+                              background: signalQueue.length === 0 ? '#f1f5f9' : '#fff',
+                              color: '#315348',
+                              borderRadius: '999px',
+                              padding: '8px 12px',
+                              fontSize: '12px',
+                              fontWeight: 850,
+                              cursor: signalQueue.length === 0 ? 'not-allowed' : 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Clear Queue
+                          </button>
+                        </div>
+
+                        {signalQueue.length === 0 ? (
+                          <div style={{ border: '1px dashed #9fb9ad', borderRadius: '18px', background: '#f8fbf8', padding: '28px', textAlign: 'center', color: '#445f54', fontWeight: 800 }}>
+                            No prospects queued yet. Open a prospect review drawer and click Queue.
+                          </div>
+                        ) : (
+                          <div style={{ display: 'grid', gap: '12px' }}>
+                            {signalQueue.map((prospect) => (
+                              <div key={prospect.name} style={{ border: '1px solid #d7e4d8', borderRadius: '16px', padding: '14px', background: '#ffffff', display: 'grid', gridTemplateColumns: '1.3fr 0.8fr 0.8fr auto', gap: '12px', alignItems: 'center' }}>
+                                <div>
+                                  <strong style={{ color: '#111827', fontSize: '14px' }}>{prospect.name}</strong>
+                                  <div style={{ color: '#64748b', fontSize: '12px', marginTop: '4px' }}>
+                                    {prospect.industry} · {prospect.region} · {getSignalSizeLabel(prospect)}
+                                  </div>
+                                  <div style={{ color: '#475569', fontSize: '12px', marginTop: '6px', lineHeight: 1.35 }}>
+                                    {prospect.signalInsight}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Service Fit</div>
+                                  <strong style={{ color: '#111827', fontSize: '13px' }}>{(prospect.serviceFit || []).join(', ')}</strong>
+                                </div>
+
+                                <div>
+                                  <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Score</div>
+                                  <strong style={{ color: '#0369a1', fontSize: '18px' }}>{prospect.score}</strong>
+                                  <span style={{ marginLeft: '8px', background: '#f1f5f9', color: '#334155', borderRadius: '999px', padding: '3px 7px', fontSize: '11px', fontWeight: 850 }}>{prospect.priority}</span>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, auto)', gap: '7px', justifyContent: 'end' }}>
+                                  <button type="button" onClick={() => setSignalSelectedProspect(prospect)} style={{ border: '1px solid #0B6771', background: '#0B6771', color: '#fff', borderRadius: '999px', padding: '7px 10px', fontSize: '11px', fontWeight: 850, cursor: 'pointer' }}>
+                                    Review
+                                  </button>
+                                  <button type="button" onClick={() => seedSignalAccountIntake(prospect)} style={{ border: '1px solid #d7e4d8', background: '#f8fbf8', color: '#315348', borderRadius: '999px', padding: '7px 10px', fontSize: '11px', fontWeight: 850, cursor: 'pointer' }}>
+                                    Account
+                                  </button>
+                                  <button type="button" onClick={() => seedSignalContactIntake(prospect)} style={{ border: '1px solid #d7e4d8', background: '#f8fbf8', color: '#315348', borderRadius: '999px', padding: '7px 10px', fontSize: '11px', fontWeight: 850, cursor: 'pointer' }}>
+                                    Contact
+                                  </button>
+                                  <button type="button" onClick={() => seedSignalDealIntake(prospect)} style={{ border: '1px solid #d7e4d8', background: '#f8fbf8', color: '#315348', borderRadius: '999px', padding: '7px 10px', fontSize: '11px', fontWeight: 850, cursor: 'pointer' }}>
+                                    Deal
+                                  </button>
+                                  <button type="button" onClick={() => removeSignalProspectFromQueue(prospect.name)} style={{ gridColumn: '1 / -1', border: '1px solid #fee2e2', background: '#fff7f7', color: '#991b1b', borderRadius: '999px', padding: '7px 10px', fontSize: '11px', fontWeight: 850, cursor: 'pointer' }}>
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+
+                : safeActivePage === 'Tasks'
               ? (
                 showNewTaskForm
                   ? <NewTaskPage
