@@ -10846,7 +10846,6 @@ async function updateAccountViaApi(accountId, form = {}) {
       last_activity_date: '',
       staleness_flag: 'Current',
       created_at: String(record?.createdAt || dtNow()),
-      notes: String(record?.notes || '').trim(),
       updated_at: String(record?.updatedAt || dtNow()),
       _backend: record,
     };
@@ -10964,19 +10963,21 @@ async function updateAccountViaApi(accountId, form = {}) {
     return mapBackendOpportunityToFrontend(json?.data || {});
   }
 
-  async function deleteOpportunityViaApi(opportunityId) {
-    const response = await backendFetch(`/api/opportunities/${opportunityId}`, {
-      method: 'DELETE',
-    });
+  
+async function deleteOpportunityViaApi(opportunityId) {
+  const response = await backendFetch(`/api/opportunities/${opportunityId}`, {
+    method: 'DELETE'
+  });
 
-    if (!response.ok) {
-      throw new Error(`Opportunity delete failed: ${response.status}`);
-    }
-
-    return true;
+  if (!response.ok) {
+    throw new Error(`Delete failed: ${response.status}`);
   }
 
-  async function updateOpportunityViaApi(opportunityId, patch = {}, currentRecord = {}) {
+  return true;
+}
+
+
+async function updateOpportunityViaApi(opportunityId, patch = {}, currentRecord = {}) {
     const payload = buildOpportunityPatchPayload(patch);
 
     const response = await backendFetch(`/api/opportunities/${opportunityId}`, {
@@ -11511,10 +11512,29 @@ async function updateAccountViaApi(accountId, form = {}) {
     };
   }, []);
 
-  const selectedOpportunity =
-    routeInfo.detailId
-      ? opportunities.find((item) => item.id === routeInfo.detailId) || null
-      : null;
+  const selectedOpportunity = (() => {
+  if (!routeInfo.detailId) return null;
+  return opportunities.find((item) => item.id === routeInfo.detailId) || null;
+})();
+
+React.useEffect(() => {
+  if (!routeInfo.detailId) return;
+
+  (async () => {
+    try {
+      const fresh = await fetch(`/api/opportunities/${routeInfo.detailId}`).then(r => r.json());
+      if (fresh?.data) {
+        setOpportunities(prev => {
+          const others = prev.filter(o => o.id !== fresh.data.id);
+          return [mapBackendOpportunityToFrontend(fresh.data), ...others];
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to refresh selected opportunity", e);
+    }
+  })();
+}, [routeInfo.detailId]);
+
 
   React.useEffect(() => {
     const onPopState = () => {
@@ -12522,14 +12542,13 @@ function openOpportunityDetail(opportunityId) {
     }
 
     async function deleteOpportunityLocal(opportunityId) {
-      try {
-        await deleteOpportunityViaApi(opportunityId);
-        const refreshed = await fetchOpportunitiesFromApi();
-        setOpportunities(refreshed);
-      } catch (error) {
-        console.warn('Could not delete opportunity from backend', error);
-        window.alert('Delete failed. The opportunity was not removed from the backend.');
-      }
+  try {
+    await deleteOpportunityViaApi(opportunityId);
+  } catch (e) {
+    console.warn("Backend delete failed", e);
+  }
+
+      setOpportunities((prev) => prev.filter((item) => item.id !== opportunityId));
     }
 
   function goBack() {
@@ -12758,10 +12777,10 @@ returnToOpportunitiesOverview();
       estimated_cts_pct: 63,
       account_name: payload.accountName || payload.account || '',
       owner_full_name: payload.ownerName || payload.owner || '',
-        estimated_square_footage: payload.estimated_square_footage ?? payload.sqft ?? selectedOpportunity.estimated_square_footage,
-        price_per_sqft: payload.price_per_sqft ?? payload.pricePerSqft ?? selectedOpportunity.price_per_sqft,
-        term_years: payload.term_years ?? payload.termYears ?? selectedOpportunity.term_years,
-        total_mwdc: payload.total_mwdc ?? payload.mw ?? selectedOpportunity.total_mwdc,
+        estimated_square_footage: payload.estimated_square_footage ?? payload.sqft ,
+        price_per_sqft: payload.price_per_sqft ?? payload.pricePerSqft ,
+        term_years: payload.term_years ?? payload.termYears ,
+        total_mwdc: payload.total_mwdc ?? payload.mw ,
         capacity_basis: payload.capacity_basis || payload.basis || 'MWDC',
         sqft: payload.sqft,
         pricePerSqft: payload.pricePerSqft,

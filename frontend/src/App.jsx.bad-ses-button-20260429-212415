@@ -9378,43 +9378,6 @@ export default function App() {
   const [signalSuppressions, setSignalSuppressions] = useState([]);
   const [signalReadiness, setSignalReadiness] = useState({ mode: 'safe-mode', live_ready: false, checks: [] });
   const [signalSendMode, setSignalSendMode] = useState('safe');
-
-  // === MANUAL CONTACT FORM STATE ===
-  const [manualContact, setManualContact] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    company: '',
-    service_fit: '',
-    signal_insight: ''
-  });
-
-  const addManualContactToCampaign = async (campaignId) => {
-    if (!campaignId || !manualContact.email) return;
-
-    try {
-      await backendFetch(`/api/signal/campaigns/${campaignId}/contacts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contacts: [manualContact] })
-      });
-
-      setManualContact({
-        first_name: '',
-        last_name: '',
-        email: '',
-        company: '',
-        service_fit: '',
-        signal_insight: ''
-      });
-
-      await loadSignalCampaigns();
-    } catch (err) {
-      console.error('Manual add failed', err);
-    }
-  };
-
-
   const [suppressionEmail, setSuppressionEmail] = useState('');
   const [suppressionReason, setSuppressionReason] = useState('');
   const [suppressionEventType, setSuppressionEventType] = useState('bounced');
@@ -9531,6 +9494,33 @@ Would it make sense to compare notes?
       await loadSignalEvents();
     } catch (err) {
       console.warn('Failed to log signal event', err);
+    }
+  };
+
+  const runSignalSandboxSend = async (campaignId) => {
+    if (!campaignId) return;
+
+    try {
+      const res = await backendFetch(`/api/signal/campaigns/${campaignId}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          mode: 'live',
+          sandbox: true,
+          override_to: 'jvnparadise@gmail.com'
+        })
+      });
+
+      const data = await res.json();
+
+      setSendPreviewPayloads((prev) => ({
+        ...prev,
+        [campaignId]: data.results || []
+      }));
+
+      await loadSignalEvents();
+    } catch (err) {
+      console.error('Sandbox send failed', err);
     }
   };
 
@@ -10151,46 +10141,27 @@ const signalExecutiveChartCard = {
   };
 
   const seedSignalAccountIntake = (prospect = {}) => {
-    const serviceFit = Array.isArray(prospect.serviceFit)
-      ? prospect.serviceFit.filter(Boolean).join(', ')
-      : String(prospect.serviceFit || 'Both').trim();
-
-    const accountSeed = {
-      name: prospect.name || prospect.company || '',
-      industry: prospect.industry || prospect.businessType || 'Commercial / Industrial',
-      businessType: prospect.industry || prospect.businessType || 'Commercial / Industrial',
-      serviceLineFit: serviceFit || 'Both',
-      interestedServices: serviceFit || 'Both',
-      region: prospect.region || prospect.hq || '',
-      generalFootprintRegion: prospect.region || prospect.hq || '',
-      state: prospect.state || '',
-      siteCount: prospect.sites ? String(prospect.sites) : '',
-      estimatedBuildingCount: prospect.sites ? String(prospect.sites) : '',
-      estimatedMw: prospect.mw ? String(prospect.mw) : '',
-      totalMw: prospect.mw ? String(prospect.mw) : '',
-      estimatedSqft: prospect.sqft ? String(prospect.sqft) : '',
-      estimatedSquareFootage: prospect.sqft ? String(prospect.sqft) : '',
-      notes: [
-        'Source: Apollo / Signal',
-        `Signal Score: ${prospect.score || 'n/a'}`,
-        `Signal Priority: ${prospect.priority || 'n/a'}`,
-        `Signal Insight: ${prospect.signalInsight || prospect.buyingSignal || 'n/a'}`,
-        `Employees: ${prospect.employees || 'n/a'}`,
-        `Estimated Revenue: ${prospect.estimatedRevenue || 'n/a'}`,
-        `Apollo Contacts: ${prospect.contacts || 'n/a'}`,
-        `Confidence: ${prospect.confidence || 'n/a'}`,
-        `Market Segment: ${prospect.marketSegment || prospect.industry || 'Unknown'}`
-      ].join('\n')
-    };
-
     setNewAccountForm((prev) => ({
       ...prev,
-      ...accountSeed
+      name: prospect.name || '',
+      businessType: prospect.industry || '',
+      state: prospect.region || '',
+      generalFootprintRegion: prospect.region || '',
+      totalMw: prospect.mw ? String(prospect.mw) : '',
+      estimatedSquareFootage: prospect.sqft ? String(prospect.sqft) : '',
+      estimatedBuildingCount: prospect.sites ? String(prospect.sites) : '',
+      interestedServices: (prospect.serviceFit || []).join(', '),
+      notes: [
+        `Signal Score: ${prospect.score}`,
+        `Signal Priority: ${prospect.priority}`,
+        `Signal Insight: ${prospect.signalInsight}`,
+        `Ownership: ${prospect.ownership || 'Unknown'}`,
+        `Market Segment: ${prospect.marketSegment || 'Unknown'}`
+      ].join('\n')
     }));
 
     setShowEditAccountForm(false);
     setAccountDetailId(null);
-    setSignalAccountSeed(accountSeed);
     setShowNewAccountForm(true);
     setActivePage('Account Intelligence');
   };
@@ -10230,39 +10201,32 @@ const signalExecutiveChartCard = {
   };
 
   const seedSignalContactIntake = (prospect = {}) => {
-    const contactSeed = {
+    setNewContactForm((prev) => ({
+      ...prev,
       firstName: '',
       lastName: '',
       jobTitle: 'Operations / Facilities Contact',
       accountId: '',
-      accountName: prospect.name || prospect.company || '',
       email: '',
       mobilePhone: '',
       officePhone: '',
       website: '',
       preferredContactMethod: 'Email',
       roleInBuyingProcess: 'Target Contact / Evaluator',
-      state: prospect.region || prospect.hq || '',
+      state: prospect.region || '',
       decisionMaker: false,
       champion: false,
       primaryContact: false,
       notes: [
-        'Source: Apollo / Signal',
-        `Target Account: ${prospect.name || prospect.company || 'Unknown'}`,
+        'Seeded from Signal.',
+        `Target Account: ${prospect.name || 'Unknown'}`,
         `Industry: ${prospect.industry || 'Unknown'}`,
-        `Region: ${prospect.region || prospect.hq || 'Unknown'}`,
-        `Service Fit: ${Array.isArray(prospect.serviceFit) ? prospect.serviceFit.join(', ') : (prospect.serviceFit || 'Unknown')}`,
-        `Buying Signal: ${prospect.signalInsight || prospect.buyingSignal || 'n/a'}`,
-        `Employees: ${prospect.employees || 'n/a'}`,
-        `Estimated Revenue: ${prospect.estimatedRevenue || 'n/a'}`,
-        `Apollo Contacts: ${prospect.contacts || 'n/a'}`,
-        `Confidence: ${prospect.confidence || 'n/a'}`
+        `Region: ${prospect.region || 'Unknown'}`,
+        `Service Fit: ${(prospect.serviceFit || []).join(', ')}`,
+        `Signal Score: ${prospect.score}`,
+        `Signal Priority: ${prospect.priority}`,
+        `Signal Insight: ${prospect.signalInsight}`
       ].join('\n')
-    };
-
-    setNewContactForm((prev) => ({
-      ...prev,
-      ...contactSeed
     }));
 
     setContactDetailId(null);
@@ -10280,7 +10244,6 @@ const signalExecutiveChartCard = {
     }
   });
   const [showNewAccountForm, setShowNewAccountForm] = useState(false);
-  const [signalAccountSeed, setSignalAccountSeed] = useState(null);
   const [showEditAccountForm, setShowEditAccountForm] = useState(false);
   const [accountHistoryMap, setAccountHistoryMap] = useState(() => {
     try {
@@ -10421,8 +10384,7 @@ const signalExecutiveChartCard = {
     setRoutePath('/');
     setAccountDetailId(null);
     setContactDetailId(null);
-    
-      setShowNewAccountForm(true);
+    setShowNewAccountForm(true);
     setActivePage('Account Intelligence');
   }
 
@@ -10451,12 +10413,11 @@ const signalExecutiveChartCard = {
     return `${API_BASE_URL}/${cleanPath}`;
   }
 
-    function buildBackendHeaders(devUserId, extraHeaders = {}) {
-      return {
-        'x-dev-user-id': 'cmolsq82s0000ij02fp8g2zfj',
-        ...extraHeaders,
-      };
-    }
+  function buildBackendHeaders(devUserId, extraHeaders = {}) {
+    return {
+      ...extraHeaders,
+    };
+  }
 
   async function backendFetch(path = '', options = {}) {
     return fetch(buildBackendUrl(path), {
@@ -10507,7 +10468,7 @@ const signalExecutiveChartCard = {
       email: String(record?.email || '').trim(),
       phone: String(record?.phone || '').trim(),
       segment: String(record?.marketSegment || '').trim(),
-      region: String(record?.generalFootprintRegion || record?.state || record?.country || '').trim(),
+      region: String(record?.state || record?.country || '').trim(),
       owner: String(record?.primaryAccountOwner || '').trim(),
       arr: 0,
       annualRevenue: 0,
@@ -10522,7 +10483,7 @@ const signalExecutiveChartCard = {
   function buildAccountApiPayload(form = {}) {
     return {
       name: String(form.name || '').trim(),
-      accountType: String(form.industry || form.businessType || '').trim() || null,
+      accountType: String(form.businessType || '').trim() || null,
       marketSegment: String(form.segment || '').trim() || null,
       website: String(form.website || '').trim() || null,
       phone: String(form.mainPhone || form.phone || '').trim() || null,
@@ -10539,10 +10500,10 @@ const signalExecutiveChartCard = {
 
       legalBusinessName: String(form.legalBusinessName || '').trim() || null,
       linkedin: String(form.linkedin || '').trim() || null,
-      interestedServices: String(form.serviceLineFit || form.interestedServices || '').trim() || null,
+      interestedServices: String(form.interestedServices || '').trim() || null,
       totalMw: String(form.totalMw || '').trim() || null,
       portfolioType: String(form.portfolioType || '').trim() || null,
-      generalFootprintRegion: String(form.region || form.generalFootprintRegion || '').trim() || null,
+      generalFootprintRegion: String(form.generalFootprintRegion || '').trim() || null,
       estimatedBuildingCount: String(form.estimatedBuildingCount || '').trim() || null,
       estimatedSquareFootage: String(form.estimatedSquareFootage || '').trim() || null,
       generalSiteType: String(form.generalSiteType || '').trim() || null,
@@ -10831,7 +10792,7 @@ async function updateAccountViaApi(accountId, form = {}) {
       commercial_basis: '',
       total_mwdc: null,
       total_mwac: null,
-      estimated_square_footage: Number(record?.estimatedSquareFootage || record?.estimated_square_footage || 0) || null,
+      estimated_square_footage: Number(form.stratoSqftTotal || fallbackRecord.estimated_square_footage || 0) || null,
       amount_estimated: estimated,
       calc_year1_total: estimated,
       calc_arr_total: arr,
@@ -10846,7 +10807,6 @@ async function updateAccountViaApi(accountId, form = {}) {
       last_activity_date: '',
       staleness_flag: 'Current',
       created_at: String(record?.createdAt || dtNow()),
-      notes: String(record?.notes || '').trim(),
       updated_at: String(record?.updatedAt || dtNow()),
       _backend: record,
     };
@@ -10887,58 +10847,6 @@ async function updateAccountViaApi(accountId, form = {}) {
     };
   }
 
-
-  function buildOpportunityPatchPayload(patch = {}) {
-    const payload = {};
-    const has = (key) => Object.prototype.hasOwnProperty.call(patch, key);
-    const clean = (value) => String(value ?? '').trim();
-
-    if (has('accountId')) payload.accountId = clean(patch.accountId) || null;
-    if (has('primaryContactId')) payload.primaryContactId = clean(patch.primaryContactId) || null;
-    if (has('name')) payload.name = clean(patch.name) || 'New Deal';
-
-    if (has('serviceLine')) payload.serviceLine = clean(patch.serviceLine) || null;
-    if (has('service_line')) payload.serviceLine = clean(patch.service_line) || null;
-
-    if (has('marketSegment')) payload.marketSegment = clean(patch.marketSegment) || null;
-    if (has('market_segment')) payload.marketSegment = clean(patch.market_segment) || null;
-    if (has('renewablesSegment')) payload.marketSegment = clean(patch.renewablesSegment) || null;
-
-    if (has('opportunityType')) payload.opportunityType = clean(patch.opportunityType) || null;
-    if (has('opportunity_type')) payload.opportunityType = clean(patch.opportunity_type) || null;
-
-    if (has('stage')) payload.stage = frontendStageToBackend(patch.stage);
-
-    if (has('forecastCategory')) payload.forecastCategory = frontendForecastToBackend(patch.forecastCategory);
-    if (has('forecast_category')) payload.forecastCategory = frontendForecastToBackend(patch.forecast_category);
-
-    if (has('probability')) payload.forecastProbability = Number(patch.probability || 0) || 0;
-    if (has('forecastProbability')) payload.forecastProbability = Number(patch.forecastProbability || 0) || 0;
-
-    if (has('expectedCloseDate')) {
-      const raw = clean(patch.expectedCloseDate);
-      payload.expectedCloseDate = raw ? new Date(raw).toISOString() : null;
-    }
-    if (has('expected_close_date')) {
-      const raw = clean(patch.expected_close_date);
-      payload.expectedCloseDate = raw ? new Date(raw).toISOString() : null;
-    }
-
-    if (has('scopeNotes')) payload.notes = clean(patch.scopeNotes) || null;
-    if (has('notes')) payload.notes = clean(patch.notes) || null;
-
-    if (has('ownerUserId')) payload.ownerUserId = clean(patch.ownerUserId) || null;
-
-    if (has('annualRevenue')) payload.annualRevenue = Number(patch.annualRevenue || 0) || 0;
-    if (has('arr')) payload.arr = Number(patch.arr || 0) || 0;
-    if (has('totalEstimatedRevenue')) payload.totalEstimatedRevenue = Number(patch.totalEstimatedRevenue || 0) || 0;
-    if (has('oneTimeRevenue')) payload.oneTimeRevenue = Number(patch.oneTimeRevenue || 0) || 0;
-    if (has('ctsPercent')) payload.ctsPercent = Number(patch.ctsPercent || 0) || 0;
-    if (has('marginPercent')) payload.marginPercent = Number(patch.marginPercent || 0) || 0;
-
-    return payload;
-  }
-
   async function fetchOpportunitiesFromApi() {
     const response = await backendFetch('/api/opportunities');
     if (!response.ok) {
@@ -10964,25 +10872,11 @@ async function updateAccountViaApi(accountId, form = {}) {
     return mapBackendOpportunityToFrontend(json?.data || {});
   }
 
-  async function deleteOpportunityViaApi(opportunityId) {
-    const response = await backendFetch(`/api/opportunities/${opportunityId}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Opportunity delete failed: ${response.status}`);
-    }
-
-    return true;
-  }
-
   async function updateOpportunityViaApi(opportunityId, patch = {}, currentRecord = {}) {
-    const payload = buildOpportunityPatchPayload(patch);
-
     const response = await backendFetch(`/api/opportunities/${opportunityId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(buildOpportunityApiPayload(patch, currentRecord)),
     });
 
     if (!response.ok) {
@@ -10993,36 +10887,14 @@ async function updateAccountViaApi(accountId, form = {}) {
     return mapBackendOpportunityToFrontend(json?.data || {});
   }
 
-    const [opportunities, setOpportunities] = useState([]);
-
-    useEffect(() => {
-  (async () => {
+  const [opportunities, setOpportunities] = useState(() => {
     try {
-      const data = await fetchOpportunitiesFromApi();
-
-      if (Array.isArray(data) && data.length > 0) {
-        setOpportunities(data);
-      } else {
-        const raw = window.localStorage.getItem('naes-crm-opportunity-list');
-        const localData = sanitizeOpportunities(
-          safeParseStoredJson(raw, initialOpportunities)
-        );
-
-        setOpportunities(localData);
-        console.warn('Backend returned zero opportunities, using localStorage fallback');
-      }
-    } catch (error) {
-      console.warn('Backend opportunity fetch failed, using localStorage fallback', error);
-
       const raw = window.localStorage.getItem('naes-crm-opportunity-list');
-      const localData = sanitizeOpportunities(
-        safeParseStoredJson(raw, initialOpportunities)
-      );
-
-      setOpportunities(localData);
+      return sanitizeOpportunities(safeParseStoredJson(raw, initialOpportunities));
+    } catch {
+      return initialOpportunities;
     }
-  })();
-}, []);
+  });
 
   const [taskList, setTaskList] = useState(() => {
     try {
@@ -11593,15 +11465,7 @@ async function updateAccountViaApi(accountId, form = {}) {
 
   React.useEffect(() => {
     try {
-      if (Array.isArray(opportunities) && opportunities.length > 0) {
-        if (Array.isArray(opportunities) && opportunities.length > 0) {
-        window.localStorage.setItem('naes-crm-opportunity-list', JSON.stringify(opportunities));
-      } else {
-        console.warn('Skipped writing empty opportunities list to localStorage');
-      }
-      } else {
-        console.warn('Skipped saving empty opportunities list to localStorage');
-      }
+      window.localStorage.setItem('naes-crm-opportunity-list', JSON.stringify(opportunities));
     } catch (error) {
       console.warn('Could not persist opportunity list', error);
     }
@@ -11612,9 +11476,9 @@ async function updateAccountViaApi(accountId, form = {}) {
 
     async function hydrateOpportunitiesFromBackend() {
       try {
-        const backendOpportunities = [];
+        const backendOpportunities = await fetchOpportunitiesFromApi();
         if (!cancelled && Array.isArray(backendOpportunities) && backendOpportunities.length) {
-          console.log('🚫 backend disabled, keeping local opportunities');
+          setOpportunities(backendOpportunities);
         }
       } catch (error) {
         console.warn('Could not hydrate opportunities from backend', error);
@@ -11657,8 +11521,7 @@ async function updateAccountViaApi(accountId, form = {}) {
   function startNewAccount() {
     setAccountDetailId(null);
     setNewAccountForm(buildAccountFormFromRecord());
-    
-      setShowNewAccountForm(true);
+    setShowNewAccountForm(true);
   }
 
   
@@ -12443,16 +12306,40 @@ async function saveNewOpportunity() {
     };
   } catch (error) {
     console.warn('Could not create opportunity in backend, using local fallback', error);
-  }setShowNewOpportunityForm(false);
+  }
+
+  setOpportunities((current) => [nextOpportunity, ...current]);
+  setShowNewOpportunityForm(false);
   setNewOpportunityForm(buildOpportunityFormFromRecord());
   openOpportunityDetail(nextOpportunity.id);
 }
 
 function openOpportunityDetail(opportunityId) {
-    const nextPath = `/opportunities-v2/${opportunityId}`;
+    const nextPath = `/opportunities/${opportunityId}`;
     pushPath(nextPath);
     setRoutePath(nextPath);
-    setActivePage('Opportunities & Analytics');
+    setActivePage('Opportunities');
+
+    setTimeout(() => {
+      const selectors = [
+        'main',
+        '[data-scroll-root]',
+        '[style*="overflow: auto"]',
+        '[style*="overflow:auto"]',
+        '[style*="overflow-y: auto"]',
+        '[style*="overflow-y:auto"]'
+      ];
+
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+
+      selectors.forEach((selector) => {
+        document.querySelectorAll(selector).forEach((el) => {
+          try { el.scrollTop = 0; } catch {}
+        });
+      });
+    }, 0);
   }
 
   function returnToOpportunitiesOverview() {
@@ -12507,29 +12394,22 @@ function openOpportunityDetail(opportunityId) {
           || [backendRecord?.primaryContact?.firstName, backendRecord?.primaryContact?.lastName].filter(Boolean).join(' ').trim()
           || backendRecord.primary_contact_name
           || '',
-        };
-      } catch (error) {
-        console.warn('Could not save opportunity patch to backend, using local fallback', error);
-      }
-
-      setOpportunities((prev) =>
-        prev.map((item) =>
-          item.id === opportunityId
-            ? nextRecord
-            : item
-        )
-      );
+      };
+    } catch (error) {
+      console.warn('Could not save opportunity patch to backend, using local fallback', error);
     }
 
-    async function deleteOpportunityLocal(opportunityId) {
-      try {
-        await deleteOpportunityViaApi(opportunityId);
-        const refreshed = await fetchOpportunitiesFromApi();
-        setOpportunities(refreshed);
-      } catch (error) {
-        console.warn('Could not delete opportunity from backend', error);
-        window.alert('Delete failed. The opportunity was not removed from the backend.');
-      }
+    setOpportunities((prev) =>
+      prev.map((item) =>
+        item.id === opportunityId
+          ? nextRecord
+          : item
+      )
+    );
+  }
+
+    function deleteOpportunityLocal(opportunityId) {
+      setOpportunities((prev) => prev.filter((item) => item.id !== opportunityId));
     }
 
   function goBack() {
@@ -12698,36 +12578,12 @@ function openOpportunityDetail(opportunityId) {
             {safeActivePage === 'Opportunities & Analytics' || safeActivePage === 'Opportunities'
               ? (
                   selectedOpportunity
-                      ? <NewDealV2
-                            key={selectedOpportunity.id}
-                            mode="edit"
-                            initialDeal={selectedOpportunity}
-                            users={userAccounts}
-                            onBack={returnToOpportunitiesOverview}
-                            onCreate={async (payload) => {
-                              const patch = {
-                                ...selectedOpportunity,
-                                ...payload,
-                                service_line: payload.serviceLine || selectedOpportunity.service_line,
-                                market_segment: payload.marketSegment || selectedOpportunity.market_segment,
-                                account_name: payload.accountName || payload.account || selectedOpportunity.account_name || '',
-                                owner_full_name: payload.ownerName || payload.owner || selectedOpportunity.owner_full_name || '',
-                                estimated_square_footage: payload.estimated_square_footage ?? payload.sqft ?? selectedOpportunity.estimated_square_footage,
-                                price_per_sqft: payload.price_per_sqft ?? payload.pricePerSqft ?? selectedOpportunity.price_per_sqft,
-                                term_years: payload.term_years ?? payload.termYears ?? selectedOpportunity.term_years,
-                                total_mwdc: payload.total_mwdc ?? payload.mw ?? selectedOpportunity.total_mwdc,
-                                capacity_basis: payload.capacity_basis || payload.basis || 'MWDC',
-                                calculated_revenue: payload.calculated_revenue ?? payload.annualRevenue ?? selectedOpportunity.calculated_revenue,
-                                amount_total: payload.amount_total ?? payload.totalEstimatedRevenue ?? selectedOpportunity.amount_total,
-                                amount_estimated: payload.amount_estimated ?? payload.totalEstimatedRevenue ?? selectedOpportunity.amount_estimated,
-                                weighted_revenue: Number(payload.weighted_revenue || 0),
-                              };
-                              await saveOpportunityPatch(selectedOpportunity.id, patch);
-                              const refreshed = await fetchOpportunitiesFromApi();
-setOpportunities(refreshed);
-returnToOpportunitiesOverview();
-                            }}
-                          />
+                    ? <OpportunityDetailV2
+                          opportunity={selectedOpportunity}
+                          users={userAccounts}
+                          onBack={returnToOpportunitiesOverview}
+                          onSaveOpportunity={saveOpportunityPatch}
+                        />
                     : <OpportunitiesV2
                         opportunities={opportunities}
                         onOpenOpportunity={openOpportunityDetail}
@@ -12738,66 +12594,7 @@ returnToOpportunitiesOverview();
                       />
                 )
               : safeActivePage === 'New Deal Intake'
-                ? <NewDealV2 users={userAccounts} onCreate={async (payload) => {
-    const fallbackRecord = {
-      id: `opp-${Date.now()}`,
-      name: payload.name || 'New Deal',
-      service_line: payload.serviceLine || 'Renewables',
-      market_segment: payload.marketSegment || payload.serviceLine || '',
-      opportunity_type: payload.opportunityType || 'New Customer',
-      stage: payload.stage || '0 Prospecting',
-      forecast_category: payload.forecastCategory || 'Pipeline',
-      probability: Number(payload.forecastProbability || payload.probability || 50),
-      calc_year1_total: Number(payload.annualRevenue || 0),
-      calc_arr_total: Number(payload.arr || payload.annualRevenue || 0),
-      amount_total: Number(payload.totalEstimatedRevenue || payload.annualRevenue || 0),
-      amount_estimated: Number(payload.totalEstimatedRevenue || payload.annualRevenue || 0),
-      calculated_revenue: Number(payload.annualRevenue || 0),
-      weighted_revenue: Number(payload.totalEstimatedRevenue || 0) * (Number(payload.forecastProbability || 50) / 100),
-      estimated_earnings_pct: 37,
-      estimated_cts_pct: 63,
-      account_name: payload.accountName || payload.account || '',
-      owner_full_name: payload.ownerName || payload.owner || '',
-        estimated_square_footage: payload.estimated_square_footage ?? payload.sqft ?? selectedOpportunity.estimated_square_footage,
-        price_per_sqft: payload.price_per_sqft ?? payload.pricePerSqft ?? selectedOpportunity.price_per_sqft,
-        term_years: payload.term_years ?? payload.termYears ?? selectedOpportunity.term_years,
-        total_mwdc: payload.total_mwdc ?? payload.mw ?? selectedOpportunity.total_mwdc,
-        capacity_basis: payload.capacity_basis || payload.basis || 'MWDC',
-        sqft: payload.sqft,
-        pricePerSqft: payload.pricePerSqft,
-        termYears: payload.termYears,
-        mw: payload.mw,
-        basis: payload.basis,
-          flags: payload.flags || {},
-          timeline: payload.timeline || '',
-          scanFrequency: payload.scanFrequency || '',
-          expected_close_date: payload.expected_close_date || payload.expectedCloseDate || '',
-          deal_entry_date: payload.deal_entry_date || dtNow(),
-          stage_updated_date: payload.stage_updated_date || dtNow(),
-          omDescription: payload.omDescription || '',
-          omBasis: payload.omBasis || '',
-          omAnnual: payload.omAnnual || 0,
-          omOneTime: payload.omOneTime || 0,
-          omTerm: payload.omTerm || 0,
-          omConfidence: payload.omConfidence || '',
-          omScopeClarity: payload.omScopeClarity || '',
-          omNotes: payload.omNotes || '',
-      created_at: dtNow(),
-      updated_at: dtNow()
-    };
-
-    let nextOpportunity = fallbackRecord;
-    try {
-      const backendOpportunity = await createOpportunityViaApi(payload, fallbackRecord);
-      nextOpportunity = { ...fallbackRecord, ...backendOpportunity };
-    } catch (error) {
-      console.warn('Could not create NewDealV2 opportunity in backend, using local fallback', error);
-    }pushPath('/opportunities-v2-dashboard');
-      setRoutePath('/opportunities-v2-dashboard');
-      setActivePage('Opportunities & Analytics');
-  }} onBack={() => { pushPath('/opportunities-v2-dashboard'); setRoutePath('/opportunities-v2-dashboard'); pushPath('/opportunities-v2-dashboard');
-      setRoutePath('/opportunities-v2-dashboard');
-      setActivePage('Opportunities & Analytics'); }} />
+              ? <NewDealV2 onBack={() => { pushPath('/opportunities-v2-dashboard'); setRoutePath('/opportunities-v2-dashboard'); setActivePage('Opportunities & Analytics'); }} />
               : safeActivePage === 'Dashboard'
               ? renderExecutiveDashboard({ accounts: accountList, contacts: contactList, opportunities, onStartNewContact: openWelcomeNewContact, onStartNewAccount: openWelcomeNewAccount, onStartNewOpportunity: openWelcomeNewOpportunity, onOpenOpportunity: openOpportunityDetail })
               : safeActivePage === 'My Pipeline'
@@ -12850,7 +12647,6 @@ returnToOpportunitiesOverview();
                       onEditAccount={startEditAccount}
                     />
                   : <AccountsV2
-                      initialAccount={signalAccountSeed}
                       accounts={accountList}
                       onCreateAccount={saveNewAccount}
                       onUpdateAccount={saveAccountFromV2}
@@ -12910,7 +12706,6 @@ returnToOpportunitiesOverview();
               )
               : safeActivePage === 'Account Intelligence'
                 ? <AccountsV2
-                      initialAccount={signalAccountSeed}
                     accounts={accountList}
                     onCreateAccount={saveAccountFromV2}
                     onUpdateAccount={saveAccountFromV2}
@@ -12982,7 +12777,7 @@ returnToOpportunitiesOverview();
                       </p>
 
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '18px' }}>
-                        {['Dashboard', 'Apollo Search', 'Campaigns', 'Event History', 'Upload List'].map((tab) => {
+                        {['Dashboard', 'Apollo Search', 'Find New Customers', 'Prospect Lists', 'Campaigns', 'Events', 'Suppressions', 'Import CSV', 'Intake Queue'].map((tab) => {
                           const active = signalOutreachTab === tab;
                           return (
                             <button
@@ -13548,74 +13343,6 @@ Top Signal Targets</h4>
                                   <span style={{ border: '1px solid #d7e4d8', background: '#f8fbf8', color: '#315348', borderRadius: '999px', padding: '5px 9px', fontSize: '11px', fontWeight: 850 }}>{record.contacts} contacts</span>
                                   <span style={{ border: '1px solid #d7e4d8', background: '#f8fbf8', color: '#315348', borderRadius: '999px', padding: '5px 9px', fontSize: '11px', fontWeight: 850 }}>Potential: {record.estimatedRevenue}</span>
                                 </div>
-
-                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px', marginTop: '14px' }}>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                          const prospect = {
-                                            name: record.company,
-                                            company: record.company,
-                                            industry: record.industry,
-                                            businessType: record.industry,
-                                            region: record.hq,
-                                            hq: record.hq,
-                                            serviceFit: [record.serviceFit].filter(Boolean),
-                                            marketSegment: record.serviceFit,
-                                            signalInsight: record.buyingSignal,
-                                            buyingSignal: record.buyingSignal,
-                                            estimatedRevenue: record.estimatedRevenue,
-                                            employees: record.employees,
-                                            contacts: record.contacts,
-                                            confidence: record.confidence,
-                                            sourceStatus: record.sourceStatus,
-                                            source: 'Apollo Search'
-                                          };
-                                        seedSignalAccountIntake(prospect);
-                                      }}
-                                      style={{ border: '1px solid #b9d8c4', background: '#eaf5ee', color: '#153d2f', borderRadius: '12px', padding: '12px 10px', fontSize: '12px', fontWeight: 900, cursor: 'pointer' }}
-                                    >
-                                      Account Intelligence
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const prospect = {
-                                          name: record.company,
-                                          company: record.company,
-                                          industry: record.industry,
-                                          region: record.hq,
-                                          serviceFit: [record.serviceFit],
-                                          signalInsight: record.buyingSignal,
-                                          estimatedRevenue: record.estimatedRevenue
-                                        };
-                                        seedSignalContactIntake(prospect);
-                                      }}
-                                      style={{ border: '1px solid #b7dde5', background: '#eef9fb', color: '#0B6771', borderRadius: '12px', padding: '12px 10px', fontSize: '12px', fontWeight: 900, cursor: 'pointer' }}
-                                    >
-                                      Contacts
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const prospect = {
-                                          name: record.company,
-                                          company: record.company,
-                                          industry: record.industry,
-                                          region: record.hq,
-                                          serviceFit: [record.serviceFit],
-                                          signalInsight: record.buyingSignal,
-                                          estimatedRevenue: record.estimatedRevenue
-                                        };
-                                        seedSignalDealIntake(prospect);
-                                      }}
-                                      style={{ border: '1px solid #b9d8f0', background: '#eef6ff', color: '#1476b8', borderRadius: '12px', padding: '12px 10px', fontSize: '12px', fontWeight: 900, cursor: 'pointer' }}
-                                    >
-                                      New Deal
-                                    </button>
-                                  </div>
                               </div>
                             ))}
                           </div>
@@ -13684,7 +13411,7 @@ Top Signal Targets</h4>
                               <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76' }}>Campaign Service</div>
                               <h3 style={{ margin: '6px 0 4px', color: '#111827' }}>Signal Campaigns</h3>
                               <p style={{ margin: 0, color: '#5e786d' }}>
-                                Campaigns are live. Safe Mode allows full send simulation with tracking and event logging. Live Mode unlocks once deliverability (SPF/DKIM/DMARC) is verified.
+                                Campaigns are live for contact staging. Sending remains disabled until SES, suppression, and event tracking are wired.
                               </p>
                             </div>
                             <button
@@ -13828,7 +13555,7 @@ Top Signal Targets</h4>
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                       <span style={{ border: '1px solid #fed7aa', background: '#fff7ed', color: '#9a3412', borderRadius: '999px', padding: '5px 9px', fontSize: '11px', fontWeight: 900 }}>
-                                        Safe Mode Active
+                                        Sending Disabled
                                       </span>
                                       <button
                                         type="button"
@@ -13849,63 +13576,29 @@ Top Signal Targets</h4>
                                         onClick={() => runSignalSafeSend(campaign.id)}
                                         style={{ border: '1px solid #111827', background: '#111827', color: '#fff', borderRadius: '999px', padding: '6px 10px', fontSize: '11px', fontWeight: 900, cursor: 'pointer' }}
                                       >
-                                        {signalSendMode === 'live' ? 'Send Campaign (Live)' : 'Send Campaign (Safe)'} <span title="Send Campaign uses the backend send engine. In Safe Mode it prepares send payloads, checks suppressions, logs results, and updates telemetry. Live delivery remains blocked until readiness checks pass." style={{ marginLeft: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '14px', height: '14px', borderRadius: '999px', background: 'rgba(255,255,255,0.18)', fontSize: '10px', fontWeight: 900 }}>i</span>
+                                        {signalSendMode === 'live' ? 'Send Campaign (Live)' : 'Send Campaign (Safe)'}
+                                        <span title="Send Campaign uses the backend send engine. In Safe Mode it prepares payloads, checks suppressions, and logs events. Live delivery remains blocked until readiness checks pass." style={{ marginLeft: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '14px', height: '14px', borderRadius: '999px', background: 'rgba(255,255,255,0.18)', fontSize: '10px', fontWeight: 900 }}>i</span>
                                       </button>
-<div style={{marginTop:'6px',color:'#64748b',fontSize:'11px',fontWeight:800}}>Safe Mode: no emails sent • full tracking + events logged</div>
+                                      <button
+                                        type="button"
+                                        onClick={() => runSignalSandboxSend(campaign.id)}
+                                        style={{ border: '1px solid #1d4ed8', background: '#1d4ed8', color: '#fff', borderRadius: '999px', padding: '6px 10px', fontSize: '11px', fontWeight: 900, cursor: 'pointer' }}
+                                      >
+                                        SES Test
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => runSignalSandboxSend(campaign.id)}
+                                        style={{ border: '1px solid #1d4ed8', background: '#1d4ed8', color: '#fff', borderRadius: '999px', padding: '6px 10px', fontSize: '11px', fontWeight: 900, cursor: 'pointer' }}
+                                      >
+                                        SES Test
+                                      </button>'} <span title="Send Campaign uses the backend send engine. In Safe Mode it prepares send payloads, checks suppressions, logs results, and updates telemetry. Live delivery remains blocked until readiness checks pass." style={{ marginLeft: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '14px', height: '14px', borderRadius: '999px', background: 'rgba(255,255,255,0.18)', fontSize: '10px', fontWeight: 900 }}>i</span>
+                                      </button>
                                     </div>
                                   </div>
 
                                   <div style={{ marginTop: '14px', display: 'grid', gap: '8px' }}>
-                                    
-                                    <div style={{ marginTop: '14px', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '12px', background: '#ffffff' }}>
-                                      <div style={{ fontSize: '11px', fontWeight: 900, color: '#0B6771', marginBottom: '8px' }}>
-                                        Add Contact to Campaign
-                                      </div>
-
-                                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
-                                        <input placeholder="First name"
-                                          value={manualContact.first_name}
-                                          onChange={(e) => setManualContact({ ...manualContact, first_name: e.target.value })}
-                                          style={{ border: '1px solid #d7e4d8', borderRadius: '8px', padding: '8px' }}
-                                        />
-                                        <input placeholder="Last name"
-                                          value={manualContact.last_name}
-                                          onChange={(e) => setManualContact({ ...manualContact, last_name: e.target.value })}
-                                          style={{ border: '1px solid #d7e4d8', borderRadius: '8px', padding: '8px' }}
-                                        />
-                                        <input placeholder="Email (required)"
-                                          value={manualContact.email}
-                                          onChange={(e) => setManualContact({ ...manualContact, email: e.target.value })}
-                                          style={{ border: '1px solid #d7e4d8', borderRadius: '8px', padding: '8px' }}
-                                        />
-                                        <input placeholder="Company"
-                                          value={manualContact.company}
-                                          onChange={(e) => setManualContact({ ...manualContact, company: e.target.value })}
-                                          style={{ border: '1px solid #d7e4d8', borderRadius: '8px', padding: '8px' }}
-                                        />
-                                        <input placeholder="Service fit"
-                                          value={manualContact.service_fit}
-                                          onChange={(e) => setManualContact({ ...manualContact, service_fit: e.target.value })}
-                                          style={{ border: '1px solid #d7e4d8', borderRadius: '8px', padding: '8px' }}
-                                        />
-                                        <input placeholder="Signal insight"
-                                          value={manualContact.signal_insight}
-                                          onChange={(e) => setManualContact({ ...manualContact, signal_insight: e.target.value })}
-                                          style={{ border: '1px solid #d7e4d8', borderRadius: '8px', padding: '8px' }}
-                                        />
-                                      </div>
-
-                                      <button
-                                        type="button"
-                                        onClick={() => addManualContactToCampaign(campaign.id)}
-                                        style={{ marginTop: '10px', border: '1px solid #0B6771', background: '#0B6771', color: '#fff', borderRadius: '10px', padding: '8px 12px', fontWeight: 900, cursor: 'pointer' }}
-                                      >
-                                        Add Contact
-                                      </button>
-                                    </div>
-
-
-{(campaign.contacts || []).length === 0 ? (
+                                    {(campaign.contacts || []).length === 0 ? (
                                       <div style={{ color: '#64748b', fontSize: '13px' }}>No contacts added yet.</div>
                                     ) : (
                                       (campaign.contacts || []).map((contact) => (
@@ -13985,7 +13678,7 @@ Top Signal Targets</h4>
                             </div>
                           )}
                         </div>
-                      ) : (signalOutreachTab === 'Events' || signalOutreachTab === 'Event History') ? (
+                      ) : signalOutreachTab === 'Events' ? (
                         <div style={{ border: '1px solid #d7e4d8', borderRadius: '22px', background: '#fff', padding: '20px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', marginBottom: '14px' }}>
                             <div>
@@ -14168,7 +13861,7 @@ Top Signal Targets</h4>
                             </div>
                           )}
                         </div>
-                      ) : (signalOutreachTab === 'Import CSV' || signalOutreachTab === 'Upload List') ? (
+                      ) : signalOutreachTab === 'Import CSV' ? (
                       <div style={{ border: '1px solid #d7e4d8', borderRadius: '22px', background: '#fff', padding: '20px' }}>
                         <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7f76' }}>CSV Intake</div>
                         <h3 style={{ margin: '6px 0 12px', color: '#111827' }}>Import CSV</h3>

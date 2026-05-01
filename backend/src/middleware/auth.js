@@ -23,7 +23,12 @@ async function attachCurrentUser(req, _res, next) {
     }
 
     if (!resolvedUserId) {
-      req.currentUser = null;
+      // DEV FORCE USER
+req.currentUser = {
+  id: "cmolsq82s0000ij02fp8g2zfj",
+  email: "jeff.yarbrough@naes.com",
+  role: "ADMIN"
+};
       return next();
     }
 

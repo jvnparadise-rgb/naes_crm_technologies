@@ -10453,7 +10453,7 @@ const signalExecutiveChartCard = {
 
     function buildBackendHeaders(devUserId, extraHeaders = {}) {
       return {
-        'x-dev-user-id': 'cmolsq82s0000ij02fp8g2zfj',
+        'x-dev-user-id': devUserId || 'dev-user-1',
         ...extraHeaders,
       };
     }
@@ -10846,7 +10846,6 @@ async function updateAccountViaApi(accountId, form = {}) {
       last_activity_date: '',
       staleness_flag: 'Current',
       created_at: String(record?.createdAt || dtNow()),
-      notes: String(record?.notes || '').trim(),
       updated_at: String(record?.updatedAt || dtNow()),
       _backend: record,
     };
@@ -10887,58 +10886,6 @@ async function updateAccountViaApi(accountId, form = {}) {
     };
   }
 
-
-  function buildOpportunityPatchPayload(patch = {}) {
-    const payload = {};
-    const has = (key) => Object.prototype.hasOwnProperty.call(patch, key);
-    const clean = (value) => String(value ?? '').trim();
-
-    if (has('accountId')) payload.accountId = clean(patch.accountId) || null;
-    if (has('primaryContactId')) payload.primaryContactId = clean(patch.primaryContactId) || null;
-    if (has('name')) payload.name = clean(patch.name) || 'New Deal';
-
-    if (has('serviceLine')) payload.serviceLine = clean(patch.serviceLine) || null;
-    if (has('service_line')) payload.serviceLine = clean(patch.service_line) || null;
-
-    if (has('marketSegment')) payload.marketSegment = clean(patch.marketSegment) || null;
-    if (has('market_segment')) payload.marketSegment = clean(patch.market_segment) || null;
-    if (has('renewablesSegment')) payload.marketSegment = clean(patch.renewablesSegment) || null;
-
-    if (has('opportunityType')) payload.opportunityType = clean(patch.opportunityType) || null;
-    if (has('opportunity_type')) payload.opportunityType = clean(patch.opportunity_type) || null;
-
-    if (has('stage')) payload.stage = frontendStageToBackend(patch.stage);
-
-    if (has('forecastCategory')) payload.forecastCategory = frontendForecastToBackend(patch.forecastCategory);
-    if (has('forecast_category')) payload.forecastCategory = frontendForecastToBackend(patch.forecast_category);
-
-    if (has('probability')) payload.forecastProbability = Number(patch.probability || 0) || 0;
-    if (has('forecastProbability')) payload.forecastProbability = Number(patch.forecastProbability || 0) || 0;
-
-    if (has('expectedCloseDate')) {
-      const raw = clean(patch.expectedCloseDate);
-      payload.expectedCloseDate = raw ? new Date(raw).toISOString() : null;
-    }
-    if (has('expected_close_date')) {
-      const raw = clean(patch.expected_close_date);
-      payload.expectedCloseDate = raw ? new Date(raw).toISOString() : null;
-    }
-
-    if (has('scopeNotes')) payload.notes = clean(patch.scopeNotes) || null;
-    if (has('notes')) payload.notes = clean(patch.notes) || null;
-
-    if (has('ownerUserId')) payload.ownerUserId = clean(patch.ownerUserId) || null;
-
-    if (has('annualRevenue')) payload.annualRevenue = Number(patch.annualRevenue || 0) || 0;
-    if (has('arr')) payload.arr = Number(patch.arr || 0) || 0;
-    if (has('totalEstimatedRevenue')) payload.totalEstimatedRevenue = Number(patch.totalEstimatedRevenue || 0) || 0;
-    if (has('oneTimeRevenue')) payload.oneTimeRevenue = Number(patch.oneTimeRevenue || 0) || 0;
-    if (has('ctsPercent')) payload.ctsPercent = Number(patch.ctsPercent || 0) || 0;
-    if (has('marginPercent')) payload.marginPercent = Number(patch.marginPercent || 0) || 0;
-
-    return payload;
-  }
-
   async function fetchOpportunitiesFromApi() {
     const response = await backendFetch('/api/opportunities');
     if (!response.ok) {
@@ -10964,25 +10911,11 @@ async function updateAccountViaApi(accountId, form = {}) {
     return mapBackendOpportunityToFrontend(json?.data || {});
   }
 
-  async function deleteOpportunityViaApi(opportunityId) {
-    const response = await backendFetch(`/api/opportunities/${opportunityId}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Opportunity delete failed: ${response.status}`);
-    }
-
-    return true;
-  }
-
   async function updateOpportunityViaApi(opportunityId, patch = {}, currentRecord = {}) {
-    const payload = buildOpportunityPatchPayload(patch);
-
     const response = await backendFetch(`/api/opportunities/${opportunityId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(buildOpportunityApiPayload(patch, currentRecord)),
     });
 
     if (!response.ok) {
@@ -10996,33 +10929,28 @@ async function updateAccountViaApi(accountId, form = {}) {
     const [opportunities, setOpportunities] = useState([]);
 
     useEffect(() => {
-  (async () => {
-    try {
-      const data = await fetchOpportunitiesFromApi();
-
-      if (Array.isArray(data) && data.length > 0) {
-        setOpportunities(data);
-      } else {
-        const raw = window.localStorage.getItem('naes-crm-opportunity-list');
-        const localData = sanitizeOpportunities(
-          safeParseStoredJson(raw, initialOpportunities)
-        );
-
-        setOpportunities(localData);
-        console.warn('Backend returned zero opportunities, using localStorage fallback');
-      }
-    } catch (error) {
-      console.warn('Backend opportunity fetch failed, using localStorage fallback', error);
-
-      const raw = window.localStorage.getItem('naes-crm-opportunity-list');
-      const localData = sanitizeOpportunities(
-        safeParseStoredJson(raw, initialOpportunities)
-      );
-
-      setOpportunities(localData);
-    }
-  })();
-}, []);
+      (async () => {
+        try {
+          const data = await fetchOpportunitiesFromApi();
+          if (Array.isArray(data) && data.length > 0) {
+            setOpportunities(data);
+          } else {
+            const raw = window.localStorage.getItem('naes-crm-opportunity-list');
+            const localData = sanitizeOpportunities(safeParseStoredJson(raw, initialOpportunities));
+            setOpportunities(localData);
+            console.warn('Backend returned zero opportunities, preserving localStorage opportunity list');
+          }
+        } catch (error) {
+          console.warn('Backend opportunity fetch failed, using localStorage fallback', error);
+          try {
+            const raw = window.localStorage.getItem('naes-crm-opportunity-list');
+            setOpportunities(sanitizeOpportunities(safeParseStoredJson(raw, initialOpportunities)));
+          } catch {
+            setOpportunities(initialOpportunities);
+          }
+        }
+      })();
+    }, []);
 
   const [taskList, setTaskList] = useState(() => {
     try {
@@ -11594,11 +11522,7 @@ async function updateAccountViaApi(accountId, form = {}) {
   React.useEffect(() => {
     try {
       if (Array.isArray(opportunities) && opportunities.length > 0) {
-        if (Array.isArray(opportunities) && opportunities.length > 0) {
         window.localStorage.setItem('naes-crm-opportunity-list', JSON.stringify(opportunities));
-      } else {
-        console.warn('Skipped writing empty opportunities list to localStorage');
-      }
       } else {
         console.warn('Skipped saving empty opportunities list to localStorage');
       }
@@ -12443,7 +12367,10 @@ async function saveNewOpportunity() {
     };
   } catch (error) {
     console.warn('Could not create opportunity in backend, using local fallback', error);
-  }setShowNewOpportunityForm(false);
+  }
+
+  setOpportunities((current) => [nextOpportunity, ...current]);
+  setShowNewOpportunityForm(false);
   setNewOpportunityForm(buildOpportunityFormFromRecord());
   openOpportunityDetail(nextOpportunity.id);
 }
@@ -12507,29 +12434,22 @@ function openOpportunityDetail(opportunityId) {
           || [backendRecord?.primaryContact?.firstName, backendRecord?.primaryContact?.lastName].filter(Boolean).join(' ').trim()
           || backendRecord.primary_contact_name
           || '',
-        };
-      } catch (error) {
-        console.warn('Could not save opportunity patch to backend, using local fallback', error);
-      }
-
-      setOpportunities((prev) =>
-        prev.map((item) =>
-          item.id === opportunityId
-            ? nextRecord
-            : item
-        )
-      );
+      };
+    } catch (error) {
+      console.warn('Could not save opportunity patch to backend, using local fallback', error);
     }
 
-    async function deleteOpportunityLocal(opportunityId) {
-      try {
-        await deleteOpportunityViaApi(opportunityId);
-        const refreshed = await fetchOpportunitiesFromApi();
-        setOpportunities(refreshed);
-      } catch (error) {
-        console.warn('Could not delete opportunity from backend', error);
-        window.alert('Delete failed. The opportunity was not removed from the backend.');
-      }
+    setOpportunities((prev) =>
+      prev.map((item) =>
+        item.id === opportunityId
+          ? nextRecord
+          : item
+      )
+    );
+  }
+
+    function deleteOpportunityLocal(opportunityId) {
+      setOpportunities((prev) => prev.filter((item) => item.id !== opportunityId));
     }
 
   function goBack() {
@@ -12712,20 +12632,18 @@ function openOpportunityDetail(opportunityId) {
                                 market_segment: payload.marketSegment || selectedOpportunity.market_segment,
                                 account_name: payload.accountName || payload.account || selectedOpportunity.account_name || '',
                                 owner_full_name: payload.ownerName || payload.owner || selectedOpportunity.owner_full_name || '',
-                                estimated_square_footage: payload.estimated_square_footage ?? payload.sqft ?? selectedOpportunity.estimated_square_footage,
-                                price_per_sqft: payload.price_per_sqft ?? payload.pricePerSqft ?? selectedOpportunity.price_per_sqft,
-                                term_years: payload.term_years ?? payload.termYears ?? selectedOpportunity.term_years,
-                                total_mwdc: payload.total_mwdc ?? payload.mw ?? selectedOpportunity.total_mwdc,
+                                estimated_square_footage: Number(payload.estimated_square_footage || payload.sqft || 0),
+                                price_per_sqft: Number(payload.price_per_sqft || payload.pricePerSqft || 0.07),
+                                term_years: Number(payload.term_years || payload.termYears || 5),
+                                total_mwdc: Number(payload.total_mwdc || payload.mw || 0),
                                 capacity_basis: payload.capacity_basis || payload.basis || 'MWDC',
-                                calculated_revenue: payload.calculated_revenue ?? payload.annualRevenue ?? selectedOpportunity.calculated_revenue,
-                                amount_total: payload.amount_total ?? payload.totalEstimatedRevenue ?? selectedOpportunity.amount_total,
-                                amount_estimated: payload.amount_estimated ?? payload.totalEstimatedRevenue ?? selectedOpportunity.amount_estimated,
+                                calculated_revenue: Number(payload.calculated_revenue || payload.annualRevenue || 0),
+                                amount_total: Number(payload.amount_total || payload.totalEstimatedRevenue || 0),
+                                amount_estimated: Number(payload.amount_estimated || payload.totalEstimatedRevenue || 0),
                                 weighted_revenue: Number(payload.weighted_revenue || 0),
                               };
                               await saveOpportunityPatch(selectedOpportunity.id, patch);
-                              const refreshed = await fetchOpportunitiesFromApi();
-setOpportunities(refreshed);
-returnToOpportunitiesOverview();
+                              returnToOpportunitiesOverview();
                             }}
                           />
                     : <OpportunitiesV2
@@ -12758,30 +12676,16 @@ returnToOpportunitiesOverview();
       estimated_cts_pct: 63,
       account_name: payload.accountName || payload.account || '',
       owner_full_name: payload.ownerName || payload.owner || '',
-        estimated_square_footage: payload.estimated_square_footage ?? payload.sqft ?? selectedOpportunity.estimated_square_footage,
-        price_per_sqft: payload.price_per_sqft ?? payload.pricePerSqft ?? selectedOpportunity.price_per_sqft,
-        term_years: payload.term_years ?? payload.termYears ?? selectedOpportunity.term_years,
-        total_mwdc: payload.total_mwdc ?? payload.mw ?? selectedOpportunity.total_mwdc,
+        estimated_square_footage: Number(payload.estimated_square_footage || payload.sqft || 0),
+        price_per_sqft: Number(payload.price_per_sqft || payload.pricePerSqft || 0.07),
+        term_years: Number(payload.term_years || payload.termYears || 5),
+        total_mwdc: Number(payload.total_mwdc || payload.mw || 0),
         capacity_basis: payload.capacity_basis || payload.basis || 'MWDC',
         sqft: payload.sqft,
         pricePerSqft: payload.pricePerSqft,
         termYears: payload.termYears,
         mw: payload.mw,
         basis: payload.basis,
-          flags: payload.flags || {},
-          timeline: payload.timeline || '',
-          scanFrequency: payload.scanFrequency || '',
-          expected_close_date: payload.expected_close_date || payload.expectedCloseDate || '',
-          deal_entry_date: payload.deal_entry_date || dtNow(),
-          stage_updated_date: payload.stage_updated_date || dtNow(),
-          omDescription: payload.omDescription || '',
-          omBasis: payload.omBasis || '',
-          omAnnual: payload.omAnnual || 0,
-          omOneTime: payload.omOneTime || 0,
-          omTerm: payload.omTerm || 0,
-          omConfidence: payload.omConfidence || '',
-          omScopeClarity: payload.omScopeClarity || '',
-          omNotes: payload.omNotes || '',
       created_at: dtNow(),
       updated_at: dtNow()
     };
@@ -12792,7 +12696,13 @@ returnToOpportunitiesOverview();
       nextOpportunity = { ...fallbackRecord, ...backendOpportunity };
     } catch (error) {
       console.warn('Could not create NewDealV2 opportunity in backend, using local fallback', error);
-    }pushPath('/opportunities-v2-dashboard');
+    }
+
+    setOpportunities((current) => [nextOpportunity, ...current]);
+    
+    
+    
+    pushPath('/opportunities-v2-dashboard');
       setRoutePath('/opportunities-v2-dashboard');
       setActivePage('Opportunities & Analytics');
   }} onBack={() => { pushPath('/opportunities-v2-dashboard'); setRoutePath('/opportunities-v2-dashboard'); pushPath('/opportunities-v2-dashboard');

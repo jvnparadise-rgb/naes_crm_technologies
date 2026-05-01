@@ -11,14 +11,7 @@ function money(value) {
 }
 
 function getAmount(opp) {
-  const weighted = Number(opp?.weighted_revenue ?? 0);
-  if (weighted > 0) return weighted;
-
-  const arr = Number(opp?.arr ?? 0);
-  const annual = Number(opp?.annualRevenue ?? 0);
-  const total = Number(opp?.totalEstimatedRevenue ?? 0);
-
-  return arr || annual || total || 0;
+  return Number(opp?.weighted_revenue ?? opp?.calculated_revenue ?? opp?.amount_total ?? opp?.amount_estimated ?? 0);
 }
 
 function getRawAmount(opp) {
@@ -188,7 +181,6 @@ export default function OpportunitiesV2({ opportunities = [], onOpenOpportunity,
   const pageSize = 25;
 
   const [sortKey, setSortKey] = useState('weighted');
-
   const [sortDir, setSortDir] = useState('desc');
 
   function handleSort(key) {
@@ -199,11 +191,6 @@ export default function OpportunitiesV2({ opportunities = [], onOpenOpportunity,
       setSortDir('asc');
     }
     setPage(1);
-  }
-
-  function sortArrow(key) {
-    if (sortKey !== key) return '';
-    return sortDir === 'asc' ? ' ↑' : ' ↓';
   }
 
   const filtered = useMemo(() => {
@@ -246,27 +233,25 @@ export default function OpportunitiesV2({ opportunities = [], onOpenOpportunity,
     return false;
   }
 
-
 const sortedDeals = [...filtered].sort((a, b) => {
-  const getValue = (row) => {
-    if (sortKey === 'deal') return String(row?.name || '').toLowerCase();
-    if (sortKey === 'service') return String(row?.serviceLine || '').toLowerCase();
-    if (sortKey === 'stage') return String(row?.stage || '').toLowerCase();
-    if (sortKey === 'owner') return String(row?.owner_full_name || '').toLowerCase();
-    if (sortKey === 'close') return new Date(row?.expected_close_date || 0).getTime();
-    if (sortKey === 'raw') return Number(row?.calculated_revenue || row?.amount_total || 0);
-    if (sortKey === 'weighted') return getAmount(row);
-    return 0;
-  };
-
-  const aVal = getValue(a);
-  const bVal = getValue(b);
-
-  if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
-  if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
-  return 0;
-});
-
+    if (isAtRisk(a) && !isAtRisk(b)) return -1;
+    if (!isAtRisk(a) && isAtRisk(b)) return 1;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const getVal = (row) => {
+      if (sortKey === 'deal') return String(row.name || '').toLowerCase();
+      if (sortKey === 'service') return String(getService(row)).toLowerCase();
+      if (sortKey === 'stage') return String(getStage(row)).toLowerCase();
+      if (sortKey === 'owner') return String(getOwner(row)).toLowerCase();
+      if (sortKey === 'close') return String(row.expected_close_date || '');
+      if (sortKey === 'raw') return Number(getRawAmount(row) || 0);
+      if (sortKey === 'weighted') return Number(getAmount(row) || 0);
+      return Number(getAmount(row) || 0);
+    };
+    const aVal = getVal(a);
+    const bVal = getVal(b);
+    if (typeof aVal === 'string' || typeof bVal === 'string') return String(aVal).localeCompare(String(bVal)) * dir;
+    return (Number(aVal || 0) - Number(bVal || 0)) * dir;
+  });
   const totalPages = Math.max(1, Math.ceil(sortedDeals.length / pageSize));
   const paginatedDeals = sortedDeals.slice((page - 1) * pageSize, page * pageSize);
 

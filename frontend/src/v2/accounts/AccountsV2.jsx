@@ -59,11 +59,9 @@ function csvEscape(value) {
 }
 
 function exportAccountsCSV(rows = []) {
-  const headers = ['Account','Parent Account','Industry','Service Fit','Status','Owner','Main Phone','General Email','City','State','Website','Total MW','Potential'];
 
   const data = rows.map((account) => [
     getAccountName(account),
-    account?.parentAccount || account?.parent_account || '',
     getIndustry(account),
     getServiceFit(account),
     getStatus(account),
@@ -113,7 +111,6 @@ function mapLegacyAccountToModern(account = {}) {
   return {
     id: account.id || '',
     name: account.name || '',
-    parentAccount: account.parentAccount || account.parent_account || '',
     industry: account.industry || account.businessType || account.accountType || 'Commercial / Industrial',
     serviceLineFit: account.serviceLineFit || account.interestedServices || 'Both',
     region: account.region || account.generalFootprintRegion || '',
@@ -177,7 +174,6 @@ export function NewAccountPanel({ onCancel, onCreate, initialAccount = {}, mode 
   
 useState(() => ({
     name: '',
-    parentAccount: '',
     industry: 'Commercial / Industrial',
     serviceLineFit: 'Both',
     region: '',
@@ -231,7 +227,6 @@ useState(() => ({
       <Section title={mode === 'edit' ? 'Edit Account Intake' : 'New Account Intake'} subtitle="Structured account entry so contacts, deals, and analytics start clean.">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
           {field('Account Name', 'name')}
-          {field('Parent Account', 'parentAccount')}
           {select('Industry', 'industry', ['Commercial / Industrial', 'Renewables', 'Retail', 'Manufacturing', 'Logistics', 'Municipal / Government', 'Utility / IPP', 'Other'])}
           {select('Service Line Fit', 'serviceLineFit', ['Renewables', 'StratoSight', 'Both', 'Other O&M'])}
           {field('Region', 'region')}
@@ -345,7 +340,7 @@ function exportCSV(rows) {
   a.click();
 }
 
-export default function AccountsV2({ accounts = [], onOpenAccount, onStartNewAccount, onCreateAccount, onUpdateAccount, forceOpenNewAccount = false, onClearForceOpenNewAccount }) {
+export default function AccountsV2({ accounts = [], initialAccount = {}, onOpenAccount, onStartNewAccount, onCreateAccount, onUpdateAccount, forceOpenNewAccount = false, onClearForceOpenNewAccount }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [serviceFilter, setServiceFilter] = useState('All');
@@ -433,6 +428,8 @@ const paged = sorted.slice((page-1)*pageSize, page*pageSize);
     return (
       <AccountsV2Shell title="Add Account" subtitle="Create a new account record and connect it cleanly to contacts, deals, and ownership.">
         <NewAccountPanel
+            key={(initialAccount && initialAccount.name) || "new-account"}
+            initialAccount={initialAccount || {}}
           onCancel={() => { setShowNew(false); onClearForceOpenNewAccount?.(); }}
             onCreate={async (account) => {
               if (onCreateAccount) {
@@ -515,7 +512,7 @@ const paged = sorted.slice((page-1)*pageSize, page*pageSize);
   onClick={() => setEditingAccount(account._backend || account)}
   style={{ borderBottom: '1px solid #EEF2F7', cursor: 'pointer' }}
 >
-                  <td style={td}><strong>{getAccountName(account)}</strong><div style={{ color: '#64748b', fontSize: 11 }}>{account.parentAccount || account.parent_account || ''}</div></td>
+                  <td style={td}><strong>{getAccountName(account)}</strong></td>
                   <td style={td}>{getIndustry(account)}</td>
                   <td style={td}>{getServiceFit(account)}</td>
                   <td style={td}>{getStatus(account)}</td>

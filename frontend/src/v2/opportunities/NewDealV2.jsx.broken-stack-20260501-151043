@@ -167,40 +167,13 @@ function stageProbabilityPillStyle(probability) {
 }
 
 export default function NewDealV2({ onBack, users = [], onCreate, initialDeal = null, mode = 'create' }) {
-
-  React.useEffect(() => {
-    const scrollTopNow = () => {
-
-      // Find the deepest scrollable container
-      const scrollables = Array.from(document.querySelectorAll('*')).filter(el => {
-        try {
-          const style = getComputedStyle(el);
-          return (
-            (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
-            el.scrollHeight > el.clientHeight
-          );
-        } catch {
-          return false;
-        }
-      });
-
-      // Scroll all candidates just to be safe
-      scrollables.forEach(el => {
-        try { el.scrollTop = 0; } catch {}
-      });
-
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    };
-
-    scrollTopNow();
-    requestAnimationFrame(scrollTopNow);
-    setTimeout(scrollTopNow, 50);
-    setTimeout(scrollTopNow, 150);
-    setTimeout(scrollTopNow, 300);
-
-  }, [initialDeal?.id]);
+  const parsedBuilder = (() => {
+    try {
+      return JSON.parse(initialDeal?.notes || "{}");
+    } catch {
+      return {};
+    }
+  })();
 
   const [dealName, setDealName] = useState(initialDeal?.name || '');
   const [account, setAccount] = useState(initialDeal?.account_name || initialDeal?.accountName || initialDeal?.account || '');
@@ -208,12 +181,12 @@ export default function NewDealV2({ onBack, users = [], onCreate, initialDeal = 
   const [serviceLine, setServiceLine] = useState(initialDeal?.service_line || initialDeal?.market_segment || 'Renewables');
   const [aerialBaseRate, setAerialBaseRate] = useState(0.07);
   const [aerialMinimumFee, setAerialMinimumFee] = useState(2500);
-  const [timeline, setTimeline] = useState(initialDeal?.timeline || 'Mid-term, 3-6 months');
-  const [selectedStage, setSelectedStage] = useState('PROSPECTING');
-  const [forecastCategory, setForecastCategory] = useState('PIPELINE');
+  const [timeline, setTimeline] = useState(parsedBuilder?.timeline ?? 'Mid-term, 3-6 months');
+  const [selectedStage, setSelectedStage] = useState(initialDeal?.stage || 'PROSPECTING');
+  const [forecastCategory, setForecastCategory] = useState(initialDeal?.forecast_category || 'PIPELINE');
   const [expectedCloseDate, setExpectedCloseDate] = useState(initialDeal?.expected_close_date || initialDeal?.expectedCloseDate || '');
   const [dealEntryDate, setDealEntryDate] = useState(initialDeal?.deal_entry_date || initialDeal?.created_at || new Date().toISOString().slice(0,10));
-  const [termYears, setTermYears] = useState(initialDeal?.term_years || initialDeal?.termYears || 5);
+  const [termYears, setTermYears] = useState(parsedBuilder?.termYears ?? initialDeal?.term_years ?? 5);
 
   const [manualOverrideEnabled, setManualOverrideEnabled] = useState(false);
   const [manualAnnual, setManualAnnual] = useState('');
@@ -221,39 +194,13 @@ export default function NewDealV2({ onBack, users = [], onCreate, initialDeal = 
   const [manualWeightedTcv, setManualWeightedTcv] = useState('');
   const [manualReason, setManualReason] = useState('');
 
-  const [mw, setMw] = useState(initialDeal?.total_mwdc || initialDeal?.mw || '');
-  const [basis, setBasis] = useState(initialDeal?.capacity_basis || initialDeal?.basis || 'MWDC');
+  const [mw, setMw] = useState(parsedBuilder?.mw ?? initialDeal?.total_mwdc ?? '');
+  const [basis, setBasis] = useState(parsedBuilder?.basis ?? 'MWDC');
   const [renewablesType, setRenewablesType] = useState('Auto');
   const [siteCount, setSiteCount] = useState('');
-  const [sqft, setSqft] = useState(initialDeal?.estimated_square_footage || initialDeal?.sqft || '');
-  const [pricePerSqft, setPricePerSqft] = useState(initialDeal?.price_per_sqft || initialDeal?.pricePerSqft || '');
-  
-  React.useEffect(() => {
-    if (!initialDeal?.notes) return;
-
-    let data = {};
-    try {
-      data = JSON.parse(initialDeal.notes);
-    } catch {}
-
-    if (data.sqft) setSqft(data.sqft);
-    if (data.pricePerSqft) setPricePerSqft(data.pricePerSqft);
-    if (data.scanFrequency) setScanFrequency(data.scanFrequency);
-    if (data.timeline) setTimeline(data.timeline);
-    if (data.termYears) setTermYears(data.termYears);
-    if (data.mw) setMw(data.mw);
-    if (data.basis) setBasis(data.basis);
-
-      if (data.flags && typeof data.flags === "object") {
-        setFlags(prev => ({
-          ...prev,
-          ...data.flags
-        }));
-      }
-
-  }, [initialDeal]);
-
-  const [scanFrequency, setScanFrequency] = useState(initialDeal?.scanFrequency || 'Annual');
+  const [sqft, setSqft] = useState(parsedBuilder?.sqft ?? initialDeal?.estimated_square_footage ?? '');
+  const [pricePerSqft, setPricePerSqft] = useState(parsedBuilder?.pricePerSqft ?? initialDeal?.price_per_sqft ?? '');
+  const [scanFrequency, setScanFrequency] = useState(parsedBuilder?.scanFrequency ?? 'Annual');
 
   
   const [omDescription, setOmDescription] = useState('');
@@ -266,55 +213,24 @@ export default function NewDealV2({ onBack, users = [], onCreate, initialDeal = 
   const [omNotes, setOmNotes] = useState('');
 
 const [flags, setFlags] = useState(() => ({
-    prevailingWage: false,
-    highCostState: false,
-    unionLabor: false,
-    stringInverters: false,
-    highVoltage: false,
-    multiOem: false,
-    fullOm: false,
-    partsIncluded: false,
-    vegetation: false,
-    advancedReporting: false,
-    heavyTravel: false,
-    difficultAccess: false,
-    harshClimate: false,
-    performanceGuarantee: false,
-    noEscalation: false,
-    net90: false,
-
-    classB: false,
-    laancRequired: false,
-    waiverRequired: false,
-    nightOps: false,
-    opsOverPeople: false,
-    roofAccessRequired: false,
-    liftOrSpecialAccess: false,
-    securityClearance: false,
-    activeFacility: false,
-    fallProtection: false,
-    urbanDense: false,
-    highObstacleDensity: false,
-    limitedLineOfSight: false,
-    gpsInterference: false,
-    multiBuildingCampus: false,
-    thermalRequired: false,
-    radiometricThermal: false,
-    photogrammetry3d: false,
-    polygonSqftMapping: false,
-    engineeringReport: false,
-    aiAnomalyDetection: false,
-    multiSiteAerial: false,
-    multiRegionAerial: false,
-    sameDayDelivery: false,
-    repeatProgramEfficiency: false,
-    largeSqftEfficiency: false,
-    highInsuranceLimits: false,
-    criticalInfrastructure: false,
-    strictAcceptanceCriteria: false,
-    deadlinePenalties: false,
-    ...(initialDeal?.flags || {}),
-  }));
+  ...(parsedBuilder?.flags || {}),
+  prevailingWage: parsedBuilder?.flags?.prevailingWage ?? false,
+  highCostState: parsedBuilder?.flags?.highCostState ?? false,
+  unionLabor: parsedBuilder?.flags?.unionLabor ?? false,
+  stringInverters: parsedBuilder?.flags?.stringInverters ?? false,
+  highVoltage: parsedBuilder?.flags?.highVoltage ?? false,
+  multiOem: parsedBuilder?.flags?.multiOem ?? false,
+  fullOm: parsedBuilder?.flags?.fullOm ?? false,
+  partsIncluded: parsedBuilder?.flags?.partsIncluded ?? false,
+  vegetation: parsedBuilder?.flags?.vegetation ?? false,
+  advancedReporting: parsedBuilder?.flags?.advancedReporting ?? false,
+  heavyTravel: parsedBuilder?.flags?.heavyTravel ?? false,
+  difficultAccess: parsedBuilder?.flags?.difficultAccess ?? false,
+  harshClimate: parsedBuilder?.flags?.harshClimate ?? false,
+  performanceGuarantee: parsedBuilder?.flags?.performanceGuarantee ?? false,
+  noEscalation: parsedBuilder?.flags?.noEscalation ?? false,
+  net90: parsedBuilder?.flags?.net90 ?? false,
+}));
 
   const timelineModel = timelineImpact(timeline);
   const stageProbability = probabilityForStage(selectedStage);
@@ -426,13 +342,7 @@ const [flags, setFlags] = useState(() => ({
   };
 
   
-    
-  const safeNumber = (val, fallback = 0) => {
-    const n = Number(val);
-    return isNaN(n) ? fallback : n;
-  };
-
-  const frequencyMultiplier = scanFrequency === 'One-time' ? 1 :
+    const frequencyMultiplier = scanFrequency === 'One-time' ? 1 :
                                 scanFrequency === 'Annual' ? 1 :
                                 scanFrequency === 'Semi-Annual' ? 2 :
                                 scanFrequency === 'Quarterly' ? 4 : 1;
@@ -450,7 +360,7 @@ const baseAerial = calculateAerialInspectionDeal({
       : baseRenewables.annual.target;
   const factor = adjustmentFactor([...enabledFlags, { impact: timelineModel.impact }]);
   const suggestedAnnual = baseAnnual * factor;
-  const suggestedTcv = suggestedAnnual * safeNumber(termYears, 1);
+  const suggestedTcv = suggestedAnnual * Number(termYears || 1);
   const weightedAcv = suggestedAnnual * (stageProbability / 100);
   const weightedTcv = suggestedTcv * (stageProbability / 100);
 
@@ -699,16 +609,17 @@ const baseAerial = calculateAerialInspectionDeal({
                 const builderState = {
   sqft,
   pricePerSqft,
-  termYears,
+  scanFrequency,
   mw,
   basis,
+  termYears,
   timeline,
-  scanFrequency,
   flags
 };
 
 const payload = {
   notes: JSON.stringify(builderState),
+
                     name: String(dealName || '').trim(),
                     accountName: account,
                     ownerName: owner,

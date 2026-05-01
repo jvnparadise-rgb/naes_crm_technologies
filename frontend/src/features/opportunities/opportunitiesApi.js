@@ -9,23 +9,23 @@ function normalizeOpportunity(op) {
   return op;
 }
 
-const STORAGE_KEY = 'naes-crm-opportunities';
+// REMOVED localStorage caching
 
 export async function loadOpportunities(seed = []) {
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+  const raw = // REMOVED localStorage get(STORAGE_KEY);
   if (!raw) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-    return seed.map(normalizeOpportunity);
+    // REMOVED localStorage set(STORAGE_KEY, JSON.stringify(seed));
+    return [];
   }
 
   try {
     return JSON.parse(raw).map(normalizeOpportunity);
   } catch {
-    return seed.map(normalizeOpportunity);
+    return [];
   }
 }
 
 export async function saveAllOpportunities(opportunities) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(opportunities));
+  // REMOVED localStorage set(STORAGE_KEY, JSON.stringify(opportunities));
   return opportunities;
 }

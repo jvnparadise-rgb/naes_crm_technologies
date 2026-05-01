@@ -167,52 +167,17 @@ function stageProbabilityPillStyle(probability) {
 }
 
 export default function NewDealV2({ onBack, users = [], onCreate, initialDeal = null, mode = 'create' }) {
-
-  React.useEffect(() => {
-    const scrollTopNow = () => {
-
-      // Find the deepest scrollable container
-      const scrollables = Array.from(document.querySelectorAll('*')).filter(el => {
-        try {
-          const style = getComputedStyle(el);
-          return (
-            (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
-            el.scrollHeight > el.clientHeight
-          );
-        } catch {
-          return false;
-        }
-      });
-
-      // Scroll all candidates just to be safe
-      scrollables.forEach(el => {
-        try { el.scrollTop = 0; } catch {}
-      });
-
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    };
-
-    scrollTopNow();
-    requestAnimationFrame(scrollTopNow);
-    setTimeout(scrollTopNow, 50);
-    setTimeout(scrollTopNow, 150);
-    setTimeout(scrollTopNow, 300);
-
-  }, [initialDeal?.id]);
-
   const [dealName, setDealName] = useState(initialDeal?.name || '');
   const [account, setAccount] = useState(initialDeal?.account_name || initialDeal?.accountName || initialDeal?.account || '');
   const [owner, setOwner] = useState(initialDeal?.owner_full_name || initialDeal?.ownerName || initialDeal?.owner || 'Megan Smethurst');
   const [serviceLine, setServiceLine] = useState(initialDeal?.service_line || initialDeal?.market_segment || 'Renewables');
   const [aerialBaseRate, setAerialBaseRate] = useState(0.07);
   const [aerialMinimumFee, setAerialMinimumFee] = useState(2500);
-  const [timeline, setTimeline] = useState(initialDeal?.timeline || 'Mid-term, 3-6 months');
+  const [timeline, setTimeline] = useState('Mid-term, 3-6 months');
   const [selectedStage, setSelectedStage] = useState('PROSPECTING');
   const [forecastCategory, setForecastCategory] = useState('PIPELINE');
-  const [expectedCloseDate, setExpectedCloseDate] = useState(initialDeal?.expected_close_date || initialDeal?.expectedCloseDate || '');
-  const [dealEntryDate, setDealEntryDate] = useState(initialDeal?.deal_entry_date || initialDeal?.created_at || new Date().toISOString().slice(0,10));
+  const [expectedCloseDate, setExpectedCloseDate] = useState('');
+  const [dealEntryDate, setDealEntryDate] = useState(new Date().toISOString().slice(0,10));
   const [termYears, setTermYears] = useState(initialDeal?.term_years || initialDeal?.termYears || 5);
 
   const [manualOverrideEnabled, setManualOverrideEnabled] = useState(false);
@@ -227,33 +192,7 @@ export default function NewDealV2({ onBack, users = [], onCreate, initialDeal = 
   const [siteCount, setSiteCount] = useState('');
   const [sqft, setSqft] = useState(initialDeal?.estimated_square_footage || initialDeal?.sqft || '');
   const [pricePerSqft, setPricePerSqft] = useState(initialDeal?.price_per_sqft || initialDeal?.pricePerSqft || '');
-  
-  React.useEffect(() => {
-    if (!initialDeal?.notes) return;
-
-    let data = {};
-    try {
-      data = JSON.parse(initialDeal.notes);
-    } catch {}
-
-    if (data.sqft) setSqft(data.sqft);
-    if (data.pricePerSqft) setPricePerSqft(data.pricePerSqft);
-    if (data.scanFrequency) setScanFrequency(data.scanFrequency);
-    if (data.timeline) setTimeline(data.timeline);
-    if (data.termYears) setTermYears(data.termYears);
-    if (data.mw) setMw(data.mw);
-    if (data.basis) setBasis(data.basis);
-
-      if (data.flags && typeof data.flags === "object") {
-        setFlags(prev => ({
-          ...prev,
-          ...data.flags
-        }));
-      }
-
-  }, [initialDeal]);
-
-  const [scanFrequency, setScanFrequency] = useState(initialDeal?.scanFrequency || 'Annual');
+  const [scanFrequency, setScanFrequency] = useState('Annual');
 
   
   const [omDescription, setOmDescription] = useState('');
@@ -265,7 +204,7 @@ export default function NewDealV2({ onBack, users = [], onCreate, initialDeal = 
   const [omScopeClarity, setOmScopeClarity] = useState('Rough');
   const [omNotes, setOmNotes] = useState('');
 
-const [flags, setFlags] = useState(() => ({
+const [flags, setFlags] = useState({
     prevailingWage: false,
     highCostState: false,
     unionLabor: false,
@@ -313,8 +252,7 @@ const [flags, setFlags] = useState(() => ({
     criticalInfrastructure: false,
     strictAcceptanceCriteria: false,
     deadlinePenalties: false,
-    ...(initialDeal?.flags || {}),
-  }));
+  });
 
   const timelineModel = timelineImpact(timeline);
   const stageProbability = probabilityForStage(selectedStage);
@@ -426,13 +364,7 @@ const [flags, setFlags] = useState(() => ({
   };
 
   
-    
-  const safeNumber = (val, fallback = 0) => {
-    const n = Number(val);
-    return isNaN(n) ? fallback : n;
-  };
-
-  const frequencyMultiplier = scanFrequency === 'One-time' ? 1 :
+    const frequencyMultiplier = scanFrequency === 'One-time' ? 1 :
                                 scanFrequency === 'Annual' ? 1 :
                                 scanFrequency === 'Semi-Annual' ? 2 :
                                 scanFrequency === 'Quarterly' ? 4 : 1;
@@ -450,7 +382,7 @@ const baseAerial = calculateAerialInspectionDeal({
       : baseRenewables.annual.target;
   const factor = adjustmentFactor([...enabledFlags, { impact: timelineModel.impact }]);
   const suggestedAnnual = baseAnnual * factor;
-  const suggestedTcv = suggestedAnnual * safeNumber(termYears, 1);
+  const suggestedTcv = suggestedAnnual * Number(termYears || 1);
   const weightedAcv = suggestedAnnual * (stageProbability / 100);
   const weightedTcv = suggestedTcv * (stageProbability / 100);
 
@@ -696,19 +628,7 @@ const baseAerial = calculateAerialInspectionDeal({
                   window.alert('Deal name required');
                   return;
                 }
-                const builderState = {
-  sqft,
-  pricePerSqft,
-  termYears,
-  mw,
-  basis,
-  timeline,
-  scanFrequency,
-  flags
-};
-
-const payload = {
-  notes: JSON.stringify(builderState),
+                const payload = {
                     name: String(dealName || '').trim(),
                     accountName: account,
                     ownerName: owner,

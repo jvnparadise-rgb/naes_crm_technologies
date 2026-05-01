@@ -403,4 +403,33 @@ router.patch('/:id', async (req, res, next) => {
   }
 });
 
+
+router.delete('/:id', async (req, res, next) => {
+  try {
+    if (!requireCurrentUser(req, res)) return;
+
+    const existing = await prisma.opportunity.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ ok: false, error: 'Opportunity not found' });
+    }
+
+    if (!requireOpportunityWriteAccess(req, res, existing)) return;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.opportunityStageHistory.deleteMany({ where: { opportunityId: req.params.id } });
+      await tx.task.updateMany({ where: { opportunityId: req.params.id }, data: { opportunityId: null } });
+      await tx.activity.updateMany({ where: { opportunityId: req.params.id }, data: { opportunityId: null } });
+      await tx.opportunity.delete({ where: { id: req.params.id } });
+    });
+
+    res.json({ ok: true, deletedId: req.params.id });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 module.exports = router;

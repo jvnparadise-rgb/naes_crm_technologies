@@ -142,77 +142,14 @@ function timelineImpact(timeline) {
   }[timeline] || { impact: 0, stage: 'Solution Fit', probability: 35 };
 }
 
-function probabilityForStage(stage) {
-  return {
-    PROSPECTING: 10,
-    QUALIFIED: 25,
-    DISCOVERY: 40,
-    SOLUTION_FIT: 50,
-    COMMERCIALS: 60,
-    SECURITY_LEGAL: 75,
-    COMMIT: 90,
-    CLOSED_WON: 100,
-    CLOSED_LOST: 0,
-  }[String(stage || '').trim()] ?? 0;
-}
-
-function stageProbabilityPillStyle(probability) {
-  const p = Number(probability || 0);
-  if (p >= 90) return { background: '#E3F6EA', border: '#8CCB9B', color: '#14532D' };
-  if (p >= 60) return { background: '#EEF8E6', border: '#A8D56D', color: '#365314' };
-  if (p >= 40) return { background: '#FFF7D6', border: '#E7C94D', color: '#713F12' };
-  if (p >= 25) return { background: '#FFECCF', border: '#F2A94A', color: '#7C2D12' };
-  if (p > 0) return { background: '#FCE7F3', border: '#F0A6CF', color: '#831843' };
-  return { background: '#F1F5F9', border: '#CBD5E1', color: '#334155' };
-}
-
 export default function NewDealV2({ onBack, users = [], onCreate, initialDeal = null, mode = 'create' }) {
-
-  React.useEffect(() => {
-    const scrollTopNow = () => {
-
-      // Find the deepest scrollable container
-      const scrollables = Array.from(document.querySelectorAll('*')).filter(el => {
-        try {
-          const style = getComputedStyle(el);
-          return (
-            (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
-            el.scrollHeight > el.clientHeight
-          );
-        } catch {
-          return false;
-        }
-      });
-
-      // Scroll all candidates just to be safe
-      scrollables.forEach(el => {
-        try { el.scrollTop = 0; } catch {}
-      });
-
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    };
-
-    scrollTopNow();
-    requestAnimationFrame(scrollTopNow);
-    setTimeout(scrollTopNow, 50);
-    setTimeout(scrollTopNow, 150);
-    setTimeout(scrollTopNow, 300);
-
-  }, [initialDeal?.id]);
-
   const [dealName, setDealName] = useState(initialDeal?.name || '');
   const [account, setAccount] = useState(initialDeal?.account_name || initialDeal?.accountName || initialDeal?.account || '');
   const [owner, setOwner] = useState(initialDeal?.owner_full_name || initialDeal?.ownerName || initialDeal?.owner || 'Megan Smethurst');
   const [serviceLine, setServiceLine] = useState(initialDeal?.service_line || initialDeal?.market_segment || 'Renewables');
   const [aerialBaseRate, setAerialBaseRate] = useState(0.07);
   const [aerialMinimumFee, setAerialMinimumFee] = useState(2500);
-  const [timeline, setTimeline] = useState(initialDeal?.timeline || 'Mid-term, 3-6 months');
-  const [selectedStage, setSelectedStage] = useState('PROSPECTING');
-  const [forecastCategory, setForecastCategory] = useState('PIPELINE');
-  const [expectedCloseDate, setExpectedCloseDate] = useState(initialDeal?.expected_close_date || initialDeal?.expectedCloseDate || '');
-  const [dealEntryDate, setDealEntryDate] = useState(initialDeal?.deal_entry_date || initialDeal?.created_at || new Date().toISOString().slice(0,10));
+  const [timeline, setTimeline] = useState('Mid-term, 3-6 months');
   const [termYears, setTermYears] = useState(initialDeal?.term_years || initialDeal?.termYears || 5);
 
   const [manualOverrideEnabled, setManualOverrideEnabled] = useState(false);
@@ -227,33 +164,7 @@ export default function NewDealV2({ onBack, users = [], onCreate, initialDeal = 
   const [siteCount, setSiteCount] = useState('');
   const [sqft, setSqft] = useState(initialDeal?.estimated_square_footage || initialDeal?.sqft || '');
   const [pricePerSqft, setPricePerSqft] = useState(initialDeal?.price_per_sqft || initialDeal?.pricePerSqft || '');
-  
-  React.useEffect(() => {
-    if (!initialDeal?.notes) return;
-
-    let data = {};
-    try {
-      data = JSON.parse(initialDeal.notes);
-    } catch {}
-
-    if (data.sqft) setSqft(data.sqft);
-    if (data.pricePerSqft) setPricePerSqft(data.pricePerSqft);
-    if (data.scanFrequency) setScanFrequency(data.scanFrequency);
-    if (data.timeline) setTimeline(data.timeline);
-    if (data.termYears) setTermYears(data.termYears);
-    if (data.mw) setMw(data.mw);
-    if (data.basis) setBasis(data.basis);
-
-      if (data.flags && typeof data.flags === "object") {
-        setFlags(prev => ({
-          ...prev,
-          ...data.flags
-        }));
-      }
-
-  }, [initialDeal]);
-
-  const [scanFrequency, setScanFrequency] = useState(initialDeal?.scanFrequency || 'Annual');
+  const [scanFrequency, setScanFrequency] = useState('Annual');
 
   
   const [omDescription, setOmDescription] = useState('');
@@ -265,7 +176,7 @@ export default function NewDealV2({ onBack, users = [], onCreate, initialDeal = 
   const [omScopeClarity, setOmScopeClarity] = useState('Rough');
   const [omNotes, setOmNotes] = useState('');
 
-const [flags, setFlags] = useState(() => ({
+const [flags, setFlags] = useState({
     prevailingWage: false,
     highCostState: false,
     unionLabor: false,
@@ -313,11 +224,9 @@ const [flags, setFlags] = useState(() => ({
     criticalInfrastructure: false,
     strictAcceptanceCriteria: false,
     deadlinePenalties: false,
-    ...(initialDeal?.flags || {}),
-  }));
+  });
 
   const timelineModel = timelineImpact(timeline);
-  const stageProbability = probabilityForStage(selectedStage);
 
   const flagDefs = [
 
@@ -376,7 +285,6 @@ const [flags, setFlags] = useState(() => ({
   ];
 
   const enabledFlags = flagDefs.filter((item) => flags[item.key]);
-
   const baseRenewables = calculateRenewables({ mw, basis, type: renewablesType, termYears, stage: timelineModel.stage });
   const baseStrato = calculateStratoSight({ sqft, pricePerSqft, termYears, stage: timelineModel.stage });
 
@@ -426,13 +334,7 @@ const [flags, setFlags] = useState(() => ({
   };
 
   
-    
-  const safeNumber = (val, fallback = 0) => {
-    const n = Number(val);
-    return isNaN(n) ? fallback : n;
-  };
-
-  const frequencyMultiplier = scanFrequency === 'One-time' ? 1 :
+    const frequencyMultiplier = scanFrequency === 'One-time' ? 1 :
                                 scanFrequency === 'Annual' ? 1 :
                                 scanFrequency === 'Semi-Annual' ? 2 :
                                 scanFrequency === 'Quarterly' ? 4 : 1;
@@ -450,9 +352,9 @@ const baseAerial = calculateAerialInspectionDeal({
       : baseRenewables.annual.target;
   const factor = adjustmentFactor([...enabledFlags, { impact: timelineModel.impact }]);
   const suggestedAnnual = baseAnnual * factor;
-  const suggestedTcv = suggestedAnnual * safeNumber(termYears, 1);
-  const weightedAcv = suggestedAnnual * (stageProbability / 100);
-  const weightedTcv = suggestedTcv * (stageProbability / 100);
+  const suggestedTcv = suggestedAnnual * Number(termYears || 1);
+  const weightedAcv = suggestedAnnual * (timelineModel.probability / 100);
+  const weightedTcv = suggestedTcv * (timelineModel.probability / 100);
 
   const effectiveAnnual = manualOverrideEnabled && manualAnnual !== '' ? Number(manualAnnual || 0) : suggestedAnnual;
   const effectiveTcv = manualOverrideEnabled && manualTcv !== '' ? Number(manualTcv || 0) : suggestedTcv;
@@ -510,34 +412,6 @@ const baseAerial = calculateAerialInspectionDeal({
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.65fr) minmax(360px, 0.85fr)', gap: 16 }}>
         <div style={{ display: 'grid', gap: 16 }}>
-            <Card title="Deal Control" subtitle="Stage, forecast, and dates">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-                <Field label="Deal Entry Date"><Input value={dealEntryDate} onChange={setDealEntryDate} type="date" /></Field>
-                <Field label="Expected Close Date"><Input value={expectedCloseDate} onChange={setExpectedCloseDate} type="date" /></Field>
-                <Field label="Stage"><Select value={selectedStage} onChange={setSelectedStage} options={['PROSPECTING','QUALIFIED','DISCOVERY','SOLUTION_FIT','COMMERCIALS','SECURITY_LEGAL','COMMIT','CLOSED_WON','CLOSED_LOST']} /></Field>
-                <Field label="Forecast"><Select value={forecastCategory} onChange={setForecastCategory} options={['PIPELINE','BEST_CASE','COMMIT','CLOSED','OMITTED']} /></Field>
-                <Field label="Stage Probability">
-                  <div
-                    style={{
-                      ...stageProbabilityPillStyle(stageProbability),
-                      border: `1px solid ${stageProbabilityPillStyle(stageProbability).border}`,
-                      borderRadius: 999,
-                      padding: '10px 14px',
-                      fontSize: 14,
-                      fontWeight: 950,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 'fit-content',
-                      minWidth: 92,
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55)'
-                    }}
-                  >
-                    {stageProbability}% Stage Weighted
-                  </div>
-                </Field>
-              </div>
-            </Card>
           <Card title="Deal Intent" subtitle="This drives stage suggestion, urgency, and forecast probability.">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
               <Field label="Deal Name"><Input value={dealName} onChange={setDealName} /></Field>
@@ -672,7 +546,7 @@ const baseAerial = calculateAerialInspectionDeal({
               <Metric label="Adjustment Factor" value={`${((factor - 1) * 100).toFixed(1)}%`} sub={`${enabledFlags.length} selected drivers + timeline`} />
               <Metric label="Suggested Annual" value={money(effectiveAnnual)} tone="green" />
               <Metric label="Suggested TCV" value={money(effectiveTcv)} sub={`${termYears} year term`} />
-              <Metric label="Controlled Stage" value={selectedStage} sub={`${stageProbability}% probability`} />
+              <Metric label="Stage Suggested" value={timelineModel.stage} sub={`${timelineModel.probability}% probability`} />
               <Metric label="Weighted TCV" value={money(effectiveWeightedTcv)} tone="green" />
             </div>
           </Card>
@@ -696,61 +570,46 @@ const baseAerial = calculateAerialInspectionDeal({
                   window.alert('Deal name required');
                   return;
                 }
-                const builderState = {
-  sqft,
-  pricePerSqft,
-  termYears,
-  mw,
-  basis,
-  timeline,
-  scanFrequency,
-  flags
-};
-
-const payload = {
-  notes: JSON.stringify(builderState),
-                    name: String(dealName || '').trim(),
-                    accountName: account,
-                    ownerName: owner,
-                    serviceLine,
-
-                    // CORE CRM
-                    stage: selectedStage,
-                    forecastCategory,
-                    forecastProbability: Number(stageProbability || 0),
-                    expected_close_date: expectedCloseDate || '',
-                    deal_entry_date: dealEntryDate,
-
-                    // FINANCIALS
-                    annualRevenue: Number(effectiveAnnual || 0),
-                    totalEstimatedRevenue: Number(effectiveTcv || 0),
-                    weighted_revenue: Number(effectiveWeightedTcv || 0),
-
-                    // PHYSICAL
-                    sqft,
-                    pricePerSqft,
-                    termYears,
-                    mw,
-                    basis,
-
-                    // MODEL INPUTS
-                    timeline,
-                    scanFrequency,
-                    flags,
-
-                    // OM
-                    omDescription,
-                    omBasis,
-                    omAnnual,
-                    omOneTime,
-                    omTerm,
-                    omConfidence,
-                    omScopeClarity,
-                    omNotes,
-
-                    // SYSTEM
-                    updated_at: new Date().toISOString()
-                  };
+                const payload = {
+                  name: String(dealName || '').trim(),
+                  serviceLine,
+                  marketSegment: serviceLine,
+                  opportunityType: 'New Customer',
+                  stage: timelineModel.stage === 'Commit' ? 'CLOSED_WON' : 'PROSPECTING',
+                  forecastCategory: timelineModel.probability >= 70 ? 'BEST_CASE' : 'PIPELINE',
+                  forecastProbability: Number(timelineModel.probability || 50),
+                  annualRevenue: String(Math.round(effectiveAnnual || 0)),
+                  arr: String(Math.round(effectiveAnnual || 0)),
+                  totalEstimatedRevenue: String(Math.round(effectiveTcv || 0)),
+                  accountName: account,
+                  ownerName: owner,
+                  estimated_square_footage: Number(sqft || 0),
+                  price_per_sqft: Number(pricePerSqft || 0),
+                  term_years: Number(termYears || 1),
+                  total_mwdc: Number(mw || 0),
+                  capacity_basis: basis,
+                  sqft,
+                  pricePerSqft,
+                  termYears,
+                  mw,
+                  basis,
+                  calculated_revenue: Number(effectiveAnnual || 0),
+                  amount_total: Number(effectiveTcv || 0),
+                  amount_estimated: Number(effectiveTcv || 0),
+                  weighted_revenue: Number(effectiveWeightedTcv || 0),
+                  notes: [
+                    'Created from New Deal Builder',
+                    `Account: ${account || 'Unlinked'}`,
+                    `Owner: ${owner || 'Unassigned'}`,
+                    `Service Line: ${serviceLine}`,
+                    `Base Annual: ${Math.round(baseAnnual || 0)}`,
+                    `Suggested Annual: ${Math.round(effectiveAnnual || 0)}`,
+                    `Suggested TCV: ${Math.round(effectiveTcv || 0)}`,
+                    `Weighted TCV: ${Math.round(effectiveWeightedTcv || 0)}`,
+                    `Manual Override: ${manualOverrideEnabled ? 'Yes' : 'No'}`,
+                    manualOverrideEnabled ? `Override Reason: ${manualReason || 'n/a'}` : ''
+                  ].filter(Boolean).join('\n')
+                };
                 await onCreate?.(payload, payload);
               }}
             style={{ border: 0, borderRadius: 16, background: '#0B6771', color: '#fff', padding: '14px 16px', fontWeight: 950, fontSize: 14, cursor: 'pointer' }}

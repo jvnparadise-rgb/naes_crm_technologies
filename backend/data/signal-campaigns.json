@@ -1,0 +1,766 @@
+{
+  "campaigns": [
+    {
+      "id": "camp_1777503911979_7yu7i7",
+      "name": "Stormy's Test",
+      "segment": "General",
+      "status": "draft",
+      "sequence": [],
+      "template": {
+        "subject": "Quick question for {{company}}",
+        "body": "Hi {{first_name}},\n\nBased on {{signal_insight}}, NAES may be able to help with {{service_fit}}.\n\nWould it make sense to compare notes?\n"
+      },
+      "contacts": [],
+      "created_at": "2026-04-29T23:05:11.979Z",
+      "updated_at": "2026-04-29T23:05:11.979Z"
+    },
+    {
+      "id": "camp_1777480427345_bm9qdk",
+      "name": "Signal Pilot Campaign",
+      "segment": "Apollo Priority Prospects",
+      "status": "draft",
+      "sequence": [],
+      "template": {
+        "subject": "Quick question for {{company}}",
+        "body": "Hi {{first_name}},\n\nBased on {{signal_insight}}, NAES may be able to help with {{service_fit}}.\n\nWould it make sense to compare notes?\n"
+      },
+      "contacts": [
+        {
+          "id": "contact_1777503965607_pywju0",
+          "first_name": "Jeff",
+          "last_name": "Yarbrough",
+          "name": "Jeff Yarbrough",
+          "title": "Live Test",
+          "email": "jvnparadise@gmail.com",
+          "company": "NAES",
+          "service_fit": "Renewables",
+          "signal_insight": "Live SES test send",
+          "source": "Manual Test",
+          "status": "selected",
+          "added_at": "2026-04-29T23:06:05.607Z"
+        }
+      ],
+      "created_at": "2026-04-29T16:33:47.345Z",
+      "updated_at": "2026-04-29T23:07:47.374Z",
+      "last_send_mode": "safe",
+      "last_send_preview_at": "2026-04-29T23:07:47.374Z"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_1777505106566_g764ut",
+      "event_type": "clicked",
+      "message_id": "msg_1777504983229_zaqyjm",
+      "payload": {
+        "url": "https://www.naes.com"
+      },
+      "source": "tracking-click",
+      "created_at": "2026-04-29T23:25:06.566Z"
+    },
+    {
+      "id": "evt_1777505100873_7me1q2",
+      "event_type": "clicked",
+      "message_id": "msg_1777504983229_zaqyjm",
+      "payload": {
+        "url": "https://www.naes.com"
+      },
+      "source": "tracking-click",
+      "created_at": "2026-04-29T23:25:00.873Z"
+    },
+    {
+      "id": "evt_1777505011878_cy2fxf",
+      "event_type": "opened",
+      "message_id": "msg_1777504983229_zaqyjm",
+      "source": "tracking-pixel",
+      "created_at": "2026-04-29T23:23:31.874Z"
+    },
+    {
+      "id": "evt_1777504983351_8kyw6m",
+      "event_type": "sent",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "jvnparadise@gmail.com",
+      "message_id": "msg_1777504983229_zaqyjm",
+      "source": "signal-ses",
+      "created_at": "2026-04-29T23:23:03.351Z"
+    },
+    {
+      "id": "evt_1777504282495_16i2x4",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777504282384_s2e2gh",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504282384_s2e2gh&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504282384_s2e2gh\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504282384_s2e2gh",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504282384_s2e2gh&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777504282384_s2e2gh",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T23:11:22.495Z"
+    },
+    {
+      "id": "evt_1777504282493_ww38gm",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "jvnparadise@gmail.com",
+      "message_id": "msg_1777504282384_36xx14",
+      "payload": {
+        "to": "jvnparadise@gmail.com",
+        "subject": "Quick question for NAES",
+        "body": "Hi Jeff,\n\nBased on Live SES test send, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Jeff,<br /><br />Based on Live SES test send, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504282384_36xx14&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504282384_36xx14\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504282384_36xx14",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504282384_36xx14&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777504282384_36xx14",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T23:11:22.493Z"
+    },
+    {
+      "id": "evt_1777504277158_rp3vtt",
+      "event_type": "preview_generated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "jvnparadise@gmail.com",
+      "message_id": "msg_1777504276848_tazy3m",
+      "payload": {
+        "to": "jvnparadise@gmail.com",
+        "subject": "Quick question for NAES",
+        "body": "Hi Jeff,\n\nBased on Live SES test send, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Jeff,<br /><br />Based on Live SES test send, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504276848_tazy3m&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504276848_tazy3m\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504276848_tazy3m",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504276848_tazy3m&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777504276848_tazy3m"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T23:11:17.158Z"
+    },
+    {
+      "id": "evt_1777504276954_ptdv49",
+      "event_type": "preview_generated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777504276848_f4xpxw",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504276848_f4xpxw&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504276848_f4xpxw\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504276848_f4xpxw",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504276848_f4xpxw&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777504276848_f4xpxw"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T23:11:16.954Z"
+    },
+    {
+      "id": "evt_1777504067374_db1r24",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "contact_1777503965607_pywju0",
+      "message_id": "msg_1777504067374_rfen86",
+      "payload": {
+        "to": "jvnparadise@gmail.com",
+        "subject": "Quick question for NAES",
+        "body": "Hi Jeff,\n\nBased on Live SES test send, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Jeff,<br /><br />Based on Live SES test send, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504067374_rfen86&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504067374_rfen86\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504067374_rfen86",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504067374_rfen86&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777504067374_rfen86",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-send-engine",
+      "created_at": "2026-04-29T23:07:47.374Z"
+    },
+    {
+      "id": "evt_1777504067374_ilqgzy",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "contact_1777480427431_re2igs",
+      "message_id": "msg_1777504067374_t89xxq",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504067374_t89xxq&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504067374_t89xxq\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504067374_t89xxq",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504067374_t89xxq&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777504067374_t89xxq",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-send-engine",
+      "created_at": "2026-04-29T23:07:47.374Z"
+    },
+    {
+      "id": "evt_1777504046814_ep2h7d",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "contact_1777503965607_pywju0",
+      "message_id": "msg_1777504046814_dafa1l",
+      "payload": {
+        "to": "jvnparadise@gmail.com",
+        "subject": "Quick question for NAES",
+        "body": "Hi Jeff,\n\nBased on Live SES test send, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Jeff,<br /><br />Based on Live SES test send, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504046814_dafa1l&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504046814_dafa1l\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504046814_dafa1l",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504046814_dafa1l&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777504046814_dafa1l",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-send-engine",
+      "created_at": "2026-04-29T23:07:26.813Z"
+    },
+    {
+      "id": "evt_1777504046814_gm9bha",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "contact_1777480427431_re2igs",
+      "message_id": "msg_1777504046814_qs9ys4",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504046814_qs9ys4&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504046814_qs9ys4\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777504046814_qs9ys4",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777504046814_qs9ys4&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777504046814_qs9ys4",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-send-engine",
+      "created_at": "2026-04-29T23:07:26.813Z"
+    },
+    {
+      "id": "evt_1777503580023_v1h12m",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777503579893_rl6c92",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777503579893_rl6c92&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777503579893_rl6c92\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777503579893_rl6c92",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777503579893_rl6c92&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777503579893_rl6c92",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T22:59:40.023Z"
+    },
+    {
+      "id": "evt_1777503569765_8w7sc4",
+      "event_type": "preview_generated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777503569645_ixq29b",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777503569645_ixq29b&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777503569645_ixq29b\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777503569645_ixq29b",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777503569645_ixq29b&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777503569645_ixq29b"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T22:59:29.765Z"
+    },
+    {
+      "id": "evt_1777503055071_8l1381",
+      "event_type": "preview_generated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777503054871_lmxg0d",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777503054871_lmxg0d&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777503054871_lmxg0d\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777503054871_lmxg0d",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777503054871_lmxg0d&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777503054871_lmxg0d"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T22:50:55.071Z"
+    },
+    {
+      "id": "evt_1777500139654_ezus1v",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "contact_1777480427431_re2igs",
+      "message_id": "msg_1777500139654_2b991g",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777500139654_2b991g&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777500139654_2b991g\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777500139654_2b991g",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777500139654_2b991g&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777500139654_2b991g",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-send-engine",
+      "created_at": "2026-04-29T22:02:19.654Z"
+    },
+    {
+      "id": "evt_1777500132003_v618i4",
+      "event_type": "preview_generated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777500131891_h1y8pb",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777500131891_h1y8pb&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777500131891_h1y8pb\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777500131891_h1y8pb",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777500131891_h1y8pb&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777500131891_h1y8pb"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T22:02:12.003Z"
+    },
+    {
+      "id": "evt_1777499401063_xqlvdh",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "contact_1777480427431_re2igs",
+      "message_id": "msg_1777499401063_pih8qb",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777499401063_pih8qb&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777499401063_pih8qb\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777499401063_pih8qb",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "https://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777499401063_pih8qb&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777499401063_pih8qb",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-send-engine",
+      "created_at": "2026-04-29T21:50:01.063Z"
+    },
+    {
+      "id": "evt_1777491612833_hjpkz8",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "contact_1777480427431_re2igs",
+      "message_id": "msg_1777491612833_idec8x",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491612833_idec8x&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491612833_idec8x\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491612833_idec8x",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491612833_idec8x&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777491612833_idec8x",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-send-engine",
+      "created_at": "2026-04-29T19:40:12.833Z"
+    },
+    {
+      "id": "evt_1777491609259_1rgb1b",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777491609133_vdibqn",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491609133_vdibqn&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491609133_vdibqn\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491609133_vdibqn",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491609133_vdibqn&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777491609133_vdibqn",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T19:40:09.259Z"
+    },
+    {
+      "id": "evt_1777491607648_qrbvrv",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777491607537_wjj1vc",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491607537_wjj1vc&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491607537_wjj1vc\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491607537_wjj1vc",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491607537_wjj1vc&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777491607537_wjj1vc",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T19:40:07.648Z"
+    },
+    {
+      "id": "evt_1777491605432_ebgksb",
+      "event_type": "preview_generated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777491605300_ksukn3",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491605300_ksukn3&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491605300_ksukn3\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491605300_ksukn3",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491605300_ksukn3&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777491605300_ksukn3"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T19:40:05.432Z"
+    },
+    {
+      "id": "evt_1777491307760_f5k2r7",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "contact_1777480427431_re2igs",
+      "message_id": "msg_1777491307760_usch8z",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491307760_usch8z&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491307760_usch8z\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491307760_usch8z",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491307760_usch8z&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777491307760_usch8z",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-send-engine",
+      "created_at": "2026-04-29T19:35:07.759Z"
+    },
+    {
+      "id": "evt_1777491115604_t4i2ve",
+      "event_type": "preview_generated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777491115494_npct8m",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491115494_npct8m&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491115494_npct8m\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777491115494_npct8m",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777491115494_npct8m&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777491115494_npct8m"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T19:31:55.604Z"
+    },
+    {
+      "id": "evt_1777488951574_bb9nl4",
+      "event_type": "bounced",
+      "campaign_id": null,
+      "contact_id": "jvnparadise@gmail.com",
+      "message_id": null,
+      "payload": {
+        "email": "jvnparadise@gmail.com",
+        "reason": "Test3"
+      },
+      "source": "signal-ui-simulator",
+      "created_at": "2026-04-29T18:55:51.574Z"
+    },
+    {
+      "id": "evt_1777487864867_qf1vtp",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "contact_1777480427431_re2igs",
+      "message_id": "msg_1777487864866_gs9m7n",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "body_html": "Hi Test,<br /><br />Based on Large portfolio fit, NAES may be able to help with Renewables.<br /><br />Would it make sense to compare notes?<br /><br /><p><a href=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777487864866_gs9m7n&url=https%3A%2F%2Fwww.naes.com\" target=\"_blank\" rel=\"noopener noreferrer\">Learn more</a></p><br /><img src=\"http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777487864866_gs9m7n\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+        "open_pixel_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/open?mid=msg_1777487864866_gs9m7n",
+        "tracked_links": [
+          {
+            "label": "Learn more",
+            "url": "https://www.naes.com",
+            "click_url": "http://www.naestechnologiescrm.com/api/signal/campaigns/track/click?mid=msg_1777487864866_gs9m7n&url=https%3A%2F%2Fwww.naes.com"
+          }
+        ],
+        "message_id": "msg_1777487864866_gs9m7n",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-send-engine",
+      "created_at": "2026-04-29T18:37:44.866Z"
+    },
+    {
+      "id": "evt_1777486660451_3zy8u3",
+      "event_type": "clicked",
+      "message_id": "test123",
+      "payload": {
+        "url": "https://example.com"
+      },
+      "source": "tracking-click",
+      "created_at": "2026-04-29T18:17:40.451Z"
+    },
+    {
+      "id": "evt_1777486660435_zysanv",
+      "event_type": "opened",
+      "message_id": "test123",
+      "source": "tracking-pixel",
+      "created_at": "2026-04-29T18:17:40.431Z"
+    },
+    {
+      "id": "evt_1777485467687_7zdycs",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777485467574",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "message_id": "msg_1777485467574",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T17:57:47.687Z"
+    },
+    {
+      "id": "evt_1777485113852_ho5npr",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "contact_1777480427431_re2igs",
+      "message_id": "msg_1777485113852_3mn3zl",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "message_id": "msg_1777485113852_3mn3zl",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-send-engine",
+      "created_at": "2026-04-29T17:51:53.852Z"
+    },
+    {
+      "id": "evt_1777484939356_d7ryrh",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "contact_1777480427431_re2igs",
+      "message_id": "msg_1777484939355_u2don3",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "message_id": "msg_1777484939355_u2don3",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-send-engine",
+      "created_at": "2026-04-29T17:48:59.355Z"
+    },
+    {
+      "id": "evt_1777483414947_44ou1k",
+      "event_type": "sent_simulated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777483414833",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "message_id": "msg_1777483414833",
+        "mode": "safe_simulation",
+        "delivery_status": "not_sent"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T17:23:34.947Z"
+    },
+    {
+      "id": "evt_1777483044038_0jyjxo",
+      "event_type": "preview_generated",
+      "campaign_id": "camp_1777480427345_bm9qdk",
+      "contact_id": "test.signal@example.com",
+      "message_id": "msg_1777483043928",
+      "payload": {
+        "to": "test.signal@example.com",
+        "subject": "Quick question for Example Energy",
+        "body": "Hi Test,\n\nBased on Large portfolio fit, NAES may be able to help with Renewables.\n\nWould it make sense to compare notes?\n",
+        "message_id": "msg_1777483043928"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T17:17:24.038Z"
+    },
+    {
+      "id": "evt_1777482583692_bz7333",
+      "event_type": "preview_generated",
+      "campaign_id": "test_campaign",
+      "contact_id": "test_contact",
+      "message_id": "test_message",
+      "payload": {
+        "mode": "safe"
+      },
+      "source": "signal-ui",
+      "created_at": "2026-04-29T17:09:43.692Z"
+    }
+  ],
+  "suppressions": [
+    {
+      "id": "sup_1777488536885_d7nf5l",
+      "email": "jvnparadise@gmail.com",
+      "type": "bounced",
+      "reason": "Test3",
+      "source": "signal-ui-simulator",
+      "active": false,
+      "created_at": "2026-04-29T18:48:56.885Z",
+      "updated_at": "2026-04-29T19:07:12.100Z"
+    },
+    {
+      "id": "sup_1777488104708_rrsbwt",
+      "email": "test.signal@example.com",
+      "type": "manual",
+      "reason": "safe test suppression",
+      "source": "signal-ui",
+      "active": false,
+      "created_at": "2026-04-29T18:41:44.703Z",
+      "updated_at": "2026-04-29T18:41:44.880Z"
+    }
+  ]
+}

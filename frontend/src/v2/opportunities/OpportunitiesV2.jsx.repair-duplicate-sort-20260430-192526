@@ -11,14 +11,7 @@ function money(value) {
 }
 
 function getAmount(opp) {
-  const weighted = Number(opp?.weighted_revenue ?? 0);
-  if (weighted > 0) return weighted;
-
-  const arr = Number(opp?.arr ?? 0);
-  const annual = Number(opp?.annualRevenue ?? 0);
-  const total = Number(opp?.totalEstimatedRevenue ?? 0);
-
-  return arr || annual || total || 0;
+  return Number(opp?.weighted_revenue ?? opp?.calculated_revenue ?? opp?.amount_total ?? opp?.amount_estimated ?? 0);
 }
 
 function getRawAmount(opp) {
@@ -189,6 +182,20 @@ export default function OpportunitiesV2({ opportunities = [], onOpenOpportunity,
 
   const [sortKey, setSortKey] = useState('weighted');
 
+const handleSort = (key) => {
+  if (sortKey === key) {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  } else {
+    setSortKey(key);
+    setSortDirection('desc');
+  }
+};
+
+const sortArrow = (key) => {
+  if (sortKey !== key) return '';
+  return sortDirection === 'asc' ? ' ↑' : ' ↓';
+};
+const [sortDirection, setSortDirection] = useState('desc');
   const [sortDir, setSortDir] = useState('desc');
 
   function handleSort(key) {
@@ -199,11 +206,6 @@ export default function OpportunitiesV2({ opportunities = [], onOpenOpportunity,
       setSortDir('asc');
     }
     setPage(1);
-  }
-
-  function sortArrow(key) {
-    if (sortKey !== key) return '';
-    return sortDir === 'asc' ? ' ↑' : ' ↓';
   }
 
   const filtered = useMemo(() => {
@@ -255,15 +257,15 @@ const sortedDeals = [...filtered].sort((a, b) => {
     if (sortKey === 'owner') return String(row?.owner_full_name || '').toLowerCase();
     if (sortKey === 'close') return new Date(row?.expected_close_date || 0).getTime();
     if (sortKey === 'raw') return Number(row?.calculated_revenue || row?.amount_total || 0);
-    if (sortKey === 'weighted') return getAmount(row);
+    if (sortKey === 'weighted') return Number(row?.weighted_revenue || 0);
     return 0;
   };
 
   const aVal = getValue(a);
   const bVal = getValue(b);
 
-  if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
-  if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+  if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+  if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
   return 0;
 });
 

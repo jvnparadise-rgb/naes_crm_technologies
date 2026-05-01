@@ -235,6 +235,9 @@ model Opportunity {
   activities            Activity[]
 
   @@map("opportunities")
+
+  startDate DateTime?
+  endDate   DateTime?
 }
 
 model OpportunityStageHistory {
