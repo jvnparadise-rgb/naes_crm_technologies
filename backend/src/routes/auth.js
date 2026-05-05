@@ -23,6 +23,17 @@ router.get('/me', async (req, res) => {
   });
 });
 
+router.post('/logout', (req, res) => {
+  res.clearCookie('naes_crm_session', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'None',
+    path: '/',
+  });
+
+  return res.json({ ok: true });
+});
+
 router.post('/cognito/exchange', express.json(), async (req, res, next) => {
   try {
     const code = String(req.body?.code || '').trim();

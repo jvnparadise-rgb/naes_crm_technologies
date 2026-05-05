@@ -1,3 +1,15 @@
+
+  async function handleLogout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {}
+
+    localStorage.clear();
+    sessionStorage.clear();
+
+    window.location.href = '/';
+  }
+
 export default function UserPlacard({
   name = 'Jeff Yarbrough',
   title = 'VP of Operations',

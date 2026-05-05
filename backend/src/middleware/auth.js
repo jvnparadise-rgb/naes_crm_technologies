@@ -22,15 +22,10 @@ async function attachCurrentUser(req, _res, next) {
       }
     }
 
-    if (!resolvedUserId) {
-      // DEV FORCE USER
-req.currentUser = {
-  id: "cmolsq82s0000ij02fp8g2zfj",
-  email: "jeff.yarbrough@naes.com",
-  role: "ADMIN"
-};
-      return next();
-    }
+      if (!resolvedUserId) {
+        req.currentUser = null;
+        return next();
+      }
 
     const user = await prisma.user.findUnique({
       where: { id: resolvedUserId },

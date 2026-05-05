@@ -81,7 +81,7 @@ const sidebarSections = [
   },
   {
     title: 'Admin',
-    items: ['Settings', 'User Accounts']
+    items: ['Settings', 'User Accounts', 'Logout']
   }
 ];
 
@@ -9356,6 +9356,24 @@ export default function App() {
   }, []);
 
   const [activePage, setActivePage] = useState('Welcome');
+
+  async function handleLogout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (_error) {}
+
+    try {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    } catch (_error) {}
+
+    const cognitoLogoutUrl =
+      'https://auth.naestechnologiescrm.com/logout' +
+      '?client_id=vkj3d1jc939nseosicn5v6phl' +
+      '&logout_uri=' + encodeURIComponent('https://www.naestechnologiescrm.com/');
+
+    window.location.href = cognitoLogoutUrl;
+  }
   const [signalOutreachTab, setSignalOutreachTab] = useState('Dashboard');
   const [signalSearchTerm, setSignalSearchTerm] = useState('');
   const [signalRegionFilter, setSignalRegionFilter] = useState('All');
@@ -10453,7 +10471,7 @@ const signalExecutiveChartCard = {
 
     function buildBackendHeaders(devUserId, extraHeaders = {}) {
       return {
-        'x-dev-user-id': 'cmolsq82s0000ij02fp8g2zfj',
+        'REMOVED_DEV_HEADER': 'cmolsq82s0000ij02fp8g2zfj',
         ...extraHeaders,
       };
     }
@@ -11381,6 +11399,7 @@ async function updateAccountViaApi(accountId, form = {}) {
 
   const visibleSidebarSections = useMemo(() => {
     const allowed = new Set(getAllowedPagesForRole(effectiveUserRole));
+    allowed.add('Logout');
     return sidebarSections
       .map((section) => ({
         ...section,
@@ -12624,7 +12643,7 @@ function openOpportunityDetail(opportunityId) {
                                   </span>
                                 </span>
                               ) : item}
-                          onClick={() => navigate(item)}
+                          onClick={() => item === 'Logout' ? handleLogout() : navigate(item)}
                           style={{
                             display: 'flex',
                             justifyContent: 'space-between',
